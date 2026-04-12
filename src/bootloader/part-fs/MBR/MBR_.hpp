@@ -1,4 +1,0 @@
-#ifndef __bootloader_part_fs_MBR_MBR__hpp
-#define __bootloader_part_fs_MBR_MBR__hpp
-class DISK_PART;
-#endif

@@ -1,1 +1,0 @@
-#include $(MK_DIR)x86_64.mk
