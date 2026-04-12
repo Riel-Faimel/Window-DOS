@@ -1,9 +1,9 @@
 .*
 build
 gcm.cache
-disk.vhd
+*.vhd
 *.map
-output.txt
-t02.exe
-boot.img
+*.txt
+*.exe
+*.img
 module_32
