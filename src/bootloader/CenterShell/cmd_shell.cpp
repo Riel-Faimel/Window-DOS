@@ -206,7 +206,7 @@ void cmd_disk(String args){
 
 void cmd_say(String args){
     if(args.substr(0, 7) == "memory " || args.substr(0, 2) == "M "){
-        void *addr = reinterpret_cast<void*>(args.extract_int("-a 0x"));
+        void *addr = reinterpret_cast<void*>(args.extract_int("--0x"));
         u32 data = args.extract_int(":0x");
         *reinterpret_cast<u8*>(addr) = data & 0xFF;
         while(data >> 8){
@@ -217,17 +217,19 @@ void cmd_say(String args){
         screen->print("\r\nWrite Done!\r\n");
     }
     else if(args.substr(0, 5) == "port "){
-        u16 port = args.extract_int("-p 0x");
-        u8 data = args.extract_int(":0x");
-        outb(data, port);
+        u16 port = args.extract_int("--0x");
+        u32 data = args.extract_int(":0x");
+        if(data <= 0xFF) outb(static_cast<u8>(data), port);
+        else if(data <= 0xFFFF) outb(static_cast<u16>(data), port);
+        else outb(data, port);
         screen->print("\r\nWrite Done!\r\n");
     }
     else if(args == "help"){
         screen->print("\r=== SAY COMMAND HELP ===\r\n");
-        screen->print("say memory | M -a 0x... :0x... - write data to memory\r\n");
-        screen->print("say port -p 0x... :0x... - write data to port\r\n");
+        screen->print("say memory | M --0x...:0x... - write data to memory\r\n");
+        screen->print("say port --0x...:0x... - write data to port\r\n");
     }
-    else screen->print("\r\ninvalid parameter.\r\n\nhelp: say memory -a 0x... :0x...\r\n");
+    else screen->print("\r\ninvalid parameter.\r\n\nhelp: say memory --0x... :0x...\r\n");
 }
 
 void cmd_jmp(String args) {

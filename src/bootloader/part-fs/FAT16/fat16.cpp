@@ -44,7 +44,7 @@ FAT_table(nullptr){
             part->init_part(DISK_PART::System_ID::FAT16_, part_id);
             goto SET_BPB;
         }
-        return ;
+        return;
     }
 SET_BPB:
     for(unsigned i = 0;i < 256;i++){

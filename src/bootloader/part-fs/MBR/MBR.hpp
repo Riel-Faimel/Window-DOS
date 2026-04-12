@@ -54,8 +54,8 @@ public:
 private:
     DISK_ *disk;
     
-    bool has_MBR;
 public:
+    bool has_MBR;
     DISK_PART(DISK_ *disk_choose);
 
     void make_MBR();

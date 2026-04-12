@@ -4,7 +4,7 @@ CFLAGS32 = -m32 -nostdlib -fno-builtin -fno-stack-protector \
 		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/
 
 CPPFLAGS32 = $(CFLAGS32) -nodefaultlibs -fno-rtti -fno-exceptions -fno-use-cxa-atexit\
-	-fno-function-sections -O2 -fmodules-ts -mno-sse
+	-fno-function-sections -O2 -fmodules-ts -mno-sse -Os
 LDFLAGS_B32 = -nostdlib -m elf_i386
 LDFLAGS32 = $(LDFLAGS_B32) -r
 LDFLAGS_F32 = $(LDFLAGS_B32) -static -T $(MK_DIR)x86.ld -Map=loader.map

@@ -13,6 +13,7 @@ if_is_other_shell(false), handler(nullptr){
 }
 
 void CenterShell::main_loop(){
+    linear_address_space->reg_cmd(this);
     screen->print("\rWelcome to WinDOS!\r\n");
     screen->print("mem:> ");
 Back_label:
@@ -36,7 +37,7 @@ void CenterShell::deal_keyboard_code(){
     if(if_is_other_shell){
         handler(code);
         return;
-    }
+    } //send to other shell if exist
     //======
     if(extern_code){
         extern_code = false;
@@ -149,9 +150,53 @@ void CenterShell::deal_keyboard_code(){
         line_offset-= 2;
     }
     if(ch == '\n'){
-        cmd_shell(line_buffer, line_offset);
+        extern_shell(line_buffer, line_offset);
         line_offset = 0;
         for(unsigned i = 0;i < 512;i++)line_buffer[i] = 0;
-        screen->print("mem:> ");
+        screen->print(cmd_prompt);screen->print("> ");
+    }
+}
+
+void CenterShell::register_other_shell(void (*handler_)(char)){
+    handler = handler_;
+    if_is_other_shell = true;
+}
+
+void CenterShell::unregister_other_shell(){
+    handler = nullptr;
+    if_is_other_shell = false;
+}
+
+void CenterShell::extern_shell(char *line_buffer, unsigned line_size){
+    String cmd_line(line_buffer, line_size);
+    cmd_line = cmd_line.trim();
+
+    if(cmd_line[cmd_line.length() - 1] == ':' && cmd_line.length() >= 2 && cmd_line.length() <= 7){
+        if(linear_address_space->choose_disk(cmd_line)){
+            cmd_prompt = cmd_line;
+        } //disk
+        return;
+    }
+
+    for(unsigned i = 0;i < CMD_List.get_size();i++){
+        if(CMD_List[i].cmd_name == cmd_line.substr(0, CMD_List[i].cmd_name.length())){
+            CMD_List[i].handler(cmd_line.substr(CMD_List[i].cmd_name.length() + 1));
+            return;
+        }
+    }
+
+    cmd_shell(line_buffer, line_size);
+}
+
+void CenterShell::reg_cmd(String cmd_name, void (*func)(String)){
+    CMD_List.append({cmd_name, func});
+}
+
+void CenterShell::unreg_cmd(String str){
+    for(unsigned i = 0;i < CMD_List.get_size();i++){
+        if(CMD_List[i].cmd_name == str){
+            CMD_List[i] = {};
+            return;
+        }
     }
 }

@@ -2,13 +2,23 @@
 #define __bootloader_CenterShell_cs_hpp
 #define _BITS_32
 #include <global/type.hpp>
+#include <lib/cppstdlib/string.hpp>
+#define __independent_lib_Using_template_container
+#include <TL/idlib/idlib>
 
 class CenterShell {
 public:
+    struct Command_list {
+        String cmd_name;
+        void (*handler)(String);
+    };
     CenterShell();
 
     void register_other_shell(void (*handler)(char));
     void unregister_other_shell();
+
+    void reg_cmd(String, void(*)(String));
+    void unreg_cmd(String);
 private:
     void main_loop();
     void deal_keyboard_code();
@@ -32,5 +42,9 @@ private:
 
     char line_buffer[512];
     unsigned line_offset;
+    //=======
+    void extern_shell(char *, unsigned);
+    rtl::array<Command_list> CMD_List{4};
+    String cmd_prompt = "mem:";
 };
 #endif

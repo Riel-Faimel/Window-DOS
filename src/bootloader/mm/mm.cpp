@@ -103,6 +103,10 @@ void operator delete(void *ptr){
     memorymanager_objectpointer->dealloc(ptr);
 }
 
+void operator delete(void *ptr, unsigned int){
+    memorymanager_objectpointer->dealloc(ptr);
+}
+
 void operator delete[](void *ptr, unsigned){
     memorymanager_objectpointer->dealloc(ptr);
 }

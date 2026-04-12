@@ -9,3 +9,5 @@
 #include <drv/keyboard/keyboard.hpp>
 #include <drv/keyboard/keyboard_c.h>
 #include "cmd_shell.hpp"
+#include <part-fs/las.hpp>
+#include <part-fs/las.hpp>

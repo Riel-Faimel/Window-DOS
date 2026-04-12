@@ -274,6 +274,10 @@ public:
         ptr = new T[capacity];
     }
 
+    ~array(){
+        if(ptr) delete ptr;
+    }
+
     void append(const T &obj){
         if(size >= capacity){
             size_t new_capacity = capacity * 2;

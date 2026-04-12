@@ -91,6 +91,7 @@ void LoaderMain(){
     DISK_PART p[2] = {{&static_cast<IDE_DISK *>(cfg->dev_drv)[0]}, {&static_cast<IDE_DISK *>(cfg->dev_drv)[1]}};
     FAT16 fs[2] = {{&p[0], 0, true}, {&p[1], 0}};
 */
+    LAS las{};
     CenterShell cs;
     print_ss();
     //while (true){asm volatile ("hlt");}
