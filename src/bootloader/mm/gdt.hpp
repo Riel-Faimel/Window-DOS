@@ -1,0 +1,72 @@
+#ifndef __bootloader_mm_gdt_hpp
+#define __bootloader_mm_gdt_hpp
+#define _BITS_32
+#include <global/type.hpp>
+#include <IDT_L/idt.hpp>
+class GDT {
+#pragma pack(push, 1)
+public:
+    enum class GDTType : u8 {
+        Read = 0x0,
+        Read_accessed = 0x1,
+        Read_write = 0x2,
+        Read_write_accessed = 0x3,
+        Read_expand_down = 0x4,
+        Read_expand_down_accessed = 0x5,
+        Read_write_expand_down = 0x6,
+        Read_write_expand_down_accessed = 0x7,
+
+        Execute = 0x8,
+        Execute_accessed = 0x9,
+        Execute_read = 0xA,
+        Execute_read_accessed = 0xB,
+        Execute_conforming = 0xC,
+        Execute_conforming_accessed = 0xD,  
+        Execute_read_conforming = 0xE,
+        Execute_read_conforming_accessed = 0xF
+    };
+    /**
+     * ACCESSED: accessed means the segment has been accessed by the CPU. 
+     * This bit is set by the CPU when the segment is accessed, 
+     * and can be used by the operating system to track which segments are in use.
+     * READWRITE: read/write indicates whether the segment is readable or writable. 
+     * For code segments, this bit is set to 1 if the segment is readable, and for data segments, 
+     * this bit is set to 1 if the segment is writable.
+     * EXPANDDOWN: expand down indicates whether the segment grows downwards (towards lower memory addresses)
+     * CONFORMING: conforming indicates whether the segment can be executed from a lower privilege level. 
+     * If this bit is set, the segment can be executed from any privilege level,
+     */
+    struct GDTEntry {
+        u16 Segment_limit_low;
+        u16 Base_address_low;
+        u8 Base_address_middle;
+        GDTType Type : 4;
+        u8 isnot_System_segment : 1;
+        u8 ring : 2;
+        u8 exist_segment : 1;
+        u8 Segment_limit_high : 4;
+        u8 AVL : 1;
+        u8 is_64_long_mode : 1;
+        u8 is32_or16 : 1;
+        u8 unit_of_1bit_or_4KB : 1;
+        u8 Base_address_high;
+    };
+private:
+    struct GDTPtr {
+        u16 limit;
+        u32 base;
+    };
+
+    GDTEntry *volatile entries;
+    u16 limit;
+#pragma pack(pop)
+public:
+    GDT(GDTEntry *, u16, IDT&);
+    ~GDT() = default;
+    void regist(
+        void *Segment_base, u32 Segment_limit, GDTType Type, u8 ring, 
+        bool unit_of_1bit_or_4KB = true, bool is32_or16 = true, 
+        bool is_64_long_mode = false, bool isnot_System_segment = true, bool AVL = false
+    );
+};
+#endif
