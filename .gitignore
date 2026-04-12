@@ -1,0 +1,12 @@
+.help
+.protect_src
+.test
+.vscode
+build
+gcm.cache
+disk.vhd
+*.map
+output.txt
+t02.exe
+boot.img
+module_32
