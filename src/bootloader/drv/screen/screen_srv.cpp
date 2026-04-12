@@ -1,0 +1,52 @@
+#include "screen_srv.hpp"
+#include "interface.hpp"
+
+void kprint(char *string){
+    screen->print(string);
+}
+
+void print_hex(unsigned char val) {
+    const char *hex_digits = "0123456789ABCDEF";
+    char hex_str[5];
+    hex_str[0] = '0';
+    hex_str[1] = 'x';
+    hex_str[2] = hex_digits[(val >> 4) & 0x0F];
+    hex_str[3] = hex_digits[val & 0x0F];
+    hex_str[4] = '\0';
+    screen->print(hex_str);
+}
+
+void print_hex(unsigned short val){
+    const char *hex_digits = "0123456789ABCDEF";
+    char hex_str[7];
+    hex_str[0] = '0';
+    hex_str[1] = 'x';
+    hex_str[2] = hex_digits[(val >> 12) & 0x0F];
+    hex_str[3] = hex_digits[(val >> 8) & 0x0F];
+    hex_str[4] = hex_digits[(val >> 4) & 0x0F];
+    hex_str[5] = hex_digits[val & 0x0F];
+    hex_str[6] = '\0';
+    screen->print(hex_str);
+}
+
+void print_hex(unsigned val){
+    const char *hex_digits = "0123456789ABCDEF";
+    char hex_str[11];
+    hex_str[0] = '0';
+    hex_str[1] = 'x';
+    hex_str[2] = hex_digits[(val >> 28) & 0x0F];
+    hex_str[3] = hex_digits[(val >> 24) & 0x0F];
+    hex_str[4] = hex_digits[(val >> 20) & 0x0F];
+    hex_str[5] = hex_digits[(val >> 16) & 0x0F];
+    hex_str[6] = hex_digits[(val >> 12) & 0x0F];
+    hex_str[7] = hex_digits[(val >> 8) & 0x0F];
+    hex_str[8] = hex_digits[(val >> 4) & 0x0F];
+    hex_str[9] = hex_digits[val & 0x0F];
+    hex_str[10]= '\0';
+    screen->print(hex_str);
+}
+
+void print_char(char ch){
+    static void (_Screen::*print_func)(char) = &_Screen::_prt;
+    (screen->*print_func)(ch);
+}
