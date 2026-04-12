@@ -6,9 +6,15 @@
 class CenterShell {
 public:
     CenterShell();
+
+    void register_other_shell(void (*handler)(char));
+    void unregister_other_shell();
 private:
     void main_loop();
     void deal_keyboard_code();
+
+    bool if_is_other_shell;
+    void (*handler)(char);
 
     bool shift_on;
     bool control_on;

@@ -1,47 +1,47 @@
 #include "DOScall.hpp"
 
 extern "C" {
-    void program_exit();
+    void program_exit(){};
     /**
      * cs = PSP section address
      */
-    void standard_input_with_echo();
+    void standard_input_with_echo(){};
     /**
      * read byte from keyboard, echo
      */
-    void standard_output();
+    void standard_output(){};
     /**
      * print byte to console
      * dl = byte to print
      */
-    void direct_console_input_no_echo();
-    void direct_console_input_with_ctrl_c();
-    void print_string();
-    void buffered_keyboard_input();
-    void check_stdin_status();
-    void flush_buffer_and_input();
-    void create_file();
-    void open_file();
-    void close_file();
-    void read_file();
-    void write_file();
-    void seek_file();
-    void allocate_memory();
-    void free_memory();
-    void modify_memory_block();
-    void exit_with_code();
-    void terminate_and_stay_resident();
-    void change_directory();
-    void get_current_directory();
-    void get_date();
-    void get_time();
-    void set_interrupt_vector();
-    void get_interrupt_vector();
-    void get_current_drive();
+    void direct_console_input_no_echo(){};
+    void direct_console_input_with_ctrl_c(){};
+    void print_string(){};
+    void buffered_keyboard_input(){};
+    void check_stdin_status(){};
+    void flush_buffer_and_input(){};
+    void create_file(){};
+    void open_file(){};
+    void close_file(){};
+    void read_file(){};
+    void write_file(){};
+    void seek_file(){};
+    void allocate_memory(){};
+    void free_memory(){};
+    void modify_memory_block(){};
+    void exit_with_code(){};
+    void terminate_and_stay_resident(){};
+    void change_directory(){};
+    void get_current_directory(){};
+    void get_date(){};
+    void get_time(){};
+    void set_interrupt_vector(){};
+    void get_interrupt_vector(){};
+    void get_current_drive(){};
 }
 
 extern "C" void DOScall_handler();
-extern "C" void DOS_exit();
+extern "C" void DOS_exit(){};
 
 extern "C" void DOScall_handler_c() {
     unsigned char syscall_number;

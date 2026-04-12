@@ -7,6 +7,7 @@ include $(SRC_DIR)bootloader/part-fs/part-fs.mk
 include $(SRC_DIR)bootloader/module/module.mk
 include $(SRC_DIR)bootloader/CenterShell/CenterShell.mk
 include $(SRC_DIR)bootloader/registry/registry.mk
+include $(SRC_DIR)bootloader/DOSsyscall/DOSsyscall.mk
 
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -26,7 +27,8 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/part-fs.o\
 	$(BUILD_DIR)bootloader/CenterShell.o\
 	$(BUILD_DIR)bootloader/module.o\
-	$(BUILD_DIR)bootloader/registry.o
+	$(BUILD_DIR)bootloader/registry.o\
+	$(BUILD_DIR)bootloader/DOSsyscall.o\
 
 #	$(BUILD_DIR)bootloader/test.o
 	

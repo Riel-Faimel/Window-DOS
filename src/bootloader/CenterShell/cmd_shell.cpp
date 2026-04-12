@@ -4,6 +4,7 @@
 #include <lib/cstdlib/port.h>
 
 void cmd_see(String args){
+    static String last_param{};
     if(args.substr(0, 2) == "0x"){
         unsigned addr = args.substr(2).to_int();
         unsigned char *ptr = reinterpret_cast<unsigned char *>(addr);
@@ -60,8 +61,22 @@ void cmd_see(String args){
     else if(args.substr(0, 3) == ":0x"){
         String port_str = args.substr(3);
         u16 port = port_str.to_int();
-        u8 data = inb(port);
-        screen->print("Port ");print_hex(port);screen->print(" = ");print_hex(data);screen->print("\r\n");
+        if (args.find(" -d") != -1){
+            u32 data = inb(port);
+            screen->print("Port ");print_hex(port);screen->print(" = ");print_hex(data);screen->print("\r\n");
+        }
+        else if(args.find(" -w") != -1){
+            u16 data = inb(port);
+            screen->print("Port ");print_hex(port);screen->print(" = ");print_hex(data);screen->print("\r\n");
+        } 
+        else if (args.find(" -b") != -1){
+            u8 data = inb(port);
+            screen->print("Port ");print_hex(port);screen->print(" = ");print_hex(data);screen->print("\r\n");
+        } 
+        else {
+            u8 data = inb(port);
+            screen->print("Port ");print_hex(port);screen->print(" = ");print_hex(data);screen->print("\r\n");
+        }
     }
     else if(args == "help"){
         screen->print("\r=== SEE COMMAND HELP ===\r\n");
@@ -69,8 +84,19 @@ void cmd_see(String args){
         screen->print("see $... - view register value (esp, ebp, cr0, cr3, cr4)\r\n");
         screen->print("see :0x... - view port value\r\n");
     }
-    
-    else screen->print("\r\ninvalid parameter.\r\n\nhelp: see $esp\r\n");
+    else if (args == ""){
+        if(last_param.empty()){
+            screen->print("\r\nno last parameter.\r\n");
+            return;
+        }
+        cmd_see(last_param);
+        return;
+    }
+    else {
+        screen->print("\r\ninvalid parameter.\r\n\nhelp: see help\r\n");
+        return;
+    }
+    last_param = args;
 }
 
 void cmd_disk(String args){
@@ -137,7 +163,34 @@ void cmd_disk(String args){
         };
     }
     else if (args.substr(0, 5) == "write"){
-        screen->print("write not implemented yet\r\n");
+        for(unsigned i = 0;i < PCI_device_numbers;i++){
+            if(PCI_device_config_pointer[i].Class_code[2] == 0x01){
+                if(PCI_device_config_pointer[i].Class_code[1] == 0x01){
+                    int disk_num;
+                    if(device_id == 0xFF){
+                        disk_num = args.extract_int("-d 0x");
+                    }
+                    else {
+                        disk_num = device_id;
+                    };
+                    int LBA = args.extract_int("-l 0x");
+                    int count = args.extract_int("-n 0x");
+                    void *addr = reinterpret_cast<void*>(args.extract_int("-a 0x"));
+                    IDE_DISK *disks = static_cast<IDE_DISK*>(PCI_device_config_pointer[i].dev_drv);
+                    if(disk_num >= PCI_device_config_pointer[i].size){
+                        screen->print("\r\ninvalid disk number\r\n");
+                        return;
+                    }
+                    disks[disk_num].write(static_cast<unsigned short*>(addr), LBA, count);
+                    screen->print("\r\nWrite Done!\r\n");
+                    return;
+                }
+                else if (PCI_device_config_pointer[i].Class_code[1] == 0x02){
+                    screen->print("SATA write not implemented yet\r\n");
+                    return;
+                }
+            }
+        };
     }
     else if (args == "help"){
         screen->print("\r=== DISK COMMAND HELP ===\r\n");
@@ -152,10 +205,15 @@ void cmd_disk(String args){
 }
 
 void cmd_say(String args){
-    if(args.substr(0, 7) == "memory "){
+    if(args.substr(0, 7) == "memory " || args.substr(0, 2) == "M "){
         void *addr = reinterpret_cast<void*>(args.extract_int("-a 0x"));
         u32 data = args.extract_int(":0x");
-        *reinterpret_cast<u32*>(addr) = data;
+        *reinterpret_cast<u8*>(addr) = data & 0xFF;
+        while(data >> 8){
+            data >>= 8;
+            addr+=1;
+            *reinterpret_cast<u8*>(addr) = data & 0xFF;
+        }
         screen->print("\r\nWrite Done!\r\n");
     }
     else if(args.substr(0, 5) == "port "){
@@ -166,7 +224,7 @@ void cmd_say(String args){
     }
     else if(args == "help"){
         screen->print("\r=== SAY COMMAND HELP ===\r\n");
-        screen->print("say memory -a 0x... :0x... - write data to memory\r\n");
+        screen->print("say memory | M -a 0x... :0x... - write data to memory\r\n");
         screen->print("say port -p 0x... :0x... - write data to port\r\n");
     }
     else screen->print("\r\ninvalid parameter.\r\n\nhelp: say memory -a 0x... :0x...\r\n");
@@ -225,7 +283,7 @@ void cmd_shell(char *cmd_line_buffer, unsigned line_size){
         screen->print("\r=== HELP MESSAGE ===\r\nKernel: Window-DOS - version 0.1\r\nActiving\r\n====================\r\n");
         screen->print("Try: see | disk | echo | say | jmp\r\n");
     }
-    else if(cmd_line.substr(0, 4) == "see ") cmd_see(cmd_line.substr(4));
+    else if(cmd_line.substr(0, 4) == "see " || cmd_line == "see") cmd_see(cmd_line.substr(4));
     else if(cmd_line.substr(0, 5) == "disk ") cmd_disk(cmd_line.substr(5));
     else if (cmd_line == "clear") screen->clear();
     else if (cmd_line.substr(0, 5) == "echo ") {

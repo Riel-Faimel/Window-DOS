@@ -11,6 +11,9 @@ extern "C" {
     unsigned __attribute__((regparm(1))) volatile inl(unsigned short port);
     void volatile io_wait();
     void qps(const char *); //QEMU print string
+    inline void at_exit(){};
+    inline bool __cxa_guard_acquire(){}
+    inline void __cxa_guard_release(){}
 }
 
 #endif

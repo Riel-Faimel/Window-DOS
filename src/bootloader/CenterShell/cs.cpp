@@ -5,8 +5,9 @@ CenterShell::CenterShell():
 shift_on(false), control_on(false), win_on(false),
 alt_on(false), alt_gr_on(false), fn_on(false),
 caps_lock(false), num_lock(false), scroll_lock(false), 
-insert_mode(false),
-line_offset(0), line_buffer{}{
+insert_mode(false), extern_code(false),
+line_offset(0), line_buffer{},
+if_is_other_shell(false), handler(nullptr){
     KeyBoard::init_driver();
     main_loop();
 }
@@ -31,6 +32,11 @@ void CenterShell::deal_keyboard_code(){
     u8 code = KeyBoard::buffer[KeyBoard::read];
     KeyBoard::read = (KeyBoard::read + 1) % 1024;
     KeyBoard::click = false;
+    //======
+    if(if_is_other_shell){
+        handler(code);
+        return;
+    }
     //======
     if(extern_code){
         extern_code = false;
