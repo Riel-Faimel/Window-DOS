@@ -1,9 +1,0 @@
-.*
-build
-gcm.cache
-*.vhd
-*.map
-*.txt
-*.exe
-*.img
-module_32
