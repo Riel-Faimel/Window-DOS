@@ -1,7 +1,4 @@
-.help
-.protect_src
-.test
-.vscode
+.*
 build
 gcm.cache
 disk.vhd
