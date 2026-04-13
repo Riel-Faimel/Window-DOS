@@ -29,6 +29,7 @@ extern bool *__boot_loader_end;
 #include <IDT_L/IDNT.hpp>
 #include <drv/PCI/pci.hpp>
 #include <part-fs/las.hpp>
+#include <DOSsyscall/DOScall.hpp>
 
 //#include <cstdlib/port.h>
 //#include <module/changestack.cpp>

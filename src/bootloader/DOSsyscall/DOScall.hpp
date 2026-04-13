@@ -3,5 +3,5 @@
 class DOScall {
 public:
     DOScall(IDT&);
-    ~DOScall();
+    ~DOScall() = default;
 };

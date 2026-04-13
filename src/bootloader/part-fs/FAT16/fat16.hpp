@@ -1,6 +1,7 @@
 #ifndef __bootloader_part_fs_FAT16_hpp
 #define __bootloader_part_fs_FAT16_hpp
 #include <part-fs/MBR/MBR_.hpp>
+#include <lib/cppstdlib/string.hpp>
 
 class FAT16{
 public:
@@ -102,6 +103,7 @@ public:
     unsigned char clu2blk;
 
     STATUS status;
+    String current_path;
 
     unsigned short *FAT_table;
 public:
@@ -118,6 +120,7 @@ public:
     void format();
 
     unsigned open(const char *path);
+    String dir();
 
     void set_filesystem_name(char *name);
 };

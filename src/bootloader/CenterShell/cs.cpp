@@ -180,7 +180,7 @@ void CenterShell::extern_shell(char *line_buffer, unsigned line_size){
 
     for(unsigned i = 0;i < CMD_List.get_size();i++){
         if(CMD_List[i].cmd_name == cmd_line.substr(0, CMD_List[i].cmd_name.length())){
-            CMD_List[i].handler(cmd_line.substr(CMD_List[i].cmd_name.length() + 1));
+            CMD_List[i].handler(cmd_line);
             return;
         }
     }

@@ -1,4 +1,5 @@
 #include "DOScall.hpp"
+#include <drv/screen/screen_srv.hpp>
 
 extern "C" {
     void program_exit(){};
@@ -9,14 +10,26 @@ extern "C" {
     /**
      * read byte from keyboard, echo
      */
-    void standard_output(){};
+    void standard_output(char dl){
+        print_char(dl);
+    };
     /**
      * print byte to console
      * dl = byte to print
      */
     void direct_console_input_no_echo(){};
     void direct_console_input_with_ctrl_c(){};
-    void print_string(){};
+    void print_string(char *edx){
+        for(unsigned i = 0;i < 0x1000;i++){
+            if(edx[i] == '$'){
+                edx[i] = '\0';
+                screen->print(edx);
+                return;
+            }
+        }
+        //error
+        return;
+    };
     void buffered_keyboard_input(){};
     void check_stdin_status(){};
     void flush_buffer_and_input(){};
@@ -43,13 +56,32 @@ extern "C" {
 extern "C" void DOScall_handler();
 extern "C" void DOS_exit(){};
 
-extern "C" void DOScall_handler_c() {
-    unsigned char syscall_number;
+extern "C" void DOScall_handler_c(
+    unsigned syscall_number,
+    unsigned ebx_val,
+    unsigned ecx_val,
+    unsigned edx_val,
+    unsigned esi_val,
+    unsigned edi_val
+) {
+    /*
     asm volatile (
-        "mov %%ah, %0"
-        : "=r"(syscall_number)
+        ".globl __LABEL\n"
+        "__LABEL:\n"
     );
-    
+    screen->print("call ");print_hex(syscall_number);
+    screen->print(" :\n");
+    print_hex(ebx_val);
+    screen->print("\n");
+    print_hex(ecx_val);
+    screen->print("\n");
+    print_hex(edx_val);
+    screen->print("\n");
+    print_hex(esi_val);
+    screen->print("\n");
+    print_hex(edi_val);
+    screen->print("\n");
+    */
     switch(syscall_number) {
         case 0x00:  // 程序终止
             program_exit();
@@ -58,7 +90,7 @@ extern "C" void DOScall_handler_c() {
             standard_input_with_echo();
             break;
         case 0x02:  // 字符输出
-            standard_output();
+            standard_output(edx_val);
             break;
         case 0x07:  // 无回显键盘输入（不处理Ctrl+C）
             direct_console_input_no_echo();
@@ -67,7 +99,7 @@ extern "C" void DOScall_handler_c() {
             direct_console_input_with_ctrl_c();
             break;
         case 0x09:  // 字符串输出（$结尾）
-            print_string();
+            print_string(reinterpret_cast<char *>(edx_val));
             break;
         case 0x0A:  // 缓冲字符串输入
             buffered_keyboard_input();

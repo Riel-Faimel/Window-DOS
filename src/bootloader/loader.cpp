@@ -92,6 +92,7 @@ void LoaderMain(){
     FAT16 fs[2] = {{&p[0], 0, true}, {&p[1], 0}};
 */
     LAS las{};
+    DOScall disk_operating_system_system_call{idt};
     CenterShell cs;
     print_ss();
     //while (true){asm volatile ("hlt");}

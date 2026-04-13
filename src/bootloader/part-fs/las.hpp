@@ -17,6 +17,8 @@ class LAS{
     unsigned disk_num;
 
     void *dealing;// disk or filesystem which dealing
+    unsigned char dealing_id;
+    friend inline void mkfs_(String);
 public:
     LAS();
     /**
@@ -31,11 +33,12 @@ public:
     void read(unsigned , unsigned char *, unsigned, unsigned);
     void write(unsigned , unsigned char *, unsigned, unsigned);
 
-    void mkfs_FAT16(unsigned char disk_id, unsigned from_LBA, unsigned to_LBA);
+    void mkfs_FAT16(unsigned char disk_id, unsigned part_id);
 
     bool choose_disk(String &);
 
     void reg_cmd(CenterShell *);
+    void set_letter(unsigned disk_id, String letter);
 };
 
 extern LAS *linear_address_space;

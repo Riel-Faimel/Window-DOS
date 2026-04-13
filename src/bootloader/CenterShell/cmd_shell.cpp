@@ -3,6 +3,10 @@
 #include <drv/disk/IDE/ide.hpp>
 #include <lib/cstdlib/port.h>
 
+extern "C" __attribute__((cdecl)) void do_int_with_params(
+    u8 vector, u32 eax, u32 ebx, u32 ecx, u32 edx, u32 esi, u32 edi
+);
+
 void cmd_see(String args){
     static String last_param{};
     if(args.substr(0, 2) == "0x"){
@@ -83,6 +87,7 @@ void cmd_see(String args){
         screen->print("see 0x... - view memory content from the address\r\n");
         screen->print("see $... - view register value (esp, ebp, cr0, cr3, cr4)\r\n");
         screen->print("see :0x... - view port value\r\n");
+        screen->print("\"see\" only for re-see\r\n");
     }
     else if (args == ""){
         if(last_param.empty()){
@@ -216,7 +221,7 @@ void cmd_say(String args){
         }
         screen->print("\r\nWrite Done!\r\n");
     }
-    else if(args.substr(0, 5) == "port "){
+    else if(args.substr(0, 5) == "port " || args.substr(0, 2) == "P "){
         u16 port = args.extract_int("--0x");
         u32 data = args.extract_int(":0x");
         if(data <= 0xFF) outb(static_cast<u8>(data), port);
@@ -224,12 +229,98 @@ void cmd_say(String args){
         else outb(data, port);
         screen->print("\r\nWrite Done!\r\n");
     }
+    else if (args.substr(0, 4) == "reg " || args.substr(0, 2) == "R "){
+        String r = args.extract_param("--$");
+        u32 val = args.extract_int(":0x");
+        if(r == "eax"){
+            asm volatile (
+                "mov %0, %%eax\n"
+                : : "r"(val) : "eax"
+            );
+            screen->print("\nWrite Done!\n");
+            return;
+        }
+        else if(r == "ebx"){
+            asm volatile (
+                "mov %0, %%ebx\n"
+                : : "r"(val) : "ebx"
+            );
+            screen->print("\nWrite Done!\n");
+            return;
+        }
+        else if(r == "ecx"){
+            asm volatile (
+                "mov %0, %%ecx\n"
+                : : "r"(val) : "ecx"
+            );
+            screen->print("\nWrite Done!\n");
+            return;
+        }
+        else if(r == "edx"){
+            asm volatile (
+                "mov %0, %%edx\n"
+                : : "r"(val) : "edx"
+            );
+            screen->print("\nWrite Done!\n");
+            return;
+        }
+        else if(r == "esi"){
+            asm volatile (
+                "mov %0, %%esi\n"
+                : : "r"(val) : "esi"
+            );
+            screen->print("\nWrite Done!\n");
+            return;
+        }
+        else if(r == "edi"){
+            asm volatile (
+                "mov %0, %%edi\n"
+                : : "r"(val) : "edi"
+            );
+            screen->print("\nWrite Done!\n");
+            return;
+        }
+        /**
+         * TODO:(done by Copilot)
+         * for Copilot
+         * we need eax, ebx, ecx, edx, esp, eip, esi, edi
+         * eax is up there, do as i do
+         */
+    }
     else if(args == "help"){
         screen->print("\r=== SAY COMMAND HELP ===\r\n");
         screen->print("say memory | M --0x...:0x... - write data to memory\r\n");
         screen->print("say port --0x...:0x... - write data to port\r\n");
+        screen->print("say reg | R --0x...:0x... - write data to register\r\n");
     }
     else screen->print("\r\ninvalid parameter.\r\n\nhelp: say memory --0x... :0x...\r\n");
+}
+
+void cmd_int(String args){
+    if(args == "help"){
+        screen->print("\r=== INT COMMAND HELP ===\r\n");
+        screen->print("int 0x.. - trigger software interrupt and jump to IDT entry\r\n");
+        screen->print("Also -a 0x... for param in eax, and so on(-b, -c ...)\r\n");
+        return;
+    }
+    else if(args.substr(0, 2) == "0x"){
+        u8 vector = static_cast<u8>(args.extract_int("0x"));
+        u32 eax_val = args.extract_int("-a 0x");
+        u32 ebx_val = args.extract_int("-b 0x");
+        u32 ecx_val = args.extract_int("-c 0x");
+        u32 edx_val = args.extract_int("-d 0x");
+        u32 esi_val = args.extract_int("-s 0x");
+        u32 edi_val = args.extract_int("-i 0x");
+        /**
+         * THANKS:
+         * Done by Copilot
+         */
+
+        do_int_with_params(vector, eax_val, ebx_val, ecx_val, edx_val, esi_val, edi_val);
+        //screen->print("[INFO] come back");
+        return;
+    }
+    screen->print("\r\ninvalid parameter.\r\n\nhelp: int help\r\n");
 }
 
 void cmd_jmp(String args) {
@@ -270,8 +361,6 @@ void cmd_jmp(String args) {
             "popa\n"
             : : "r"(from) : "memory"
         );
-        
-        screen->print("Returned!\n");
     }
     else screen->print("\r\ninvalid parameter.\r\n\nhelp: jmp 0xfrom:0xto\r\n");
 }
@@ -283,7 +372,7 @@ void cmd_shell(char *cmd_line_buffer, unsigned line_size){
 
     if(cmd_line == "help" || cmd_line == "H") {
         screen->print("\r=== HELP MESSAGE ===\r\nKernel: Window-DOS - version 0.1\r\nActiving\r\n====================\r\n");
-        screen->print("Try: see | disk | echo | say | jmp\r\n");
+        screen->print("Try: see | disk | echo | say | jmp | int \r\n");
     }
     else if(cmd_line.substr(0, 4) == "see " || cmd_line == "see") cmd_see(cmd_line.substr(4));
     else if(cmd_line.substr(0, 5) == "disk ") cmd_disk(cmd_line.substr(5));
@@ -294,6 +383,9 @@ void cmd_shell(char *cmd_line_buffer, unsigned line_size){
     }
     else if (cmd_line.substr(0, 4) == "say ") {
         cmd_say(cmd_line.substr(4));
+    }
+    else if (cmd_line.substr(0, 4) == "int ") {
+        cmd_int(cmd_line.substr(4));
     }
     else if (cmd_line.substr(0, 4) == "jmp ") {
         cmd_jmp(cmd_line.substr(4));

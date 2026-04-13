@@ -9,7 +9,7 @@ LAS::LAS():disks(nullptr), disk_num(0){
         if(PCI_device_config_pointer[i].Class_code[2] == 0x01){
             if(PCI_device_config_pointer[i].Class_code[1] == 0x01){
                 for(unsigned j = 0; j < PCI_device_config_pointer[i].size; j++){
-                    disk_array.append({&(static_cast<IDE_DISK *>(PCI_device_config_pointer[i].dev_drv)[j]), nullptr, nullptr, 0});
+                    disk_array.append({&(static_cast<IDE_DISK *>(PCI_device_config_pointer[i].dev_drv)[j]), nullptr, nullptr, 0, {}});
                     disk_num++;
                 }
             }
@@ -27,22 +27,34 @@ LAS::LAS():disks(nullptr), disk_num(0){
             //fs
             for(unsigned j = 0;j < 4;j++){
                 auto fs = new FAT16{static_cast<DISK_PART *>(disks[i].partitions), j};
-                if (fs->status == FAT16::FORMAT) disks[i].fs = fs;
+                if (fs->status == FAT16::FORMAT){
+                    disks[i].fs = fs;
+                    char le[3] = {'A', ':', 0};
+                    le[0]++;
+                    set_letter(i, {le});
+                }
             }
+        }
+    }
+    screen->print("\r\n[INFO] Found these disks:\n");
+    for(unsigned i = 0;i < disk_num;i++){
+        if(disks[i].drvier_letter.empty()){
+            screen->print("ID: ");
+            print_hex(i);
+            print_char('\n');
+        } else {
+            screen->print(disks[i].drvier_letter);
+            print_char('\n');
         }
     }
     linear_address_space = this;
 }
 
-void LAS::mkfs_FAT16(unsigned char disk_id, unsigned int from_LBA, unsigned int to_LBA){
+void LAS::mkfs_FAT16(unsigned char disk_id, unsigned part_id){
     DiskInfo &disk = disks[disk_id];
-    auto part_id = static_cast<DISK_PART *>(disk.partitions)->make_part(false, from_LBA, to_LBA);
-    if(part_id == 0xFFFFFFFF){
-        static_cast<DISK_PART *>(disk.partitions)->make_MBR();
-        part_id = static_cast<DISK_PART *>(disk.partitions)->make_part(false, from_LBA, to_LBA);
-    }
     disk.fs = new FAT16{static_cast<DISK_PART *>(disk.partitions), part_id, true, true};
     disk.fs_num++;
+    screen->print("Disk ");screen->print(disk.drvier_letter);screen->print(" format into FAT16\n");
 }
 
 bool LAS::choose_disk(String &drive_letter){
@@ -75,6 +87,19 @@ unsigned int LAS::open(String filename){
 
 void LAS::reg_cmd(CenterShell *cs){
     cs->reg_cmd("dir", &__dir);
+    cs->reg_cmd("mkfs.", &mkfs_);
+    cs->reg_cmd("set", &alloc_driver_letter);
 }
+
+void LAS::set_letter(unsigned int disk_id, String letter){
+    if(disk_id > disk_num){
+        screen->print("NULL Disk!\n");
+        return;
+    }
+    disks[disk_id].drvier_letter = letter;
+    screen->print("Set Done: ");screen->print(disks[disk_id].drvier_letter);
+    print_char('\n');
+}
+
 
 
