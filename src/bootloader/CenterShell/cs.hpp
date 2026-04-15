@@ -2,9 +2,9 @@
 #define __bootloader_CenterShell_cs_hpp
 #define _BITS_32
 #include <global/type.hpp>
-#include <lib/cppstdlib/string.hpp>
+#include <lib/cppstdlib/string>
 #define __independent_lib_Using_template_container
-#include <TL/idlib/idlib>
+#include <TL/idlib>
 
 class CenterShell {
 public:

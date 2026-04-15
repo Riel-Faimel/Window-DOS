@@ -1,8 +1,8 @@
-#include <lib/cppstdlib/string.hpp>
+#include <lib/cppstdlib/string>
 #define _BITS_32
 #include <global/type.hpp>
 #define __independent_lib_Using_template_container
-#include <TL/idlib/idlib>
+#include <TL/idlib>
 
 int strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2)) {

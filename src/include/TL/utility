@@ -1,0 +1,40 @@
+#ifdef __independent_lib_Using_utility
+#ifndef ___Using_utility
+#define ___Using_utility
+
+namespace rtl {
+
+// delete & for T or T& or T&&
+template<typename T>
+struct remove_reference {
+    using type = T;
+};
+template<typename T>
+struct remove_reference<T&> {
+    using type = T;
+};
+template<typename T>
+struct remove_reference<T&&> {
+    using type = T;
+};
+
+// append && back of T, because &&&->& and &&&&->&&, so it keep & nums
+template<typename T>
+constexpr T&& forward(typename remove_reference<T>::type& t)noexcept{
+    return static_cast<T&&>(t);
+}
+template<typename T>
+constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
+    return static_cast<T&&>(t);
+}
+
+//catch and change to T&&
+template<typename T>
+constexpr decltype(auto) move(T &&obj){ //decltype for DO NOT automatic degradation
+    return static_cast<typename remove_reference<T>::type &&>(obj);
+}
+
+}
+
+#endif
+#endif

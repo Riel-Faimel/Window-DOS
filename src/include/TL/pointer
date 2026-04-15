@@ -1,47 +1,9 @@
-#ifndef __template_lib_independent_lib_idlib_hpp
-#define __template_lib_independent_lib_idlib_hpp
-
-#ifndef _BITS_32
-#ifndef _BITS_64
-#define _BITS_32
-#include <global/type.hpp>
-#endif
-#endif
+#ifdef __independent_lib_Using_pointer_system
+#ifndef ___Using_pointer_system
+#define ___Using_pointer_system
 
 namespace rtl {
-#ifdef __independent_lib_Using_reference_part
-// delete & for T or T& or T&&
-template<typename T>
-struct remove_reference {
-    using type = T;
-};
-template<typename T>
-struct remove_reference<T&> {
-    using type = T;
-};
-template<typename T>
-struct remove_reference<T&&> {
-    using type = T;
-};
 
-// append && back of T, because &&&->& and &&&&->&&, so it keep & nums
-template<typename T>
-constexpr T&& forward(typename remove_reference<T>::type& t)noexcept{
-    return static_cast<T&&>(t);
-}
-template<typename T>
-constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
-    return static_cast<T&&>(t);
-}
-
-//catch and change to T&&
-template<typename T>
-constexpr decltype(auto) move(T &&obj){
-    return static_cast<typename remove_reference<T>::type &&>(obj);
-}
-#endif
-
-#ifdef __independent_lib_Using_pointer_system
 // A pointer build from address
 template<typename T, typename State>
 class pointer;
@@ -261,82 +223,8 @@ public:
         return _callable<Return, Args...>(ptr);
     }
 };
+
+}
+
 #endif
-
-#ifdef __independent_lib_Using_template_container
-template<typename T>
-class array {
-    T *ptr;
-    size_t size;
-    size_t capacity;
-public:
-    array(size_t size_):size(0),capacity(size_){
-        ptr = new T[capacity];
-    }
-
-    ~array(){
-        if(ptr) delete ptr;
-    }
-
-    void append(const T &obj){
-        if(size >= capacity){
-            size_t new_capacity = capacity * 2;
-            T *new_ptr = new T[new_capacity];
-            for(size_t i = 0;i < size;i++){
-                new_ptr[i] = ptr[i];
-            }
-            delete[] ptr;
-            ptr = new_ptr;
-            capacity = new_capacity;
-        }
-        ptr[size] = obj;
-        size++;
-    }
-
-    T &operator[](size_t index){
-        return ptr[index];
-    }
-
-    const T &operator[](size_t index) const {
-        return ptr[index];
-    }
-
-    void remove(size_t index){
-        if(index >= size)return;
-        for(size_t i = index;i < size - 1;i++){
-            ptr[i] = ptr[i + 1];
-        }
-        size--;
-    }
-
-    void insert(size_t index, const T &obj){
-        if(index > size)return;
-        if(size >= capacity){
-            size_t new_capacity = capacity * 2;
-            T *new_ptr = new T[new_capacity];
-            for(size_t i = 0;i < size;i++){
-                new_ptr[i] = ptr[i];
-            }
-            delete[] ptr;
-            ptr = new_ptr;
-            capacity = new_capacity;
-        }
-        for(size_t i = size;i > index;i--){
-            ptr[i] = ptr[i - 1];
-        }
-        ptr[index] = obj;
-        size++;
-    }
-
-    inline size_t get_size() const {
-        return size;
-    }
-
-    T *get_ptr(){
-        return ptr;
-    }
-};
-#endif
-};
-
 #endif

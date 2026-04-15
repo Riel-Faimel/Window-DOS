@@ -1,6 +1,9 @@
+#ifndef __kernel_CenterShell_WMgr_WMgr_hpp
+#define __kernel_CenterShell_WMgr_WMgr_hpp
+
 #define _BITS_64
 #include <global/type.hpp>
-#include <declar_/WIN.hpp>
+#include <global/WIN_.hpp>
 
 class WinMgr{
 private:
@@ -10,3 +13,5 @@ private:
 };
 
 extern WinMgr *_WINDOW_MANAGER;
+
+#endif

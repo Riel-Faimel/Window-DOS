@@ -1,0 +1,21 @@
+#ifndef __template_lib_independent_lib_idlib_hpp
+#define __template_lib_independent_lib_idlib_hpp
+
+#ifndef _BITS_32
+#ifndef _BITS_64
+#define _BITS_32
+#include <global/type.hpp>
+#endif
+#endif
+
+namespace rtl {
+
+;
+
+};
+
+#endif
+
+#include <TL/pointer>
+#include <TL/container>
+#include <TL/utility>

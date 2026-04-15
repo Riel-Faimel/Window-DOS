@@ -1,3 +1,6 @@
+#ifndef ____WIN
+#define ____WIN
+
 #include <global/WIN.hpp>
 
 template<unsigned N = 0xFFFFFFFF>
@@ -53,3 +56,5 @@ public:
         if(buffer && id <= size)return buffer[id];
     }
 };
+
+#endif

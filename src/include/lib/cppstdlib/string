@@ -1,5 +1,5 @@
-#ifndef __lib_cppstdlib_string_hpp
-#define __lib_cppstdlib_string_hpp
+#ifndef __lib_cppstdlib_string
+#define __lib_cppstdlib_string
 class String{
     char *data;
     unsigned int len;

@@ -1,0 +1,139 @@
+#ifdef __independent_lib_Using_template_container
+#ifndef ___Using_template_container_protect
+#define ___Using_template_container_protect
+
+namespace rtl {
+
+//dynamic array
+template<typename T>
+class array {
+    T *ptr;
+    size_t size;
+    size_t capacity;
+
+    class Iterator {
+        T *ptr;
+    public:
+        Iterator(T* p):ptr{p}{}
+        T &operator*(){
+            return *ptr;
+        }
+        constexpr Iterator &operator++(){
+            ptr++;
+            return *this;
+        }
+        bool operator!=(const Iterator &other) const {
+            return ptr != other.ptr;
+        }
+        bool operator!=(Iterator &other){
+            return ptr != other.ptr;
+        }
+    };
+public:
+    array(size_t size_):size(0),capacity(size_){
+        ptr = new T[capacity];
+    }
+
+    ~array(){
+        if(ptr) delete ptr;
+    }
+
+    void append(const T &obj){
+        if(size >= capacity){
+            size_t new_capacity = capacity * 2;
+            T *new_ptr = new T[new_capacity];
+            for(size_t i = 0;i < size;i++){
+                new_ptr[i] = ptr[i];
+            }
+            delete[] ptr;
+            ptr = new_ptr;
+            capacity = new_capacity;
+        }
+        ptr[size] = obj;
+        size++;
+    }
+
+    inline T &operator[](size_t index){
+        return ptr[index];
+    }
+
+    inline const T &operator[](size_t index) const {
+        return ptr[index];
+    }
+
+    void remove(size_t index){
+        if(index >= size)return;
+        for(size_t i = index;i < size - 1;i++){
+            ptr[i] = ptr[i + 1];
+        }
+        size--;
+    }
+
+    void insert(size_t index, const T &obj){
+        if(index > size)return;
+        if(size >= capacity){
+            size_t new_capacity = capacity * 2;
+            T *new_ptr = new T[new_capacity];
+            for(size_t i = 0;i < size;i++){
+                new_ptr[i] = ptr[i];
+            }
+            delete[] ptr;
+            ptr = new_ptr;
+            capacity = new_capacity;
+        }
+        for(size_t i = size;i > index;i--){
+            ptr[i] = ptr[i - 1];
+        }
+        ptr[index] = obj;
+        size++;
+    }
+
+    inline size_t get_size() const {
+        return size;
+    }
+
+    inline T *get_ptr(){
+        return ptr;
+    }
+
+    inline void clean(){
+        ptr = nullptr;
+    }
+
+    constexpr inline Iterator begin(){
+        return Iterator{ptr};
+    }
+
+    constexpr inline Iterator end(){
+        return Iterator{ptr + size};
+    }
+};
+
+template<typename T>
+class list {
+    ;
+};
+
+template<typename N, typename M>
+struct pair {
+    N data_n;
+    M data_m;
+    pair(N n, M m):data_n{n}, data_m{m}{};
+}; 
+
+template<typename N, typename M>
+class map {
+    array<pair<N, M>> data;
+public:
+    map():data{1}{};
+    map(size_t size):data{size}{};
+
+    pair<N, M> &operator[](size_t i){
+        return data[i];
+    }
+};
+
+}
+
+#endif
+#endif

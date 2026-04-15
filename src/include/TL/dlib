@@ -1,0 +1,7 @@
+#ifndef __template_lib_independent_lib_hpp
+#define __template_lib_independent_lib_hpp
+
+#include <utility>
+#include <coroutine>
+
+#endif

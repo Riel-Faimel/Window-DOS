@@ -5,8 +5,8 @@
 #include <global/type.hpp>
 #include "ide_controller_init.hpp"
 #include <mm/mm.hpp>
-#define __independent_lib_Using_reference_part
-#include <TL/idlib/idlib>
+#define __independent_lib_Using_utility
+#include <TL/idlib>
 
 void init_IDE_controller(void* *ptr, size_t *size){
     IDE_DISK *re = new IDE_DISK[4];

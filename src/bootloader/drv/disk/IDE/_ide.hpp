@@ -1,8 +1,8 @@
 #include "ide.hpp"
-#include <lib/cstdlib/port.h>
+#include <lib/hardlib/x86/port.h>
 #include <drv/screen/screen_srv.hpp>
-#define __independent_lib_Using_reference_part
-#include <TL/idlib/idlib>
+#define __independent_lib_Using_utility
+#include <TL/idlib>
 #include <registry/registry.hpp>
 
 

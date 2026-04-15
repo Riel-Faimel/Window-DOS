@@ -49,10 +49,6 @@ bool init(){
         inb(DATA);
         io_wait();
     }
-    //===
-    print_hex(inb(CMD));
-    screen->print("\n");
-    //===
     return true;
 }
 

@@ -147,7 +147,8 @@ void CenterShell::deal_keyboard_code(){
         if(line_offset == 0)
         return;
         line_buffer[line_offset - 1] = '\0';
-        line_offset-= 2;
+        if(line_offset >= 2)line_offset-= 2;
+        else line_offset = 0;
     }
     if(ch == '\n'){
         extern_shell(line_buffer, line_offset);

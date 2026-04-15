@@ -5,7 +5,7 @@ void kprint(char *string){
     screen->print(string);
 }
 
-void print_hex(unsigned char val) {
+void print_hex(unsigned char val, bool a) {
     const char *hex_digits = "0123456789ABCDEF";
     char hex_str[5];
     hex_str[0] = '0';
@@ -13,10 +13,11 @@ void print_hex(unsigned char val) {
     hex_str[2] = hex_digits[(val >> 4) & 0x0F];
     hex_str[3] = hex_digits[val & 0x0F];
     hex_str[4] = '\0';
-    screen->print(hex_str);
+    if(a)screen->print(hex_str);
+    else screen->print(hex_str+2);
 }
 
-void print_hex(unsigned short val){
+void print_hex(unsigned short val, bool a){
     const char *hex_digits = "0123456789ABCDEF";
     char hex_str[7];
     hex_str[0] = '0';
@@ -26,10 +27,11 @@ void print_hex(unsigned short val){
     hex_str[4] = hex_digits[(val >> 4) & 0x0F];
     hex_str[5] = hex_digits[val & 0x0F];
     hex_str[6] = '\0';
-    screen->print(hex_str);
+    if(a)screen->print(hex_str);
+    else screen->print(hex_str+2);
 }
 
-void print_hex(unsigned val){
+void print_hex(unsigned val, bool a){
     const char *hex_digits = "0123456789ABCDEF";
     char hex_str[11];
     hex_str[0] = '0';
@@ -43,7 +45,8 @@ void print_hex(unsigned val){
     hex_str[8] = hex_digits[(val >> 4) & 0x0F];
     hex_str[9] = hex_digits[val & 0x0F];
     hex_str[10]= '\0';
-    screen->print(hex_str);
+    if(a)screen->print(hex_str);
+    else screen->print(hex_str+2);
 }
 
 void print_char(char ch){

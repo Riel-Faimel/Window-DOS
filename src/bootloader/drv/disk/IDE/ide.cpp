@@ -114,7 +114,7 @@ void IDE_Channal::ata_sff_exec_command(IDE_Channal::ata_taskfile &tf){
     inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
 }
 
-void IDE_Channal::read(unsigned short *buf, unsigned int LBA, unsigned char count, IDE_DISK_INFO *info){
+void IDE_Channal::read(unsigned short *buf, unsigned int LBA, unsigned char count, DISK_INFO *info){
     if(info->LBA_support)read_PIO_LBA(buf, LBA, count, info->device);
     else read_PIO_CHS(buf, LBA, count, info->device);
 }
@@ -166,7 +166,7 @@ inline void IDE_Channal::read_PIO_CHS(unsigned short *buf, unsigned int LBA, uns
     kprint("[NOTICE] CHS read not implemented yet\r\n");
 }
 
-void IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, IDE_DISK_INFO *info){
+void IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, DISK_INFO *info){
     if(info->LBA_support)write_PIO_LBA(buf, LBA, count, info->device);
     else write_PIO_CHS(buf, LBA, count, info->device);
 }
@@ -428,7 +428,7 @@ void IDE_DISK::write(unsigned short *buf, unsigned int LBA, unsigned char count)
     if(lock)lock->write(buf, LBA, count, &info_);
 }
 
-IDE_DISK_INFO *IDE_DISK::info(){
+DISK_INFO *IDE_DISK::info(){
     return &info_;
 }
 

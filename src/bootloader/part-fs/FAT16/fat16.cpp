@@ -37,10 +37,10 @@ FAT_table(nullptr){
             goto SET_BPB;
         };
     }else {
-        screen->print(" <no part> ");
+        //screen->print(" <no part> ");
         status = NO;
         if(force_part){
-            screen->print(" <force part> ");
+            //screen->print(" <force part> ");
             part->init_part(DISK_PART::System_ID::FAT16_, part_id);
             goto SET_BPB;
         }
@@ -171,7 +171,7 @@ void FAT16::format(){
     }
     
     part->set_block(part_id, S);
-    screen->print(" <done> ");
+    //screen->print(" <done> ");
     status = FORMAT;
     return;
 }

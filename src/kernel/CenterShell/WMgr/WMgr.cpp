@@ -1,5 +1,5 @@
 #include "WMgr.hpp"
-#include <interpret/Window.hpp>
+#include <interface/Window.hpp>
 
 bool WinMgr::regist(_WIN win){
     win.handle = NULL_PTR;

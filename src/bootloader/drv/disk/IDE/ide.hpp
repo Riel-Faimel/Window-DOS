@@ -1,18 +1,8 @@
 #ifndef __bootloader_drv_disk_IDE_ide_hpp
-#define __bootloader_drv_disk_IDE_ide_hpp 
+#define __bootloader_drv_disk_IDE_ide_hpp
+#include <IDT_L/idt.hpp> 
 #include <drv/disk/disk.hpp>
 class IDE_DISK;
-struct IDE_DISK_INFO {
-    int total_sectors;
-    int LBA_support;
-    int PIO_supported;
-    char model[41];
-    u8 device; 
-    u16 CHS_cylinders;
-    u16 CHS_heads;
-    u16 CHS_sectors_per_track;
-    u32 multi_count;
-};
 
 class IDE_Channal {
 public:
@@ -24,11 +14,11 @@ public:
 
 private:
     Channal chan;
-    void read(unsigned short *buf, unsigned LBA, unsigned char count, IDE_DISK_INFO *info);
+    void read(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
     void read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
     void read_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
 
-    void write(unsigned short *buf, unsigned LBA, unsigned char count, IDE_DISK_INFO *info);
+    void write(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
     void write_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
     void write_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
     /**
@@ -67,7 +57,7 @@ class IDE_DISK : public DISK_{
     };
 
     IDE_Channal *lock;
-    IDE_DISK_INFO info_;
+    DISK_INFO info_;
     IDE_DISK(Device dev, IDT &idt, IDE_Channal *);
 public:
     bool exist;
@@ -77,7 +67,7 @@ public:
     void check();
     void read(unsigned short *buf, unsigned LBA, unsigned char count);
     void write(unsigned short *buf, unsigned LBA, unsigned char count);
-    IDE_DISK_INFO *info();
+    DISK_INFO *info();
     
     IDE_DISK& operator=(IDE_DISK&&);
     IDE_DISK& operator=(IDE_DISK&) = delete;

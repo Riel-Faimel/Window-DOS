@@ -1,34 +1,37 @@
 #include "_cmd_shell.hpp"
 #include <part-fs/MBR/MBR.hpp>
 #include <drv/disk/IDE/ide.hpp>
-#include <lib/cstdlib/port.h>
+#include <lib/hardlib/x86/port.h>
+#include <part-fs/las.hpp>
 
 extern "C" __attribute__((cdecl)) void do_int_with_params(
     u8 vector, u32 eax, u32 ebx, u32 ecx, u32 edx, u32 esi, u32 edi
 );
 
+constexpr unsigned line_nums = 16;
+constexpr unsigned lines = 16;
 void cmd_see(String args){
     static String last_param{};
     if(args.substr(0, 2) == "0x"){
         unsigned addr = args.substr(2).to_int();
         unsigned char *ptr = reinterpret_cast<unsigned char *>(addr);
-        for(int i = 0; i < 8; i++){
-            print_hex(addr + i * 8);
+        for(int i = 0; i < lines; i++){
+            print_hex(addr + i * line_nums);
             screen->print(": ");
-            for(int j = 0; j < 8; j++){
-                print_hex(ptr[i * 8 + j]);
-                screen->print(" ");
+            for(int j = 0; j < line_nums; j++){
+                print_hex(ptr[i * line_nums + j], false);
+                print_char(' ');
             }
-            screen->print(" ");
-            for(int j = 0; j < 8; j++){
-                unsigned char ch = ptr[i * 8 + j];
+            print_char(' ');
+            for(int j = 0; j < line_nums; j++){
+                unsigned char ch = ptr[i * line_nums + j];
                 if(ch >= 32 && ch <= 126){
                     print_char(ch);
                 }else{
                     print_char('.');
                 }
             }
-            screen->print("\n");
+            print_char('\n');
         }
     }
     else if (args.substr(0, 1) == "$"){
@@ -197,16 +200,38 @@ void cmd_disk(String args){
             }
         };
     }
-    else if (args == "help"){
-        screen->print("\r=== DISK COMMAND HELP ===\r\n");
-        screen->print("disk info - show disk information\r\n");
-        screen->print("disk choose 0x... - choose disk by id (from 0 to 4, if not chosen, use parameter -d to specify disk id)\r\n");
-        screen->print("disk read -d 0x... -l 0x... -n 0x... -a 0x... - read from disk to memory\r\n");
-        screen->print("disk write ... - write not implemented yet\r\n");
+    else if (args.substr(0, 5) == "part "){
+        args = args.substr(5);
+        if (args.substr(0, 4) == "set "){
+            unsigned from = args.extract_int("--0x");
+            unsigned to = args.extract_int(":0x");
+            u8 disk_id = args.extract_int("-d 0x");
+            String le = args.extract_param("/");
+            if(disk_id == 0xFF){
+                if(device_id != 0xFF)disk_id = device_id;
+                else{
+                    screen->print("[ERROR] Which disk?\n");
+                    return;
+                }
+            }
+            print_hex(linear_address_space->set_part(disk_id, from, to, le));
+            print_char('\n');
+        }
+        else if (args == "show"){
+            screen->print("All driver letters: \n ");
+            linear_address_space->show_driver();
+            print_char('\n');
+        }
     }
-    
-    else screen->print("\r\ninvalid parameter.\r\n\nhelp: disk info|choose\r\n");
-    
+    else if (args == "help"){
+        screen->print("\r=== DISK HELP ===\r\n");
+        screen->print("disk info - show disk information\r\n");
+        screen->print("disk choose 0x... - choose disk by id (cover -d param)\r\n");
+        screen->print("disk read -d 0x... -l 0x... -n 0x... -a 0x... - LBA read\r\n");
+        screen->print("disk write -d 0x... -l 0x... -n 0x... -a 0x... - LBA write\r\n");
+        screen->print("disk part [show | set --0x...:0x...] - part operations\n");
+    }
+    else screen->print("\r\ninvalid parameter.\r\n\ntry: disk help\n");
 }
 
 void cmd_say(String args){
