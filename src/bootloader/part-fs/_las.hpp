@@ -9,8 +9,9 @@
 
 
 inline void __dir(String str){
+    str = str.trim();
     if(str == "dir"){
-        screen->print("Drive");screen->print("");screen->print("L");
+        static_cast<FAT16 *>(linear_address_space->dealing)->dir();
         return;
     };
 }

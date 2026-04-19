@@ -1,0 +1,59 @@
+COSPA 1.0 (Compatibility Open Source Protection Agreement)
+
+0. Definitions
+
+0.1. Reference to COSPA: Defined on a per-project basis. If one or more files within a project hold the COSPA license, the project as a whole shall be deemed to "reference COSPA".
+
+0.2. Holding COSPA: Defined on a per-file basis. If a file holds COSPA, it is equivalent to stating that the file is subject to COSPA.
+
+0.3. External License: Any license other than COSPA that is held by a file due to its origin or inclusion. This excludes licenses actively chosen by the project author for their own original work within the project.
+
+0.4. Automatic Application: Defined on a per-project basis. If a project references COSPA, then after all possible licensing effects have taken place (with any External License taking precedence over COSPA), COSPA shall automatically apply to any file within that project that does not hold an External License. Such files shall be deemed to hold COSPA and are prohibited from actively adopting any license other than COSPA.
+
+1. Grant of License
+
+The Author hereby grants you a perpetual, worldwide, royalty-free, irrevocable license to exercise the following rights in the Work subject to COSPA:
+
+1.1. Use: The right to run and use the Work in any device or environment.
+1.2. Reproduction: The right to make copies of the Work, including backup copies.
+1.3. Distribution: The right to distribute, transmit, or share the Work via any medium.
+1.4. Modification: The right to adapt, optimize, enhance, fix errors, or otherwise modify the Work.
+1.5. Aggregation: The right to combine the Work with other works or integrate it into other systems.
+
+2. Conditions
+
+Exercise of the rights granted in Section 1 is expressly conditioned upon compliance with the following:
+
+2.1. Source Code Disclosure Obligation: Any individual or entity that uses, reproduces, distributes, modifies, or aggregates files subject to COSPA must publicly disclose the complete and corresponding source code of all files covered by COSPA. Disclosure must be made via a publicly accessible channel without barriers to third-party access. No additional documentation or annotation is required beyond the source code itself.
+
+2.2 License Integrity and Irrevocability
+No person or entity, including the original Author, may actively modify, replace, or rescind the application of COSPA to any version of the Work that has been distributed or made publicly accessible. This License must remain in effect in its original form. You may not delete, alter, or obscure any terms or notices of this license.
+
+2.3. Scope of Application: For any project referencing COSPA, all files within the project that do not hold an External License shall automatically be subject to COSPA pursuant to Section 0.4, and must strictly comply with all terms hereof, particularly Sections 2.1 and 2.2.
+
+2.4. Collaborative Assent
+The exercise of any right granted under this License shall constitute the user's express assent to have entered into a mutual collaborative agreement with the Copyright Holder regarding all terms of this License, and the user thereby agrees to be bound by such terms, including but not limited to the reciprocal source disclosure requirements set forth herein.
+
+3. Disclaimer of Warranty
+
+THE AUTHOR PROVIDES THE WORK "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, SECURITY, ACCURACY, COMPLETENESS, RELIABILITY, TIMELINESS, UNINTERRUPTED AVAILABILITY, ERROR-FREE OPERATION, OR FREEDOM FROM VIRUSES. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE WORK. THE WORK MAY BE MODIFIED OR DISCONTINUED AT ANY TIME WITHOUT NOTICE.
+
+4. Entire Agreement
+
+This license constitutes the entire agreement between the parties regarding the Work and supersedes all prior oral or written communications, proposals, and representations. Any modification to this license must be expressly published in writing by the Author.
+
+5. Severability
+
+If any provision of this license is held to be invalid or unenforceable by a court of competent jurisdiction, such provision shall be limited or severed to the minimum extent necessary, and the remaining provisions shall continue in full force and effect.
+
+6. No Waiver
+
+The failure of the Author to enforce any right or provision of this license shall not constitute a waiver of such right or provision. Any waiver must be in writing to be effective.
+
+7. Governing Law
+
+This license and any disputes arising out of it shall be governed by the laws of the People's Republic of China, without regard to its conflict of law principles.
+
+8. Dispute Resolution
+Any dispute arising from or in connection with this license shall first be resolved through friendly negotiation. If negotiation fails, the parties agree to submit the dispute to the competent court of the domicile of the Copyright Holder.
+

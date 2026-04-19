@@ -1,17 +1,28 @@
 [bits 32]
 
 global _start
-extern LoaderMain
+extern main
 extern __bss_start
 extern __bss_end
 
 extern __CTOR_LIST__
 extern __CTOR_END__
+section .sys
+__sys_bit:
+    dd 32
+__sys_base_addr:
+    dd 0
+__sys_enter_point:
+    dd _start
+__sys_code_sec:
+    dw 0
+__sys_data_sec:
+    dw 0
 
-section .start
+section .text
 _start:
     cli 
-    mov ax, 0x10
+    mov ax, [__sys_data_sec]
     mov ds, ax
     mov es, ax
     mov fs, ax
@@ -26,8 +37,6 @@ _start:
     xor eax, eax
     cld
     rep stosb
-
-    ;jmp .ctor_done
     
     mov esi, __CTOR_LIST__
     add esi, 4
@@ -44,8 +53,10 @@ _start:
 
     sti
 
-    call LoaderMain
+    call main
 
+    mov eax, 0x4C
+    int 0x21
     cli
 .hang:
     hlt

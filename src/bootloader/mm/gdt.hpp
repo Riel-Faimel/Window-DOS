@@ -36,12 +36,28 @@ public:
      * CONFORMING: conforming indicates whether the segment can be executed from a lower privilege level. 
      * If this bit is set, the segment can be executed from any privilege level,
      */
-    struct GDTEntry {
+
+    enum class GateType : u8{
+        TSS_16_free = 1,
+        LDT = 2,
+        TSS_16_busy = 3,
+        Call_Gate_16 = 4,
+        Task_Gate = 5,
+        INT_Gate_16 = 6,
+        Trap_Gate_16 = 7,
+        TSS_32_free = 9,
+        TSS_32_busy = 11,
+        Call_Gate_32 = 12,
+        INT_Gate_32 = 14,
+        Trap_Gate_32 = 15,
+    };
+union GDTEntry{
+    struct {
         u16 Segment_limit_low;
         u16 Base_address_low;
         u8 Base_address_middle;
         GDTType Type : 4;
-        u8 isnot_System_segment : 1;
+        u8 not_a_system_descriptor : 1;
         u8 ring : 2;
         u8 exist_segment : 1;
         u8 Segment_limit_high : 4;
@@ -50,23 +66,62 @@ public:
         u8 is32_or16 : 1;
         u8 unit_of_1bit_or_4KB : 1;
         u8 Base_address_high;
-    };
+    }Segment_Descript;
+
+    struct {
+        u16 Offset_address_low;
+        u16 Segment_selector;
+        u8 params_count : 5;
+        u8 zero : 3;
+        GateType Type : 4;
+        u8 not_a_system_descriptor : 1;
+        u8 ring : 2;
+        u8 exist_Segment : 1;
+        u16 Offset_address_high;
+    }Call_Gate;
+
+    struct {
+        u16 Seg_limit_low;
+        u16 Base_Address_low;
+        u8 Base_Address_mid;
+        GateType Type : 4;
+        u8 nota_system_seg : 1;
+        u8 ring : 2;
+        u8 exist_Segment : 1;
+        u8 Seg_limit_high : 4;
+        u8 AVL : 1;
+        u8 must_zero : 2;
+        u8 G : 1;
+        u8 Base_Address_high;
+    } TSS;
+};
 private:
     struct GDTPtr {
         u16 limit;
         u32 base;
     };
 
-    GDTEntry *volatile entries;
+    volatile GDTEntry *entries;
     u16 limit;
 #pragma pack(pop)
 public:
-    GDT(GDTEntry *, u16, IDT&);
+    GDT(volatile GDTEntry *, u16, IDT&);
     ~GDT() = default;
-    void regist(
+    //true for one byte, false for 4KB
+    unsigned regist(
         void *Segment_base, u32 Segment_limit, GDTType Type, u8 ring, 
         bool unit_of_1bit_or_4KB = true, bool is32_or16 = true, 
         bool is_64_long_mode = false, bool isnot_System_segment = true, bool AVL = false
-    );
+    ) volatile;
+
+    unsigned create_a_gate(
+        void *offset, u16 Segment, GateType type,
+        u8 params_count, u8 ring = 0x00
+    ) volatile;
+
+    unsigned create_tss(
+        void *base_addr, u32 seg_lim, GateType type,
+        u8 ring, bool open_4k_granularity
+    ) volatile;
 };
 #endif

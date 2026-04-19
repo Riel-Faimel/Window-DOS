@@ -49,23 +49,23 @@ public:
     };
 
     union DIR{
-        struct _8_3FN{
-            unsigned char name[8];
-            unsigned char ext[3];
+        struct {
+            char name[8];
+            char ext[3];
             attribute_choice attribute;
             unsigned char re_;
             unsigned char Creation_time_in_microsecond;
             unsigned short Creation_time_in_hour_minute_second;
             unsigned short Creation_Date;
-            unsigned char Last_access_Date;
+            unsigned short Last_access_Date;
             unsigned short first_cluster_high = 0;
             unsigned short Last_modification_time;
             unsigned short Last_modification_date;
             unsigned short first_cluster_low;
             unsigned file_size;
-        };
+        } _8_3FN;
 
-        struct LFN {
+        struct {
             unsigned char order_index;
             /**
              * orer index takes
@@ -86,7 +86,7 @@ public:
             unsigned short next_name[6];
             unsigned short zero = 0;
             unsigned short final_name[2];
-        };
+        } LFN;
     };
 #pragma pack(pop)
 
@@ -97,15 +97,22 @@ public:
         FORMAT
     };
 
+// disk info
     DISK_PART *part;
     unsigned part_id;
     unsigned cluster_size;
     unsigned char clu2blk;
 
+// status machine
     STATUS status;
     String current_path;
 
+// file allocation table
     unsigned short *FAT_table;
+
+// root dir
+    DIR *root_dir;
+    unsigned dir_entries;
 public:
     FAT16(
         DISK_PART *part, 
@@ -119,8 +126,10 @@ public:
 
     void format();
 
-    unsigned open(const char *path);
-    String dir();
+    unsigned open(String filename);
+    unsigned lookup(String);
+    void cd(String);
+    void dir();
 
     void set_filesystem_name(char *name);
 };

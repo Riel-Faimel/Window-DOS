@@ -1,0 +1,5 @@
+qemu-system-x86_64 -serial stdio -drive format=raw,index=0,file=boot.img,media=disk -drive format=raw,index=1,file=disk.vhd,media=disk
+start init PIC
+G EC:00000000
+eip:00000009
+#GP: General protect fault!

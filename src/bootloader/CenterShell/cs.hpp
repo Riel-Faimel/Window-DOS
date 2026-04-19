@@ -20,7 +20,7 @@ public:
     void reg_cmd(String, void(*)(String));
     void unreg_cmd(String);
 private:
-    void main_loop();
+    void main_loop() __asm__("main_loop");
     void deal_keyboard_code();
 
     bool if_is_other_shell;

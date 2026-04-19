@@ -17,7 +17,7 @@ Hz(18){
         IDT::IDT_item item;
         item.addr_low = reinterpret_cast<unsigned>(&time_handler) & 0xFFFF;
         item.addr_high = (reinterpret_cast<unsigned>(&time_handler) >> 16) & 0xFFFF;
-        idt.regist(IDT::Vector::IRQ0_TIMER, &item);
+        idt.regist(&time_handler, static_cast<unsigned>(IDNT::time));
     }
     //set_Hz(1000);
 }
@@ -27,7 +27,7 @@ extern "C" void time_handler_c(){
     Time::inc();
 }
 
-#define BASE_FREQ 1193180
+constexpr unsigned BASE_FREQ = 1193180;
 void Time::set_Hz(unsigned int hz){
     unsigned d = BASE_FREQ / hz;
 

@@ -4,6 +4,7 @@ mm reserved_space_for_mm;
 BootINFO *boot_infomation = reinterpret_cast<BootINFO *>(0x7C00 + 320);
 _Screen *screen;
 volatile IDT::IDT_item _IDT[256];
+volatile GDT::GDTEntry _gdt_space[8192];
 
 _Screen *init_screen(){
     if(boot_infomation->screen_mode){
@@ -52,7 +53,7 @@ void print_ss() {
 
 IDT idt(_IDT);
 
-void LoaderMain(){
+void __attribute__((optimize("O0")))LoaderMain(){
     asm volatile ("cli");
 
     /**
@@ -77,23 +78,11 @@ void LoaderMain(){
 
     asm volatile ("sti");
 
-    PCI_space PCI_device_spaceP{false};
+    PCI_space PCI_device_spaceP{true};
     PCI_device_spaceP.set_device_driver();
-/*
-    unsigned i;
-    PCI_device_config *cfg;
-    for(i = 0;i < PCI_device_spaceP.config.get_size();i++){
-        cfg = &PCI_device_spaceP.config[i];
-        if(cfg->Class_code[2] == 0x01 && cfg->Class_code[1] == 0x01){
-            break;
-        }
-    }
-    DISK_PART p[2] = {{&static_cast<IDE_DISK *>(cfg->dev_drv)[0]}, {&static_cast<IDE_DISK *>(cfg->dev_drv)[1]}};
-    FAT16 fs[2] = {{&p[0], 0, true}, {&p[1], 0}};
-*/
+    //while(1){asm volatile ("hlt");}
     LAS las{};
     DOScall disk_operating_system_system_call{idt};
+    GDT gdt{_gdt_space, 8192, idt};
     CenterShell cs;
-    print_ss();
-    //while (true){asm volatile ("hlt");}
 }

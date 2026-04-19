@@ -2,6 +2,7 @@
 #define __bootloader_IDT_L_idt_hpp
 #define _BITS_32
 #include <global/type.hpp>
+#include <IDT_L/idt_.hpp>
 
 class IDT{
 public:

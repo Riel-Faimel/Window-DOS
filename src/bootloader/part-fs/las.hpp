@@ -35,6 +35,7 @@ class LAS{
     void *dealing;// disk or filesystem which dealing
     unsigned char dealing_id;
     friend inline void mkfs_(String);
+    friend inline void __dir(String);
 public:
     LAS();
     /**

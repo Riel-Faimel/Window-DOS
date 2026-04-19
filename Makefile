@@ -24,6 +24,7 @@ export MKDIR_F MOD
 include $(SRC_DIR)bootloader/bootloader.mk
 include $(SRC_DIR)kernel/kernel.mk
 include $(SRC_DIR)lib/lib.mk
+include $(ROOT_DIR)/app/app.mk
 
 MOD = $(FS_MOD)
 MOD += $(DRV_MOD)

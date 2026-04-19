@@ -3,7 +3,11 @@ const PCI_device_config *PCI_device_config_pointer = NULL_PTR;
 const unsigned PCI_device_numbers = 0;
 
 PCI_space::PCI_space(bool print_info){
+    for(int dev = 0;dev < 32;dev++){
+        pci_probe_device(0, dev, print_info);
+    }
     for (int bus = 0;bus < 256;bus++){
+        if(pci_read(bus, 0, 0, 0) == 0xFFFF)continue;
         for (int dev = 0; dev < 32;dev++){
             pci_probe_device(bus, dev, print_info);
         }
@@ -30,8 +34,24 @@ inline unsigned int PCI_space::pci_read(int bus, int dev, int func, int reg){
 
 inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info, int func_id){
     unsigned int id = pci_read(bus, dev, func_id, 0);
-    if((id&0xFFFF) == 0xFFFF)return;
-    PCI_device_config cfg;
+    if (
+        id == 0xffffffff || id == 0x00000000 ||
+	    id == 0x0000ffff || id == 0xffff0000
+    ) return ;
+
+    unsigned time_count = 0;
+    while (id == 0xffff0001) {
+		io_wait();
+        time_count++;
+        id = pci_read(bus, dev, func_id, 0);
+        if (
+            id == 0xffffffff || id == 0x00000000 ||
+            id == 0x0000ffff || id == 0xffff0000
+        ) return ;
+		if (time_count > 0x80) return;
+	}
+
+    PCI_device_config cfg = {};
     reinterpret_cast<unsigned *>(&cfg)[0] = id;
     for(int i = 1;i < 16;i++){
         reinterpret_cast<unsigned *>(&cfg)[i] = pci_read(bus, dev, func_id, i*4);
@@ -85,14 +105,14 @@ void PCI_space::set_device_driver(){
         case 0x02: //network controller
             switch (config[i].Class_code[1]){
             case 0x00:
-                screen->print("internet controller\r\n");
+                //screen->print("internet controller\r\n");
                 break;
             default:
                 break;
             }
             break;
         case 0x03:
-            screen->print("display controller\r\n");
+            //screen->print("display controller\r\n");
             break;
         case 0x06:
         /*

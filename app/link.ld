@@ -3,9 +3,11 @@ ENTRY(_start)
 
 SECTIONS {
     . = 0x10000;
-    
-    .start : {
-        *(.start)
+
+    __sys_base_addr = .;
+
+    .sys : {
+        *(.sys)
     }
     
     .text : {

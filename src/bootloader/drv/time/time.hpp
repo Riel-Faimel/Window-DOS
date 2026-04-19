@@ -1,8 +1,6 @@
 #ifndef __bootloader_drv_time_hpp
 #define __bootloader_drv_time_hpp
 #pragma once
-#include <IDT_L/idt.hpp>
-#include <drv/screen/screen_srv.hpp>
 
 class Time{
 public:

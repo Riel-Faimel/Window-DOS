@@ -7,6 +7,7 @@ LAS::LAS():disks{1}, drivers{1}{
     for(unsigned i = 0; i < PCI_device_numbers; i++){
         if(PCI_device_config_pointer[i].Class_code[2] == 0x01){
             if(PCI_device_config_pointer[i].Class_code[1] == 0x01){
+                if(PCI_device_config_pointer[i].dev_drv)
                 for(unsigned j = 0; j < PCI_device_config_pointer[i].size; j++){
                     disks.append(
                         {
@@ -16,6 +17,7 @@ LAS::LAS():disks{1}, drivers{1}{
                         }
                     );
                 }
+                else screen->print("[WARNING] No driver\n");
             }
             else if (PCI_device_config_pointer[i].Class_code[1] == 0x02){
                 // SATA disk not implemented yet
