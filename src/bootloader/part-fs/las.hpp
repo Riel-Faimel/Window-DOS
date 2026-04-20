@@ -1,11 +1,12 @@
 #ifndef __bootloader_part_fs_las_hpp
 #define __bootloader_part_fs_las_hpp
 #include <lib/cppstdlib/string>
-#include <part-fs/part-fs.hpp>
+#include <part-fs/fs.hpp>
 #include <drv/disk/disk.hpp>
 #define __independent_lib_Using_template_container
 #include <TL/idlib>
 class CenterShell;
+class DISK_PART;
 
 class LAS{
     struct DiskInfo{
@@ -17,7 +18,7 @@ class LAS{
         unsigned disk_id;
     };
     struct DriveInfo{
-        FAT16 *fs;
+        FileSystem *fs;
         String driver_letter;
         /**
          * File system and it's driver letter
@@ -32,8 +33,11 @@ class LAS{
     rtl::array<DiskInfo> disks;
     rtl::array<DriveInfo> drivers;
 
-    void *dealing;// disk or filesystem which dealing
-    unsigned char dealing_id;
+    struct {
+        void *dealing;// disk or filesystem which dealing
+        unsigned char dealing_id;
+        char letter[];
+    };
     friend inline void mkfs_(String);
     friend inline void __dir(String);
 public:
@@ -52,12 +56,12 @@ public:
 
     void mkfs_FAT16(unsigned disk_part_uid);
 
-    bool choose_disk(String &);
-
     void reg_cmd(CenterShell *);
     void set_letter(unsigned disk_part_uid, String letter);
-    unsigned set_part(unsigned disk_id, unsigned from_LBA, unsigned to_LBA, String le = {});
+    bool choose_disk(String &);
     void show_driver();
+
+    unsigned set_part(unsigned disk_id, unsigned from_LBA, unsigned to_LBA, String le = {});
 };
 
 extern LAS *linear_address_space;

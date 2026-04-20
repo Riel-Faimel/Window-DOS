@@ -70,6 +70,8 @@ public:
 
     void write(unsigned short *buf, unsigned part_id, unsigned start_block, unsigned blocks_write);
 
+    void read_sec(unsigned short *buf, unsigned part_id, unsigned start_sec, unsigned counts);
+
     void set_block(unsigned part_id, unsigned sectors_per_block);
 };
 

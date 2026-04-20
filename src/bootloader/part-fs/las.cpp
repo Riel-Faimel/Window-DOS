@@ -1,4 +1,5 @@
 #include "_las.hpp"
+#include <drv/disk/IDE/ide.hpp>
 
 LAS *linear_address_space;
 
@@ -27,11 +28,11 @@ LAS::LAS():disks{1}, drivers{1}{
     //partition
     char le[3] = {'A', ':', 0};
     for(auto [driver, partitions, id] : disks){
-        partitions = new DISK_PART {static_cast<DISK_ *>(driver)};
-        if(static_cast<DISK_PART *>(partitions)->has_MBR) {
+        partitions = new DISK_PART {driver};
+        if(partitions->has_MBR) {
             //fs
             for(unsigned j = 0;j < 4;j++){
-                auto fs = new FAT16{static_cast<DISK_PART *>(partitions), j};
+                auto fs = new FAT16{partitions, j};
                 if (fs->status == FAT16::FORMAT){
                     drivers.append({fs, le, (id << 16) | j});
                     le[0]++;
@@ -62,7 +63,7 @@ bool LAS::choose_disk(String &drive_letter){
         if(drivers[i].driver_letter == drive_letter){
             if(drivers[i].fs){
                 dealing = drivers[i].fs;
-                drive_letter+="\\";
+                drive_letter+=static_cast<FileSystem *>(dealing)->dealing_path;
                 return true;
             }else{
                 if(disks[i].driver){
@@ -82,7 +83,7 @@ bool LAS::choose_disk(String &drive_letter){
 }
 
 unsigned int LAS::open(String filename){
-    ;
+    ;//
 }
 
 void LAS::reg_cmd(CenterShell *cs){

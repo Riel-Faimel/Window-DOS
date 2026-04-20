@@ -1,4 +1,5 @@
 #include "_MBR.hpp"
+#include <drv/screen/screen_srv.hpp>
 
 /**
  * MODEL:
@@ -29,6 +30,10 @@ DISK_PART::DISK_PART(DISK_ *disk_choose):
 disk(disk_choose),
 has_MBR(false){
     MBR mbr;
+    asm volatile (
+        ".globl DEBUG_4\n"
+        "DEBUG_4:"
+    );
     disk->read(mbr.buf, 0, 1);
     if(mbr.sign == (unsigned short)0xAA55){
         for(unsigned char i = 0;i < 4;i++){

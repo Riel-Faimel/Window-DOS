@@ -2,8 +2,9 @@
 #define __bootloader_part_fs_FAT16_hpp
 #include <part-fs/MBR/MBR_.hpp>
 #include <lib/cppstdlib/string>
+#include <part-fs/fs.hpp>
 
-class FAT16{
+class FAT16 : public FileSystem {
 public:
     enum class attribute_choice : unsigned char {
         read_only = 0b00000001,
@@ -105,7 +106,6 @@ public:
 
 // status machine
     STATUS status;
-    String current_path;
 
 // file allocation table
     unsigned short *FAT_table;
@@ -127,6 +127,7 @@ public:
     void format();
 
     unsigned open(String filename);
+    void close(unsigned );
     unsigned lookup(String);
     void cd(String);
     void dir();

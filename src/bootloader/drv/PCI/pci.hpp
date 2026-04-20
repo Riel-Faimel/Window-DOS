@@ -60,7 +60,7 @@ class PCI_space {
 
     unsigned pci_read(int, int, int, int);
 
-    void pci_probe_device(int, int, bool, int func_id = 0);
+    void pci_probe_device(int, int, bool);
 public:
     PCI_space(bool print_info = true);
     void set_device_driver();

@@ -2,7 +2,7 @@
 #include "part-fs.hpp"
 #include <drv/PCI/pci.hpp>
 #include <lib/cppstdlib/string>
-#include <drv/disk/IDE/ide.hpp>
+#include <drv/disk/disk.hpp>
 #include <drv/screen/screen_srv.hpp>
 
 #include <CenterShell/cs.hpp>

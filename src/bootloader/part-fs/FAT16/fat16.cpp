@@ -10,7 +10,7 @@ FAT16::FAT16(
 part_id(part_id_), 
 status(NO), 
 cluster_size(1<<cluster_index),
-current_path{"/"}{
+FileSystem{"/"}{
     BPB bpb;
     if(part->get_system_id(part_id) == 0x06){
         part->set_block(part_id, 1);
@@ -273,6 +273,10 @@ unsigned FAT16::open(String filename){
     return 0; // 未找到
 }
 
+void FAT16::close(unsigned ){
+    ;
+}
+
 FAT16::~FAT16(){
     /**
      * Thanks for Copilot
@@ -297,7 +301,7 @@ FAT16::~FAT16(){
 }
 
 void FAT16::dir(){
-    if(current_path == "/")for(unsigned i = 0;i < dir_entries;i++){
+    if(dealing_path == "/")for(unsigned i = 0;i < dir_entries;i++){
         if(root_dir[i]._8_3FN.attribute == attribute_choice::dir){
             char filename[13];
             u8 i_;

@@ -80,8 +80,8 @@ void __attribute__((optimize("O0")))LoaderMain(){
 
     PCI_space PCI_device_spaceP{true};
     PCI_device_spaceP.set_device_driver();
-    //while(1){asm volatile ("hlt");}
     LAS las{};
+    //while(1){asm volatile ("hlt");}
     DOScall disk_operating_system_system_call{idt};
     GDT gdt{_gdt_space, 8192, idt};
     CenterShell cs;
