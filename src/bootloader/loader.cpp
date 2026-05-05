@@ -6,6 +6,8 @@ _Screen *screen;
 volatile IDT::IDT_item _IDT[256];
 volatile GDT::GDTEntry _gdt_space[8192];
 
+Window<32> win;
+
 _Screen *init_screen(){
     if(boot_infomation->screen_mode){
         //return new VBE;
@@ -28,7 +30,7 @@ _Screen *init_screen(){
         }
     };
 }
-
+/*
 void print_esp() {
     void *p;
     screen->print("esp: ");
@@ -50,14 +52,14 @@ void print_ss() {
     print_hex(reinterpret_cast<unsigned>(p));
     screen->print("\r\n");
 }
-
+*/
 IDT idt(_IDT);
 
 void __attribute__((optimize("O0")))LoaderMain(){
     asm volatile ("cli");
 
     /**
-     * TODO:
+     * TODO: (Done)
      * take care of the address, if it write the code section?
      */
     new (&reserved_space_for_mm) mm(4096, 256, (void *)0x100000, __boot_loader_end);
@@ -67,18 +69,16 @@ void __attribute__((optimize("O0")))LoaderMain(){
     //===INFO===
     screen->print("============\nWindow-DOS v0.1\n============\r\nFROM: Riel Faimel\r\n\r\n");
 
-    screen->print("[INFO] protect mode\r\n[INFO] boot device ID: ");
+    screen->print("[INFO] protect mode\n[INFO] boot device ID: ");
 
     print_hex(boot_infomation->boot_device);
-    screen->print("\r\n");
-
-    qps("start init PIC\r\n");
+    screen->print("\n");
     idt.set_PIC();
-    screen->print("[INFO] PIC set done\r\n");
+    screen->print("[INFO] PIC set done\n");
 
     asm volatile ("sti");
 
-    PCI_space PCI_device_spaceP{true};
+    PCI_space PCI_device_spaceP{false};
     PCI_device_spaceP.set_device_driver();
     LAS las{};
     //while(1){asm volatile ("hlt");}

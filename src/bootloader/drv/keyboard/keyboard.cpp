@@ -15,6 +15,7 @@ inline void deal_main(){
     buffer[write] = data;
     write = (write + 1) & 1023;
     click = true;
+    unsigned esp;
 }
 
 void keyboard_handler_c(){
@@ -24,6 +25,10 @@ void keyboard_handler_c(){
             deal_main();
         }
     }
+    /*
+    mov al, 0x20
+    out 0x20, al
+    */
 }
 
 bool init(){

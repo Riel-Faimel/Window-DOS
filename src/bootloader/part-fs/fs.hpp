@@ -10,6 +10,9 @@ protected:
 public:
     virtual unsigned open(String) = 0;
     virtual void close(unsigned) = 0;
+
+    virtual void cd(String) = 0;
+    virtual void dir() = 0;
 };
 
 #endif

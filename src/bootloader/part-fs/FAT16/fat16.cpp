@@ -320,7 +320,7 @@ void FAT16::dir(){
         }
     }
     else {
-        ;
+        screen->print(dealing_path);
     };
 }
 
@@ -375,3 +375,6 @@ unsigned int FAT16::lookup(String dir_name){
     return -1; // 未找到
 }
 
+void FAT16::cd(String) {
+    ;
+}

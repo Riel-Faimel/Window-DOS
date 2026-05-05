@@ -2,11 +2,14 @@
 #ifndef ___Using_template_container_protect
 #define ___Using_template_container_protect
 
+#include <TL/bits/utility>
+
 namespace rtl {
 
 //dynamic array
 template<typename T>
 class array {
+protected:
     T *ptr;
     size_t size;
     size_t capacity;
@@ -69,6 +72,14 @@ public:
         size--;
     }
 
+    void remove(T obj) {
+        for(size_t i = 0; i < size; i++){
+            if (ptr[i] == obj) {
+                remove(i);
+            }
+        }
+    }
+
     void insert(size_t index, const T &obj){
         if(index > size)return;
         if(size >= capacity){
@@ -109,6 +120,147 @@ public:
     }
 };
 
+template<typename T, bool multi = true>
+class node;
+
+template<typename T>
+class node<T, true> {
+    T data;
+    array<node<T, true>*> son{1};
+public:
+    node(T data_i) : data{data_i} {}
+
+    void point(node<T, true> *n) {
+        son.append(n);
+    }
+
+    inline node<T, true> *operator[](size_t i) {
+        return son[i];
+    }
+
+    inline T get_data() const {
+        return data;
+    }
+
+    virtual ~node() {
+        for (auto *s : son) {
+            delete s;
+        }
+    }
+};
+
+template<typename T>
+class node<T, false> {
+    T data;
+    node<T, false> *next;
+    
+public:
+    node(T data_i):data{data_i}{}
+    
+    node(T data_i, node &source_node):
+    data{data_i}{
+        source_node.point(this);
+    }
+    
+    inline void point(node *n){
+        next = n;
+    };
+
+    inline T get_data() const {
+        return data;
+    }
+
+    inline operator node*(){
+        return next;
+    }
+
+    ~node() {
+        delete next;
+    }
+};
+
+template<typename T>
+class single_ptr {
+    T* ptr{nullptr};
+public:
+    void append(T* p) { ptr = p; }
+    void remove(T* p) { if (ptr == p) ptr = nullptr; }
+    void clear() { ptr = nullptr; }
+    size_t get_size() const { return ptr ? 1 : 0; }
+    
+    T*& operator[](size_t i) { return ptr; }
+    T* operator[](size_t i) const { return ptr; }
+    
+    T** begin() { return &ptr; }
+    T** end() { return ptr ? (&ptr + 1) : &ptr; }
+};
+
+template<typename T>
+class multi_ptr {
+    array<T*> arr{1};
+public:
+    void append(T* p) { arr.append(p); }
+    void remove(T* p) { arr.remove(p); }
+    void clear() { arr.clear(); }
+    size_t get_size() const { return arr.get_size(); }
+    
+    T*& operator[](size_t i) { return arr[i]; }
+    T* operator[](size_t i) const { return arr[i]; }
+    
+    auto begin() { return arr.begin(); }
+    auto end() { return arr.end(); }
+};
+
+template<typename T, bool MultiFather = true, bool MultiSon = true>
+class link {
+    T data;
+    using FatherPtr = conditional<MultiFather, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
+    using SonPtr = conditional<MultiSon, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
+    
+    FatherPtr father;
+    SonPtr son;
+    
+public:
+    link(T data) : data{data} {}
+    
+    bool has_son(link* l) {
+        for (auto* s : son) {
+            if (s == l) return true;
+        }
+        return false;
+    }
+    
+    void point_to(link* l) {
+        if (has_son(l)) return;
+        son.append(l);
+        l->father.append(this);
+    }
+    
+    void bind(link* l) {
+        father.append(l);
+        l->son.append(this);
+    }
+    
+    auto get_father() const { return father; }
+    auto get_son() const { return son; }
+    T get_data() const { return data; }
+    
+    ~link() {
+        for (auto* f : father) {
+            for (auto* s : son) {
+                f->point_to(s);
+            }
+        }
+        
+        for (auto* f : father) {
+            f->son.remove(this);
+        }
+        for (auto* s : son) {
+            s->father.remove(this);
+        }
+    }
+};
+
 template<typename T>
 class list {
     ;
@@ -116,21 +268,102 @@ class list {
 
 template<typename N, typename M>
 struct pair {
-    N data_n;
-    M data_m;
-    pair(N n, M m):data_n{n}, data_m{m}{};
+    N key;
+    M value;
+    pair(N key_i, M value_i):key{key_i}, value{value_i}{};
 }; 
 
 template<typename N, typename M>
-class map {
-    array<pair<N, M>> data;
+class map : public array<pair<N, M>>{
 public:
-    map():data{1}{};
-    map(size_t size):data{size}{};
-
-    pair<N, M> &operator[](size_t i){
-        return data[i];
+    M &operator[](N key){
+        for (unsigned i = 0; i < this->size; i++){
+            if (this->ptr[i].key == key) return this->ptr[i].value;
+        }
+        append({key, {}});
+        return this->ptr[this->size - 1].value;
     }
+};
+
+template<typename N, typename M>
+class map_h {};
+
+template<typename ...Type>
+struct tuple;
+
+template<typename Fir, typename... Args>
+struct tuple<Fir, Args...> : public tuple<Args...> {
+    Fir data;
+    tuple(Fir f, Args... args):
+    data{f}, tuple<Args...>{args...}{}
+
+    tuple(tuple<Fir, Args...>& t):
+    data{t.data}, tuple<Args...>{static_cast<tuple<Args...>&>(t)}{}
+
+    tuple(tuple<Fir, Args...>&& t):
+    data{t.data}, tuple<Args...>{static_cast<tuple<Args...>&&>(t)}{
+        t.data = Fir{};
+    }
+};
+
+template<>
+struct tuple<> {
+public:
+    tuple() = default;
+};
+
+template<typename... Args>
+tuple<Args...> make_tuple(Args&&... args) {
+    return tuple<Args...>{bits::forward<decltype(args)>(args)...};
+}
+
+template<unsigned long long N, typename Fir, typename... Args>
+auto& get(tuple<Fir, Args...>& t) {
+    if constexpr (N==0) return t.data;
+    else return get<N-1>(static_cast<tuple<Args...>&>(t));
+}
+
+template<unsigned long long N, typename Fir, typename... Args>
+const auto& get(const tuple<Fir, Args...>& t) {
+    if constexpr (N==0)return t.data;
+    else return get<N-1>(static_cast<tuple<Args...>&>(t));
+}
+
+template<unsigned long long N, typename Fir, typename... Args>
+auto&& get(tuple<Fir, Args...>&& t) {
+    if constexpr (N==0)return bits::forward(t.data);
+    else return get<N-1>(static_cast<tuple<Args...>&&>(t));
+}
+
+template<typename... T>
+struct tuple_size;
+
+template<typename Fir, typename... Args>
+struct tuple_size<tuple<Fir, Args...>> {
+    constexpr static unsigned long long value = tuple_size<tuple<Args...>>::value + 1;
+};
+
+template<>
+struct tuple_size<tuple<>> {
+    constexpr static unsigned long long value = 0;
+};
+
+template<unsigned long long I, typename... T>
+struct tuple_type;
+
+template<unsigned long long I, typename Fir, typename... Args>
+struct tuple_type<I, tuple<Fir, Args...>> {
+    using type = tuple_type<I-1, tuple<Args...>>::type;
+};
+
+template<typename Fir, typename... Args>
+struct tuple_type<0, tuple<Fir, Args...>> {
+    using type = Fir;
+};
+
+template<unsigned long long I>
+struct tuple_type<I, tuple<>> {
+    using type = void;
 };
 
 }

@@ -2,6 +2,8 @@
 #ifndef ___Using_pointer_system
 #define ___Using_pointer_system
 
+#include <TL/bits/callable>
+
 namespace rtl {
 
 // A pointer build from address
@@ -57,11 +59,26 @@ using unsited_ptr = pointer<T *, _uninitial_pointer_label>;
 template<typename T>
 class dummy_ptr;
 
-// the pointer, no address
+template<typename T, typename D>
+concept deleter = requires(D *ptr) {
+    T::del(ptr);
+};
+
 template<typename T>
+struct default_delete {
+    static inline void del(T *ptr){
+        delete ptr;
+    }
+};
+
+struct no_delete {
+    static inline void del(void *){}
+};
+
+// the pointer, no address
+template<typename T, deleter<T> D = ::rtl::default_delete<T>>
 class vested_ptr {
     T *ptr;
-    static T default_obj;
 public:
     vested_ptr(T &obj_):ptr(&obj_){} // obj
 
@@ -69,24 +86,18 @@ public:
     ptr(vp_.ptr){
         vp_.ptr = nullptr;
     }
-
-    vested_ptr &operator= (vested_ptr &&vp_){
+    vested_ptr &operator= (vested_ptr &&vp_) noexcept {
         if(this != &vp_){
+            D::del(ptr);
             ptr = vp_.ptr;
             vp_.ptr = nullptr;
         }
         return *this;
     } // move
-    
-    ~vested_ptr(){
-        ptr = nullptr;
-    }
 
-    vested_ptr(vested_ptr &) = delete;
-    vested_ptr operator= (vested_ptr &) = delete; // self & copy
-    
-    vested_ptr(const vested_ptr &) = delete;
-    vested_ptr operator= (const vested_ptr &) = delete; // const self & copy
+    ~vested_ptr(){
+        D::del(ptr);
+    }
 
     vested_ptr(T *) = delete;
     vested_ptr operator= (T *) = delete; // ptr
@@ -100,23 +111,20 @@ public:
         return ptr;
     }
 
-    explicit operator bool() const {
-        if(ptr)return true;
-        else return false;
-    }
-
     T &operator *() {
-        if(ptr)return *ptr;
-        else return default_obj;
+        return *ptr;
     }
 
     const T &operator *() const {
-        if(ptr) return *ptr;
-        else return default_obj;
+        return *ptr;
     }
 
     void *operator new(size_t, dummy_ptr<T> *place){
         return place;
+    }
+
+    void del(){
+        D::del(ptr);
     }
 };
 
@@ -157,8 +165,8 @@ public:
         return ptr;
     }
 
-    void *operator new(size_t, dummy_ptr<T> *place){
-        return place;
+    void *operator new(size_t, dummy_ptr<T> &place){
+        return &place;
     }
 };
 
@@ -171,42 +179,9 @@ public:
     T &operator *() = delete;
 
     T &operator ->() = delete;
-
-    template<typename R, typename ...Args>
-    R operator()(Args...);
-
-    template<>
-    vested_ptr<T> operator()<vested_ptr<T>, T &>(T &obj_) && = delete;
-    template<>
-    aeonian_ptr<T> operator()<aeonian_ptr<T>, T &>(T &obj_) && = delete;
-
-    template<>
-    vested_ptr<T> operator()<vested_ptr<T>, T &>(T &obj_) & {
-        auto re = new (static_cast<void *>(this)) vested_ptr<T>(obj_);
-        return move(*re);
-    }
-
-    template<>
-    aeonian_ptr<T> operator()<aeonian_ptr<T>, T &>(T &obj_) & {
-        auto re = new (static_cast<void *>(this)) aeonian_ptr<T>(obj_);
-        return move(*re);
-    }
 };
 
-class amorphous_ptr;
-
-template<typename Return, typename ...Args>
-class _callable {
-    void *ptr;
-    _callable(void *ptr_):ptr(ptr_){}
-    friend class amorphous_ptr;
-public:
-    Return operator() (Args &&...args) const noexcept {
-        using Functype = Return (*)(Args...);
-        return reinterpret_cast<Functype>(ptr)(forward<Args>(args)...);
-    }
-};
-
+template<typename Return>
 class amorphous_ptr{
     void *ptr;
 public:
@@ -218,9 +193,9 @@ public:
         ptr = reinterpret_cast<void *>(value);
     };
 
-    template<typename Return, typename ...Args>
-    operator _callable<Return, Args...>() const {
-        return _callable<Return, Args...>(ptr);
+    template<typename ...Args>
+    Return operator()(Args&& ...args) const {
+        return bits::_callable<Return, Args ...>(ptr)(bits::forward<Args>(args)...);
     }
 };
 

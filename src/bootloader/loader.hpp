@@ -23,13 +23,14 @@ extern bool *__boot_loader_end;
 #include <drv/drv.hpp>
 #include <srv/serve.hpp>
 #include <IDT_L/idt.hpp>
-#include <part-fs/part-fs.hpp>
 #include <CenterShell/cs.hpp>
 #include <registry/registry.hpp>
 #include <IDT_L/IDNT.hpp>
 #include <drv/PCI/pci.hpp>
 #include <part-fs/las.hpp>
 #include <DOSsyscall/DOScall.hpp>
+
+#include <interface/Window.hpp>
 
 //#include <hardlib/x86/port.h>
 //#include <module/changestack.cpp>

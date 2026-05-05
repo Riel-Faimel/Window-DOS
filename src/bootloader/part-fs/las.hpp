@@ -10,7 +10,7 @@ class DISK_PART;
 
 class LAS{
     struct DiskInfo{
-        DISK_ *driver;
+        Cluster *driver;
         DISK_PART *partitions;
         /**
          * Disk driver and it's part manager
@@ -36,8 +36,9 @@ class LAS{
     struct {
         void *dealing;// disk or filesystem which dealing
         unsigned char dealing_id;
-        char letter[];
+        bool is_fs;
     };
+    String letter;
     friend inline void mkfs_(String);
     friend inline void __dir(String);
 public:
@@ -48,20 +49,26 @@ public:
      * set fat16 object, else RAW
      */
 
-    unsigned open(String);
-    void close(unsigned );
-
-    void read(unsigned , unsigned char *, unsigned, unsigned);
-    void write(unsigned , unsigned char *, unsigned, unsigned);
-
-    void mkfs_FAT16(unsigned disk_part_uid);
-
-    void reg_cmd(CenterShell *);
-    void set_letter(unsigned disk_part_uid, String letter);
     bool choose_disk(String &);
     void show_driver();
 
+    unsigned open(String);
+    void close(unsigned );
+    void read(unsigned , unsigned char *, unsigned, unsigned);
+    void write(unsigned , unsigned char *, unsigned, unsigned);
+
+    void set_letter(unsigned disk_part_uid, String letter);
     unsigned set_part(unsigned disk_id, unsigned from_LBA, unsigned to_LBA, String le = {});
+    void reg_cmd(CenterShell *);
+
+    /**
+     * .sys:
+     * 'LAFS' for head
+     * follow is:
+     * .sys.
+     * construct function for 4 bytes.
+     */
+    void load_mod(void *address, u16 section);
 };
 
 extern LAS *linear_address_space;

@@ -1,16 +1,21 @@
 #include "las.hpp"
-#include "part-fs.hpp"
 #include <drv/PCI/pci.hpp>
 #include <lib/cppstdlib/string>
 #include <drv/disk/disk.hpp>
 #include <drv/screen/screen_srv.hpp>
-
+class IDE_DISK;
+class STAT_DISK;
 #include <CenterShell/cs.hpp>
 
-
+/*
 inline void __dir(String str){
+    screen->print("Entering\n");
     str = str.trim();
     if(str == "dir"){
+        if(!linear_address_space->is_fs){
+            screen->print("[WARNING] No File System\n");
+            return;
+        }
         static_cast<FAT16 *>(linear_address_space->dealing)->dir();
         return;
     };
@@ -38,3 +43,4 @@ inline void alloc_driver_letter(String str){
         screen->print("Invaild params\n");
     }
 }
+*/

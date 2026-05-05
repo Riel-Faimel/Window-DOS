@@ -6,8 +6,8 @@ SECTIONS {
 
     __sys_base_addr = .;
 
-    .sys : {
-        *(.sys)
+    .cmd : {
+        *(.cmd)
     }
     
     .text : {

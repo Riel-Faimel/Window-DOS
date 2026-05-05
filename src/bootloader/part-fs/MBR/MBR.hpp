@@ -52,11 +52,11 @@ public:
     }part_info[4];
 
 private:
-    DISK_ *disk;
+    Cluster *disk;
     
 public:
     bool has_MBR;
-    DISK_PART(DISK_ *disk_choose);
+    DISK_PART(Cluster *disk_choose);
 
     void make_MBR();
 

@@ -420,16 +420,18 @@ full_info_:
     info_.device = static_cast<u8>(dev);
 };
 
-void IDE_DISK::read(unsigned short *buf, unsigned int LBA, unsigned char count){
+void IDE_DISK::read(unsigned short *buf, unsigned int LBA, unsigned byte_offset, unsigned byte_read){
+    unsigned count;
     if(lock)lock->read(buf, LBA, count, &info_);
 }
 
-void IDE_DISK::write(unsigned short *buf, unsigned int LBA, unsigned char count){
+void IDE_DISK::write(unsigned short *buf, unsigned int LBA, unsigned byte_offset, unsigned byte_read){
+    unsigned count;
     if(lock)lock->write(buf, LBA, count, &info_);
 }
 
-DISK_INFO *IDE_DISK::info(){
-    return &info_;
+DISK_INFO &IDE_DISK::info(){
+    return info_;
 }
 
 void IDE_DISK::check(){

@@ -8,6 +8,8 @@ extern __bss_end
 extern __CTOR_LIST__
 extern __CTOR_END__
 section .sys
+__sys_magic:
+    times 4 dd 0
 __sys_bit:
     dd 32
 __sys_base_addr:

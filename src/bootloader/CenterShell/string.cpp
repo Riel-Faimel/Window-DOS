@@ -60,9 +60,8 @@ String::String(char *s, unsigned n) noexcept {
         len = 0;
     }else{
         len = n;
-        data = new char[len + 1];
-        for(unsigned i = 0;i < len;i++)data[i] = s[i];
-        data[len] = '\0';
+        data = s;
+        data[n] = '\0';
     }
 }
 

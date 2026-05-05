@@ -12,7 +12,7 @@ LAS::LAS():disks{1}, drivers{1}{
                 for(unsigned j = 0; j < PCI_device_config_pointer[i].size; j++){
                     disks.append(
                         {
-                            &(static_cast<IDE_DISK *>(PCI_device_config_pointer[i].dev_drv)[j]), 
+                            &static_cast<IDE_DISK *>(PCI_device_config_pointer[i].dev_drv)[j], 
                             nullptr,
                             j
                         }
@@ -31,6 +31,7 @@ LAS::LAS():disks{1}, drivers{1}{
         partitions = new DISK_PART {driver};
         if(partitions->has_MBR) {
             //fs
+            /*
             for(unsigned j = 0;j < 4;j++){
                 auto fs = new FAT16{partitions, j};
                 if (fs->status == FAT16::FORMAT){
@@ -41,21 +42,12 @@ LAS::LAS():disks{1}, drivers{1}{
                     DriveInfo di = {nullptr, {}, (id << 16) | j};
                     drivers.append(di);
                 }
-            }
+            }*/
         }
     }
     screen->print("[INFO] Found these disks:\n");
     show_driver();
     linear_address_space = this;
-}
-
-void LAS::mkfs_FAT16(unsigned disk_part_uid){
-    auto disk_id = disk_part_uid & 0xFFFF;
-    auto part_id = (disk_part_uid >> 16) & 0xFFFF;
-    DiskInfo &disk = disks[disk_id];
-    DriveInfo &driver = drivers[part_id];
-    driver.fs = new FAT16{static_cast<DISK_PART *>(disk.partitions), part_id, true, true};
-    screen->print("Disk ");screen->print(driver.driver_letter);screen->print(" format into FAT16\n");
 }
 
 bool LAS::choose_disk(String &drive_letter){
@@ -64,10 +56,12 @@ bool LAS::choose_disk(String &drive_letter){
             if(drivers[i].fs){
                 dealing = drivers[i].fs;
                 drive_letter+=static_cast<FileSystem *>(dealing)->dealing_path;
+                is_fs = true;
                 return true;
             }else{
                 if(disks[i].driver){
                     dealing = disks[i].driver;
+                    is_fs = false;
                     drive_letter+="|";
                     screen->print("[WARNING] NO File System\n");
                     return true;
@@ -83,13 +77,15 @@ bool LAS::choose_disk(String &drive_letter){
 }
 
 unsigned int LAS::open(String filename){
-    ;//
+    ;
 }
 
 void LAS::reg_cmd(CenterShell *cs){
+    /*
     cs->reg_cmd("dir", &__dir);
     cs->reg_cmd("mkfs.", &mkfs_);
     cs->reg_cmd("set", &alloc_driver_letter);
+    */
 }
 
 void LAS::set_letter(unsigned disk_part_uid, String letter){

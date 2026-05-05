@@ -3,25 +3,52 @@
 
 #include <global/WIN.hpp>
 
-template<unsigned N = 0xFFFFFFFF>
-class Window : _WIN{
+template<unsigned N>
+class Window : _WIN {
 private:
     unsigned char buffer[N];
 public:
     Window(){
         size = N;
-    };
+    }
+    Window(_WIN *win):_WIN{win}{
+        if(win != this){
+            *win = {};
+        }
+    }
+    Window(Window &) = delete;
+    Window(Window &&win):Window{static_cast<_WIN *>(&win)}{}
     ~Window() = default;
 
-    unsigned char operator[] (unsigned long long id)const{
-        return buffer[id];
+    template<typename T>
+    T operator[] (size_t id)const{
+        return reinterpret_cast<T *>(buffer)[id];
     }
 
-    unsigned char at(unsigned long long id)const{
-        if(id <= size)return buffer[id];
+    template<typename T>
+    T at(size_t id)const{
+        if((id++) * sizeof(T) <= N)return reinterpret_cast<T *>(buffer)[id];
+    }
+
+    Window &operator= (_WIN *win){
+        *static_cast<_WIN*>(this) = *win;
+        *win = {};
+        return *this;
+    }
+    Window &operator= (Window &&win){
+        *static_cast<_WIN*>(this) = *static_cast<_WIN*>(&win);
+        win = {};
+        return *this;
+    }
+
+    Window &operator= (Window &) = delete;
+
+    void *get_buffer(){
+        return static_cast<void *>(buffer);
     }
 };
 
+/*
 template<>
 class Window<0xFFFFFFFF> : _WIN{
 private:
@@ -56,5 +83,6 @@ public:
         if(buffer && id <= size)return buffer[id];
     }
 };
+*/
 
 #endif

@@ -1,16 +1,11 @@
-#ifdef __independent_lib_Using_utility
-#ifndef ___Using_utility
-#define ___Using_utility
+#ifndef __bootloader_src_include_TL_bits_forward
+#define __bootloader_src_include_TL_bits_forward
 
-#include <TL/bits/utility>
+namespace rtl 
+{
 
-namespace rtl {
-
-//catch and change to T&&
-template<typename T>
-constexpr decltype(auto) move(T &&obj){ //decltype for DO NOT automatic degradation
-    return static_cast<typename remove_reference<T>::type &&>(obj);
-}
+namespace bits
+{
 
 // delete & for T or T& or T&&
 template<typename T>
@@ -36,18 +31,8 @@ constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
     return static_cast<T&&>(t);
 }
 
-template<>
-class tuple<> {
-public:
-    ;
 };
 
-template<typename T, typename ...Args>
-class tuple : public tuple<Args...> {
-    T data;
 };
 
-}
-
-#endif
 #endif

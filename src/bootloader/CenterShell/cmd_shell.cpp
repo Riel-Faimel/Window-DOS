@@ -153,7 +153,7 @@ void cmd_disk(String args){
                         screen->print("\r\ndisk not exist\r\n");
                         return;
                     }
-                    disks[disk_num].read(static_cast<unsigned short*>(addr), LBA, count);
+                    disks[disk_num].read(static_cast<unsigned short*>(addr), LBA, 0, count * 512);
                     screen->print("\r\nRead Done!\r\n");
                     return;
                 }
@@ -189,7 +189,7 @@ void cmd_disk(String args){
                         screen->print("\r\ninvalid disk number\r\n");
                         return;
                     }
-                    disks[disk_num].write(static_cast<unsigned short*>(addr), LBA, count);
+                    disks[disk_num].write(static_cast<unsigned short*>(addr), LBA, 0, count * 512);
                     screen->print("\r\nWrite Done!\r\n");
                     return;
                 }
@@ -357,7 +357,7 @@ void cmd_jmp(String args) {
     else if(args.substr(0, 2) == "0x"){
         int colon_pos = args.find(":0x");
         if(colon_pos == -1) {
-            screen->print("Usage: jmp 0xfrom:0xto\n");
+            //screen->print("Usage: jmp 0xfrom:0xto\n");
             return;
         }
         
@@ -390,13 +390,11 @@ void cmd_jmp(String args) {
     else screen->print("\r\ninvalid parameter.\r\n\nhelp: jmp 0xfrom:0xto\r\n");
 }
 
-void cmd_shell(char *cmd_line_buffer, unsigned line_size){
-    String cmd_line(cmd_line_buffer, line_size);
-    cmd_line = cmd_line.trim();
+void cmd_shell(String cmd_line){
     if(cmd_line.empty())return;
 
     if(cmd_line == "help" || cmd_line == "H") {
-        screen->print("\r=== HELP MESSAGE ===\r\nKernel: Window-DOS - version 0.1\r\nActiving\r\n====================\r\n");
+        //screen->print("\r=== HELP MESSAGE ===\r\nKernel: Window-DOS - version 0.1\r\nActiving\r\n====================\r\n");
         screen->print("Try: see | disk | echo | say | jmp | int \r\n");
     }
     else if(cmd_line.substr(0, 4) == "see " || cmd_line == "see") cmd_see(cmd_line.substr(4));
@@ -415,5 +413,9 @@ void cmd_shell(char *cmd_line_buffer, unsigned line_size){
     else if (cmd_line.substr(0, 4) == "jmp ") {
         cmd_jmp(cmd_line.substr(4));
     }
-    else screen->print("\r\nCommand not found.\r\n");
+    else {
+        screen->print("\nCommand not found:");
+        screen->print(cmd_line);
+        print_char('\n');
+    }
 }

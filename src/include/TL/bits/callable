@@ -1,0 +1,32 @@
+#ifndef __include_TL_bits_callable
+#define __include_TL_bits_callable
+
+#include <TL/bits/forward>
+
+namespace rtl
+{
+
+template<typename>
+class amorphous_ptr;
+
+namespace bits
+{
+
+template<typename Return, typename ...Args>
+class _callable {
+    void *ptr;
+    _callable(void *ptr_):ptr(ptr_){}
+    friend class ::rtl::amorphous_ptr<Return>;
+public:
+    Return operator() (Args &&...args) const noexcept {
+        using Functype = Return (*)(Args...);
+        return reinterpret_cast<Functype>(ptr)(::rtl::bits::forward<Args>(args)...);
+    }
+};
+
+} // namespace bits
+
+} // namespace rtl
+
+
+#endif

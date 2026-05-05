@@ -102,7 +102,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
                 screen->print("  ");
                 print_hex(cfg.Revision_ID);
                 screen->print("  ");
-                print_hex(static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]));
+                print_hex(static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]));
                 screen->print("\r\n");
             }
         }

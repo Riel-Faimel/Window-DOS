@@ -48,7 +48,7 @@ private:
     friend class IDE_DISK;
 };
 
-class IDE_DISK : public DISK_{
+class IDE_DISK : public Cluster {
     friend class IDE_Channal;
     friend void LoaderMain();
     enum class Device{
@@ -65,9 +65,9 @@ public:
     ~IDE_DISK() = default;
 
     void check();
-    void read(unsigned short *buf, unsigned LBA, unsigned char count);
-    void write(unsigned short *buf, unsigned LBA, unsigned char count);
-    DISK_INFO *info();
+    void read(unsigned short *buf, unsigned LBA, unsigned byte_offset, unsigned byte_read);
+    void write(unsigned short *buf, unsigned LBA, unsigned byte_offset, unsigned byte_write);
+    DISK_INFO &info();
     
     IDE_DISK& operator=(IDE_DISK&&);
     IDE_DISK& operator=(IDE_DISK&) = delete;
