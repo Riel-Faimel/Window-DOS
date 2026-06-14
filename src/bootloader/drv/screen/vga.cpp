@@ -124,11 +124,11 @@ bool VGA_text_mode::do_it_has_graphic_mode(){
 _Screen::Screen_INFO VGA_text_mode::get_info(){}
 
 void VGA_text_mode::draw(
-    unsigned int left_down_x_offset, 
-    unsigned int left_down_y_offset, 
-    unsigned char *picture, 
-    unsigned int picture_x_range, 
-    unsigned int picture_y_range
+    unsigned int /*left_down_x_offset*/, 
+    unsigned int /*left_down_y_offset*/, 
+    unsigned char */*picture*/, 
+    unsigned int /*picture_x_range*/, 
+    unsigned int //picture_y_range
 ){}
 
 // === VGA graphic mode ===

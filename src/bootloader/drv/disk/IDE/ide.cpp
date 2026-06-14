@@ -138,17 +138,17 @@ inline void IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned int LBA, uns
         .protocol = static_cast<u8>(VALUE::ATA_PROT_FLAG_PIO),
         .ctl = 0,
         .nsect = count,
-        .lbal = LBA & 0xFF,
-        .lbam = (LBA >> 8) & 0xFF,
-        .lbah = (LBA >> 16) & 0xFF,
-        .device = dev | ((LBA >> 24) & 0x0F),
-        .command = static_cast<u8>(VALUE::ATA_CMD_PIO_READ),
+        .lbal = (u8)(LBA & 0xFF),
+        .lbam = (u8)((LBA >> 8) & 0xFF),
+        .lbah = (u8)((LBA >> 16) & 0xFF),
+        .device = dev | (u8)((LBA >> 24) & 0x0F),
+        .command = static_cast<u8>(VALUE::ATA_CMD_PIO_READ)
     };
     ata_sff_tf_load(tf);
     ata_sff_exec_command(tf);
 
     for(unsigned char fan = 0;fan < count;fan++){
-        unsigned char i = 0;
+        unsigned i = 0;
         while (!(inb(static_cast<u16>(chan) + static_cast<u8>(VALUE::ATA_REG_STATUS)) & 0x08)){
             i++;
             if(i > 10000){
@@ -162,7 +162,7 @@ inline void IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned int LBA, uns
     }
 }
 
-inline void IDE_Channal::read_PIO_CHS(unsigned short *buf, unsigned int LBA, unsigned char count, u8 dev){
+inline void IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned int /*LBA*/, unsigned char /*count*/, u8 /*dev*/){
     kprint("[NOTICE] CHS read not implemented yet\r\n");
 }
 
@@ -198,7 +198,7 @@ inline void IDE_Channal::write_PIO_LBA(unsigned short *buf, unsigned int LBA, un
     }
 }
 
-inline void IDE_Channal::write_PIO_CHS(unsigned short *buf, unsigned int LBA, unsigned char count, u8 dev){
+inline void IDE_Channal::write_PIO_CHS(unsigned short */*buf*/, unsigned int /*LBA*/, unsigned char /*count*/, u8 /*dev*/){
     kprint("[NOTICE] CHS write not implemented yet\r\n");
 }
 
@@ -216,10 +216,10 @@ IDE_DISK &IDE_DISK::operator=(IDE_DISK &&other){
     return *this;
 }
 
-IDE_DISK::IDE_DISK():exist(false), lock(nullptr), info_() {}
+IDE_DISK::IDE_DISK():exist{false}, lock(nullptr), info_() {}
 
-IDE_DISK::IDE_DISK(Device dev, IDT &idt, IDE_Channal *c):
-exist(true), lock(c), info_{}{
+IDE_DISK::IDE_DISK(Device dev, IDT &/*idt*/, IDE_Channal *c):
+exist{true}, lock(c), info_{}{
     outb(static_cast<u8>(dev), static_cast<u16>(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_DEVICE)));
     io_wait();
     auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_STATUS));
@@ -318,7 +318,7 @@ exist(true), lock(c), info_{}{
     };
 #pragma pack(pop)
 
-read_identify:
+//read_identify:
     outb(static_cast<u8>(dev), static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_DEVICE));
     unsigned i = 0;
     while(inb(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_STATUS)) & 0x80){
@@ -353,7 +353,7 @@ read_identify:
         id[i] = inw(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_DATA));
     }
 
-full_info_:
+//full_info_:
     info_.LBA_support = (identify_info.support >> 9) & 0x1;
     info_.total_sectors = identify_info.LBA28_sectors;
     info_.PIO_supported = identify_info.PIO_supported & 0x8000 ? identify_info.PIO_supported & 0b11111111  : 0;
@@ -420,13 +420,13 @@ full_info_:
     info_.device = static_cast<u8>(dev);
 };
 
-void IDE_DISK::read(unsigned short *buf, unsigned int LBA, unsigned byte_offset, unsigned byte_read){
-    unsigned count;
+void IDE_DISK::read(unsigned short *buf, unsigned int LBA, unsigned /*byte_offset*/, unsigned /*byte_read*/){
+    unsigned count = 0;
     if(lock)lock->read(buf, LBA, count, &info_);
 }
 
-void IDE_DISK::write(unsigned short *buf, unsigned int LBA, unsigned byte_offset, unsigned byte_read){
-    unsigned count;
+void IDE_DISK::write(unsigned short *buf, unsigned int LBA, unsigned /*byte_offset*/, unsigned /*byte_read*/){
+    unsigned count = 0;
     if(lock)lock->write(buf, LBA, count, &info_);
 }
 

@@ -1,6 +1,6 @@
 #include "vbe.hpp"
 
-inline VBE::VBE(VBE_info *info_base) {}
+inline VBE::VBE(VBE_info * /*info_base*/) {}
 
 inline void VBE::clear() {
     unsigned int pixels = info.x_ * info.y_;

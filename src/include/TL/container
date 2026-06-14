@@ -211,11 +211,13 @@ public:
     auto end() { return arr.end(); }
 };
 
+/*
+*/
 template<typename T, bool MultiFather = true, bool MultiSon = true>
 class link {
     T data;
-    using FatherPtr = conditional<MultiFather, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
-    using SonPtr = conditional<MultiSon, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
+    using FatherPtr = typename conditional<MultiFather, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
+    using SonPtr = typename conditional<MultiSon, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
     
     FatherPtr father;
     SonPtr son;
@@ -353,7 +355,7 @@ struct tuple_type;
 
 template<unsigned long long I, typename Fir, typename... Args>
 struct tuple_type<I, tuple<Fir, Args...>> {
-    using type = tuple_type<I-1, tuple<Args...>>::type;
+    using type = typename tuple_type<I-1, tuple<Args...>>::type;
 };
 
 template<typename Fir, typename... Args>

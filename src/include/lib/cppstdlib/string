@@ -38,8 +38,8 @@ public:
     String substr(int pos) const;
     String substr(int pos, int len) const;
 
-    int find(const String &s) const;
-    int find(const char *s) const;
+    unsigned find(const String &s) const;
+    unsigned find(const char *s) const;
 
     String *split(const String &delimiter) const;
     String *split(const char *delimiter) const;
@@ -49,7 +49,7 @@ public:
     String trim_right() const;
 
     String extract_param(const char *) const;
-    int extract_int(const char *) const;
+    unsigned extract_int(const char *) const;
 
     operator const char *() const;
 };

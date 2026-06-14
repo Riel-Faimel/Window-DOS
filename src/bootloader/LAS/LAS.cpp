@@ -4,19 +4,19 @@ LAS *linear_address_space;
 
 //===LAS prepare for Cluster interface===
 
-unsigned Cluster::open(char *file_path) {
+unsigned Cluster::open(char */*file_path*/) {
     ;
 }
 
-void Cluster::close(unsigned handle){
+void Cluster::close(unsigned /*handle*/){
     ;
 }
 
-void Cluster::create(char *path){
+void Cluster::create(char */*path*/){
     ;
 }
 
-void Cluster::delet(char *path){
+void Cluster::delet(char */*path*/){
     ;
 }
 

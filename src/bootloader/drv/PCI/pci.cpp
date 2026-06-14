@@ -113,7 +113,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
 }
 
 void PCI_space::set_device_driver(){
-    for(int i = 0;i < config.get_size();i++){
+    for(unsigned i = 0;i < config.get_size();i++){
         switch (config[i].Class_code[2]){
         case 0x01: // stroage controller
             switch (config[i].Class_code[1]){

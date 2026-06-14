@@ -17,10 +17,10 @@ bitmap(bitmap_init){
 
 void *mm::alloc(size_t size){
     unsigned blkneed = (size / block_size) + 1;
-    for(int i = 0;i < total_blocks;i++){
+    for(unsigned i = 0;i < total_blocks;i++){
         if(bitmap[i])continue;
         //find the first unused block
-        for(int j = i;j < total_blocks;j++){
+        for(unsigned j = i;j < total_blocks;j++){
             //search forward
             if(j - i + 1>= blkneed){ //find!
                 for(int full = i;full <= j;full++){
@@ -45,7 +45,7 @@ void mm::dealloc(void *ptr){
     if(size == 0xFFFFFFFF)return ;
     unsigned blkfree = (size + block_size - 1)/ block_size;
     unsigned blkstart = (static_cast<unsigned char *>(ptr) - static_cast<unsigned char *>(base_address))/block_size;
-    for(int free = 0;free < blkfree;free++){
+    for(unsigned free = 0;free < blkfree;free++){
         bitmap[blkstart + free] = false;
     };
 }
@@ -67,14 +67,14 @@ void _ptr2size::regist(void *ptr, unsigned int size){
 }
 
 unsigned int _ptr2size::get_size(void *ptr){
-    for(int i = 0;i < list_size;i++){
+    for(unsigned i = 0;i < list_size;i++){
         if(list_address[i].ptr == ptr)return list_address[i].size;
     };
     return 0xFFFFFFFF;
 }
 
 unsigned int _ptr2size::xxx(void *ptr){
-    for(int i = 0;i < list_size;i++){
+    for(unsigned i = 0;i < list_size;i++){
         if(list_address[i].ptr == ptr){
             unsigned re = list_address[i].size;
             list_address[i].ptr = NULL_PTR;

@@ -58,11 +58,11 @@ extern "C" void DOS_exit(){};
 
 extern "C" void DOScall_handler_c(
     unsigned syscall_number,
-    unsigned ebx_val,
-    unsigned ecx_val,
+    unsigned /*ebx_val*/,
+    unsigned /*ecx_val*/,
     unsigned edx_val,
-    unsigned esi_val,
-    unsigned edi_val
+    unsigned /*esi_val*/,
+    unsigned /*edi_val*/
 ) {
     /*
     asm volatile (

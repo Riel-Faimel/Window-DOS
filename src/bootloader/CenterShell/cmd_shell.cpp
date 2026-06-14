@@ -15,15 +15,15 @@ void cmd_see(String args){
     if(args.substr(0, 2) == "0x"){
         unsigned addr = args.substr(2).to_int();
         unsigned char *ptr = reinterpret_cast<unsigned char *>(addr);
-        for(int i = 0; i < lines; i++){
+        for(unsigned i = 0; i < lines; i++){
             print_hex(addr + i * line_nums);
             screen->print(": ");
-            for(int j = 0; j < line_nums; j++){
+            for(unsigned j = 0; j < line_nums; j++){
                 print_hex(ptr[i * line_nums + j], false);
                 print_char(' ');
             }
             print_char(' ');
-            for(int j = 0; j < line_nums; j++){
+            for(unsigned j = 0; j < line_nums; j++){
                 unsigned char ch = ptr[i * line_nums + j];
                 if(ch >= 32 && ch <= 126){
                     print_char(ch);
@@ -134,7 +134,7 @@ void cmd_disk(String args){
         for(unsigned i = 0;i < PCI_device_numbers;i++){
             if(PCI_device_config_pointer[i].Class_code[2] == 0x01){
                 if(PCI_device_config_pointer[i].Class_code[1] == 0x01){
-                    int disk_num;
+                    unsigned disk_num;
                     if(device_id == 0xFF){
                         disk_num = args.extract_int("-d 0x");
                     }
@@ -174,7 +174,7 @@ void cmd_disk(String args){
         for(unsigned i = 0;i < PCI_device_numbers;i++){
             if(PCI_device_config_pointer[i].Class_code[2] == 0x01){
                 if(PCI_device_config_pointer[i].Class_code[1] == 0x01){
-                    int disk_num;
+                    unsigned disk_num;
                     if(device_id == 0xFF){
                         disk_num = args.extract_int("-d 0x");
                     }
@@ -375,7 +375,7 @@ void cmd_jmp(String args) {
         print_hex(to);
         screen->print("\n");
 
-        unsigned len = to - from;
+        //unsigned len = to - from;
         
         unsigned char* end_ptr = reinterpret_cast<unsigned char*>(to);
         *end_ptr = 0xC3;  // ret

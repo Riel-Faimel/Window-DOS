@@ -5,6 +5,10 @@ void kprint(char *string){
     screen->print(string);
 }
 
+void kprint(const char * str) {
+    kprint(const_cast<char *>(str));
+}
+
 void print_hex(unsigned char val, bool a) {
     const char *hex_digits = "0123456789ABCDEF";
     char hex_str[5];

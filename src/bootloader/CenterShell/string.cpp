@@ -194,7 +194,7 @@ String String::substr(int pos, int len) const {
     return result;
 }
 
-int String::find(const String &s) const {
+unsigned String::find(const String &s) const {
     for(unsigned i = 0;i <= len - s.len;i++){
         bool found = true;
         for(unsigned j = 0;j < s.len;j++){
@@ -208,7 +208,7 @@ int String::find(const String &s) const {
     return -1;
 }
 
-int String::find(const char *s) const{
+unsigned String::find(const char *s) const{
     String s_str(s);
     return find(s_str);
 }
@@ -267,21 +267,21 @@ String String::trim_right() const {
 
 // String.cpp
 String String::extract_param(const char* param) const {
-    int pos = find(param);
-    if(pos == -1) return String();
+    unsigned pos = find(param);
+    if(pos == (unsigned)-1) return String();
     
     pos += String(param).length();  // 跳过参数名
     
     // 跳过可能的空格
     while(pos < len && data[pos] == ' ') pos++;
     
-    int end = pos;
+    unsigned end = pos;
     while(end < len && data[end] != ' ') end++;
     
     return substr(pos, end - pos);
 }
 
-int String::extract_int(const char* param) const {
+unsigned String::extract_int(const char* param) const {
     String val = extract_param(param);
     if(val.empty()) return -1;
     return val.to_int();

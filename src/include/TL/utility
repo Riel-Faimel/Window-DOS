@@ -6,12 +6,6 @@
 
 namespace rtl {
 
-//catch and change to T&&
-template<typename T>
-constexpr decltype(auto) move(T &&obj){ //decltype for DO NOT automatic degradation
-    return static_cast<typename remove_reference<T>::type &&>(obj);
-}
-
 // delete & for T or T& or T&&
 template<typename T>
 struct remove_reference {
@@ -26,6 +20,12 @@ struct remove_reference<T&&> {
     using type = T;
 };
 
+//catch and change to T&&
+template<typename T>
+constexpr decltype(auto) move(T &&obj){ //decltype for DO NOT automatic degradation
+    return static_cast<typename remove_reference<T>::type &&>(obj);
+}
+
 // append && back of T, because &&&->& and &&&&->&&, so it keep & nums
 template<typename T>
 constexpr T&& forward(typename remove_reference<T>::type& t)noexcept{
@@ -36,6 +36,9 @@ constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
     return static_cast<T&&>(t);
 }
 
+template<typename... Args>
+class tuple;
+
 template<>
 class tuple<> {
 public:
@@ -43,7 +46,7 @@ public:
 };
 
 template<typename T, typename ...Args>
-class tuple : public tuple<Args...> {
+class tuple<T, Args...> : public tuple<Args...> {
     T data;
 };
 
