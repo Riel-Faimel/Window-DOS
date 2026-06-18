@@ -1,5 +1,4 @@
 #include <lib/cppstdlib/string>
-#define _BITS_32
 #include <global/type.hpp>
 #define __independent_lib_Using_template_container
 #include <TL/idlib>

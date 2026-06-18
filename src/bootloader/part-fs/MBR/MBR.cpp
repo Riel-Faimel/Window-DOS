@@ -26,7 +26,7 @@
  * call by file system, set system ID from file system.
  */
 
-DISK_PART::DISK_PART(Cluster *disk_choose):
+DISK_PART::DISK_PART(LogicalDisk *disk_choose):
 disk(disk_choose),
 has_MBR(false){
     MBR mbr;

@@ -177,7 +177,7 @@ void CenterShell::extern_shell(char *line_buffer, unsigned line_size){
     screen->print(cmd_line);
     if(cmd_line[cmd_line.length() - 1] == ':' && cmd_line.length() >= 2 && cmd_line.length() <= 7){
         screen->print("Change disk\n");
-        if(linear_address_space->choose_disk(cmd_line)){
+        if(linear_address_space->open(working_dir, cmd_line)){
             cmd_prompt = cmd_line;
         } //disk
         return;

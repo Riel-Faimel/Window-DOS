@@ -5,7 +5,9 @@ global keyboard_handler_go_back
 extern keyboard_handler_c
 extern Label_for_keyboard_interrput_goto
 extern keyboard_this
+Label_for_keyboard_interrput_goto:
 
+    
 keyboard_handler:
     call keyboard_handler_c
     jmp keyboard_handler_go_back

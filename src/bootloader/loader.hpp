@@ -1,4 +1,3 @@
-#define _BITS_32
 #include <global/type.hpp>
 extern "C" void LoaderMain();
 
@@ -27,8 +26,10 @@ extern bool *__boot_loader_end;
 #include <registry/registry.hpp>
 #include <IDT_L/IDNT.hpp>
 #include <drv/PCI/pci.hpp>
-#include <part-fs/las.hpp>
+//#include <part-fs/las.hpp>
+#include <LAS/LAS.hpp>
 #include <DOSsyscall/DOScall.hpp>
+#include <LAS/PM.hpp>
 
 #include <interface/Window.hpp>
 

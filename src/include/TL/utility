@@ -1,4 +1,4 @@
-#ifdef __independent_lib_Using_utility
+//#ifdef __independent_lib_Using_utility
 #ifndef ___Using_utility
 #define ___Using_utility
 
@@ -36,21 +36,7 @@ constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
     return static_cast<T&&>(t);
 }
 
-template<typename... Args>
-class tuple;
-
-template<>
-class tuple<> {
-public:
-    ;
-};
-
-template<typename T, typename ...Args>
-class tuple<T, Args...> : public tuple<Args...> {
-    T data;
-};
-
 }
 
 #endif
-#endif
+//#endif

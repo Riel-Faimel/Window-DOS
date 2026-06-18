@@ -12,9 +12,9 @@ public:
     unsigned long long flag;
     void *extra;
     unsigned long long size;
-    _WIN();
+    inline _WIN(){};
     _WIN(_WIN*);
-    ~_WIN();
+    inline ~_WIN(){};
 };
 #pragma pack(pop)
 

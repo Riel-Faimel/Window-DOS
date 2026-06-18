@@ -3,8 +3,7 @@
 
 #include <TL/bits/forward>
 
-namespace rtl
-{
+namespace rtl {
 
 template<bool c, typename T1, typename T2>
 struct conditional;

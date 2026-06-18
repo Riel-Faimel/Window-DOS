@@ -1,6 +1,6 @@
 #ifndef __bootloader_drv_keyboard_keyboard_hpp
 #define __bootloader_drv_keyboard_keyboard_hpp
-#define _BITS_32
+
 #include <global/type.hpp>
 #include <IDT_L/idt_.hpp>
 namespace KeyBoard {

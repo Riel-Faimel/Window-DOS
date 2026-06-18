@@ -1,11 +1,9 @@
 #ifndef __bootloader_src_include_TL_bits_forward
 #define __bootloader_src_include_TL_bits_forward
 
-namespace rtl 
-{
+namespace rtl {
 
-namespace bits
-{
+namespace bits {
 
 // delete & for T or T& or T&&
 template<typename T>

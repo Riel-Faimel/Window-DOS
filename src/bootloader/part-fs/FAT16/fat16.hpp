@@ -4,7 +4,7 @@
 #include <lib/cppstdlib/string>
 #include <part-fs/fs.hpp>
 
-class FAT16 : public FileSystem {
+class FAT16 : public Cluster {
 public:
     enum class attribute_choice : unsigned char {
         read_only = 0b00000001,
@@ -127,10 +127,7 @@ public:
     void format();
 
     unsigned open(String filename);
-    void close(unsigned );
-    unsigned lookup(String);
-    void cd(String);
-    void dir();
+    unsigned close(unsigned );
 
     void set_filesystem_name(char *name);
 };

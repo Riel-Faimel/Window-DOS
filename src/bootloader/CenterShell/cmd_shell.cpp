@@ -1,8 +1,4 @@
 #include "_cmd_shell.hpp"
-#include <part-fs/MBR/MBR.hpp>
-#include <drv/disk/IDE/ide.hpp>
-#include <lib/hardlib/x86/port.h>
-#include <part-fs/las.hpp>
 
 extern "C" __attribute__((cdecl)) void do_int_with_params(
     u8 vector, u32 eax, u32 ebx, u32 ecx, u32 edx, u32 esi, u32 edi

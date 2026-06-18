@@ -1,6 +1,6 @@
 #ifndef _GLOBAL_TYPE_HPP
 #define _GLOBAL_TYPE_HPP
-#pragma once
+
 #ifdef _BITS_32
 #ifdef _BITS_64
 #error "danm define 32 and 64 bits for the same time!"
@@ -25,7 +25,8 @@ using __l32 = u32;
 using size_t = unsigned int;
 using uintptr_t = unsigned long;
 using intptr_t = long;
-#elifdef _BITS_64
+#endif
+#ifdef _BITS_64
 using size_t = unsigned long long;
 using uintptr_t = unsigned long long;
 using intptr_t = long long;

@@ -2,7 +2,7 @@
  * I mean, we should not #include this file into global headers
  * here defined _BITS_32, I do not sure if it goes to error
  * I mean, I gonna delete the define, you should keep that
- * size_t had define and then! you use this header but I can do 
+ * size_t had define and then! you use this header but I can't do 
  * any thing here!
  */
 #ifndef __bootloader_drv_disk_IDE_ide_controller_init_hpp

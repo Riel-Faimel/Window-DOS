@@ -33,11 +33,13 @@ class LAS{
     rtl::array<DiskInfo> disks;
     rtl::array<DriveInfo> drivers;
 
+    /*
     struct {
         void *dealing;// disk or filesystem which dealing
         unsigned char dealing_id;
         bool is_fs;
     };
+    */
     String letter;
     friend inline void mkfs_(String);
     friend inline void __dir(String);

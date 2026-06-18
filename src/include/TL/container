@@ -1,8 +1,9 @@
-#ifdef __independent_lib_Using_template_container
+//#ifdef __independent_lib_Using_template_container
 #ifndef ___Using_template_container_protect
 #define ___Using_template_container_protect
 
 #include <TL/bits/utility>
+#include <global/type.hpp>
 
 namespace rtl {
 
@@ -33,7 +34,7 @@ protected:
         }
     };
 public:
-    array(size_t size_):size(0),capacity(size_){
+    array(size_t size_ = 1):size{0},capacity{size_}{
         ptr = new T[capacity];
     }
 
@@ -314,11 +315,6 @@ public:
     tuple() = default;
 };
 
-template<typename... Args>
-tuple<Args...> make_tuple(Args&&... args) {
-    return tuple<Args...>{bits::forward<decltype(args)>(args)...};
-}
-
 template<unsigned long long N, typename Fir, typename... Args>
 auto& get(tuple<Fir, Args...>& t) {
     if constexpr (N==0) return t.data;
@@ -368,7 +364,20 @@ struct tuple_type<I, tuple<>> {
     using type = void;
 };
 
+template<typename ...T>
+constexpr tuple<T...> make_tuple(T...);
+
+template<typename FirInit, typename ...OthInit>
+constexpr tuple<FirInit, OthInit...> make_tuple(FirInit fir, OthInit... init) {
+    tuple<FirInit, OthInit...>re{make_tuple(init...), fir};
+    return re;
+}
+template<>
+constexpr tuple<> make_tuple<>() {
+    return tuple<>{}; 
+}
+
 }
 
 #endif
-#endif
+//#endif

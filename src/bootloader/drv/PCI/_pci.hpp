@@ -1,5 +1,4 @@
 #include "pci.hpp"
-#define _BITS_32
 #include <global/type.hpp>
 #include <hardlib/x86/port.h>
 #include <drv/screen/screen_srv.hpp>

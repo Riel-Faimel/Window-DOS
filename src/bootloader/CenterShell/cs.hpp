@@ -1,8 +1,9 @@
 #ifndef __bootloader_CenterShell_cs_hpp
 #define __bootloader_CenterShell_cs_hpp
-#define _BITS_32
+
 #include <global/type.hpp>
 #include <lib/cppstdlib/string>
+#include <global/WIN.hpp>
 #define __independent_lib_Using_template_container
 #include <TL/idlib>
 
@@ -46,5 +47,6 @@ private:
     void extern_shell(char *, unsigned);
     rtl::array<Command_list> CMD_List{4};
     String cmd_prompt = "mem:";
+    _WIN working_dir;
 };
 #endif

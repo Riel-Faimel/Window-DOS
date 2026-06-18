@@ -1,4 +1,3 @@
-#define _BITS_32
 #include <global/type.hpp>
 
 class _ptr2size;
@@ -11,7 +10,7 @@ private:
     bool *bitmap;
     _ptr2size *alloclist;
 public:
-    mm() = default;
+    mm(){};
     mm(
         unsigned, unsigned, void *, bool *,
         unsigned size = 1024

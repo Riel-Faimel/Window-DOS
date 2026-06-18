@@ -9,8 +9,7 @@ FAT16::FAT16(
 ):part(part_init), 
 part_id(part_id_), 
 status(NO), 
-cluster_size(1<<cluster_index),
-FileSystem{"/"}{
+cluster_size(1<<cluster_index){
     BPB bpb;
     if(part->get_system_id(part_id) == 0x06){
         part->set_block(part_id, 1);
@@ -273,8 +272,8 @@ unsigned FAT16::open(String filename){
     return 0; // 未找到
 }
 
-void FAT16::close(unsigned ){
-    ;
+unsigned FAT16::close(unsigned ){
+    return 0;
 }
 
 FAT16::~FAT16(){
@@ -300,6 +299,7 @@ FAT16::~FAT16(){
     }
 }
 
+/*
 void FAT16::dir(){
     if(dealing_path == "/")for(unsigned i = 0;i < dir_entries;i++){
         if(root_dir[i]._8_3FN.attribute == attribute_choice::dir){
@@ -328,6 +328,7 @@ unsigned int FAT16::lookup(String dir_name){
     /**
      * Thanks for Copilot
      */
+    /*
     // 查找目录：根据目录名查找根目录中的目录条目，返回起始簇号
     if(status != FORMAT){
         return -1; // 未格式化，无法查找
@@ -374,7 +375,4 @@ unsigned int FAT16::lookup(String dir_name){
     
     return -1; // 未找到
 }
-
-void FAT16::cd(String) {
-    ;
-}
+*/

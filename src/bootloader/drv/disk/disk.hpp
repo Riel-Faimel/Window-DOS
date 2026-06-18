@@ -1,10 +1,10 @@
 #ifndef __bootloader_drv_disk_hpp
 #define __bootloader_drv_disk_hpp
-#define _BITS_32
-#include <global/type.hpp>
-#include <interface/cluster.hpp>
 
-struct DISK_INFO : Cluster::Cluster_Info{
+#include <global/type.hpp>
+#include <interface/LDisk.hpp>
+
+struct DISK_INFO : public Cluster_Info {
     int total_sectors;
     int LBA_support;
     int PIO_supported;

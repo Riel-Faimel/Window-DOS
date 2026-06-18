@@ -1,6 +1,6 @@
 #ifndef __bootloader_mm_gdt_hpp
 #define __bootloader_mm_gdt_hpp
-#define _BITS_32
+
 #include <global/type.hpp>
 #include <IDT_L/idt.hpp>
 class GDT {

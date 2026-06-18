@@ -1,9 +1,12 @@
-#ifndef __bootloader_part_fs_MBR_MBR_hpp
-#define __bootloader_part_fs_MBR_MBR_hpp
-#include <drv/disk/disk.hpp>
+#ifndef __bootloader_LAS_PM_hpp
+#define __bootloader_LAS_PM_hpp
 
-class DISK_PART{
-public:
+#include <interface/LDisk.hpp>
+#include <TL/container>
+
+
+class PM {
+private:
 #pragma pack(push, 1)
     typedef struct __attribute__((packed)){
         unsigned char boot_flag;
@@ -44,35 +47,14 @@ public:
         Linux_LVM = 0x8E,
         RAW = 0xFF,
     };
-    struct {
-        unsigned start;
-        unsigned part_size; //sectors
-        unsigned sectors_per_block;
-        System_ID system_ID;
-    }part_info[4];
 
-private:
-    LogicalDisk *disk;
-    
+    rtl::array<LogicalDisk *> disk_stack;
 public:
-    bool has_MBR;
-    DISK_PART(LogicalDisk *disk_choose);
+    PM();
+    ~PM();
 
-    void make_MBR();
-
-    unsigned make_part(bool can_boot, unsigned from, unsigned to);
-
-    void init_part(System_ID system_id, unsigned part_id);
-
-    unsigned char get_system_id(unsigned part_id);
-
-    void read(unsigned short *buf, unsigned part_id, unsigned start_block, unsigned blocks_read);
-
-    void write(unsigned short *buf, unsigned part_id, unsigned start_block, unsigned blocks_write);
-
-    void read_sec(unsigned short *buf, unsigned part_id, unsigned start_sec, unsigned counts);
-
-    void set_block(unsigned part_id, unsigned sectors_per_block);
+    void include(LogicalDisk *);
+    void resolve(LogicalDisk *);
 };
 
 #endif

@@ -1,7 +1,6 @@
 #include "ide.hpp"
 #include <drv/screen/screen_srv.hpp>
 #include <IDT_L/idt_.hpp>
-#define _BITS_32
 #include <global/type.hpp>
 #include "ide_controller_init.hpp"
 #include <mm/mm.hpp>

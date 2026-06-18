@@ -4,4 +4,4 @@
 #include <drv/PCI/pci.hpp>
 #include <drv/disk/disk.hpp>
 #include <drv/disk/IDE/ide.hpp>
-#include <drv/disk/SATA/sata.hpp>
+//#include <drv/disk/SATA/sata.hpp>
