@@ -1,28 +1,32 @@
 #include "_PM.hpp"
 
 class SingalPart : public LogicalDisk {
-    size_t start;
-    size_t total_size;
+    Cluster_Info info_ {Cluster_Info::Type::Part};
+    size_t total_sectors;
+    size_t start; //LBA
     LogicalDisk *disk;
 public:
     SingalPart() = default;
     SingalPart(LogicalDisk *disk_, unsigned begin, unsigned size):
-    disk{disk_}, start{begin}, total_size{size}{};
+    disk{disk_}, info_{.total_bytes = size}{
+        info_.cluster_size = disk->info({})->cluster_size;
+        total_sectors = (info_.total_bytes + 1) / info_.cluster_size;
+    };
 
-    unsigned read(void *buf, unsigned, unsigned offset, unsigned nums){
+    unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums){
         unsigned read_num;
-        if (offset + nums > total_size) read_num = total_size - offset;
+        if (nums > total_sectors) read_num = total_sectors;
         else read_num = nums; 
-        return disk->read(buf, 0, offset + start, read_num);
+        return disk->read(buf, LBA + start, 0, read_num);
     }
-    unsigned write(void *buf, unsigned, unsigned offset, unsigned nums){
+    unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums){
         unsigned write_num;
-        if (offset + nums > total_size) write_num = total_size - offset;
+        if (nums > total_sectors) write_num = total_sectors;
         else write_num = nums; 
-        return disk->write(buf, 0, offset + start, write_num);
+        return disk->write(buf, LBA + start, 0, write_num);
     }
-    Cluster_Info* info(String s){
-        return disk->info(s);
+    Cluster_Info* info(String){
+        return &info_;
     }
     unsigned cmd(unsigned, String){
         return 0;
@@ -35,14 +39,14 @@ public:
     RAW(LogicalDisk *d): disk{d}{}
     ~RAW() = default;
 
-    unsigned read(void *buf, unsigned, unsigned from, unsigned nums) {
-        return disk->read(buf, 0, from, nums);
+    unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums) {
+        return disk->read(buf, LBA, 0, nums);
     }
 
-    unsigned write(void *buf, unsigned, unsigned from, unsigned nums) {
-        return disk->write(buf, 0, from, nums);
+    unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums) {
+        return disk->write(buf, LBA, 0, nums);
     }
-    unsigned open(String) { return 0; }
+    unsigned open(String s) { return static_cast<unsigned>(s.to_int()); }
     unsigned close(unsigned) { return 0; }
     unsigned create(String) { return 0; }
     unsigned delet(String) { return 0; }
@@ -56,12 +60,10 @@ public:
     }
 };
 
-PM::PM():disk_stack{} {
-    ;
-}
+PM *partmanager;
 
-PM::~PM() {
-    ;
+PM::PM():disk_stack{} {
+    partmanager = this;
 }
 
 void PM::include(LogicalDisk *disk){
@@ -70,30 +72,42 @@ void PM::include(LogicalDisk *disk){
 
 void PM::resolve(LogicalDisk *disk) {
     MBR mbr;
-    disk->read(mbr.buf, 0, 0, 512);
-    if(mbr.sign == (unsigned short)0xAA55){
-        for(unsigned char i = 0;i < 4;i++){
-            auto sysid = mbr.part[i].system_id;
-            if(sysid){
-                size_t start = mbr.part[i].start_LBA_high << 16 | mbr.part[i].start_LBA_low;
-                size_t size = mbr.part[i].sector_count_high << 16 | mbr.part[i].sector_count_low;
-                auto part = new SingalPart{disk, start, size};
-                disk_stack.append(part);
+    disk->read(mbr.buf, 0, 0, 1);
+    if(mbr.sign == (unsigned short)0xAA55)
+    for(unsigned char i = 0;i < 4;i++){
+        auto sysid = mbr.part[i].system_id;
+        if(sysid){
+            kprint("System ID: ");print_hex(sysid);kprint("\n");
+            size_t start = mbr.part[i].start_LBA_high << 16 | mbr.part[i].start_LBA_low;
+            size_t size = mbr.part[i].sector_count_high << 16 | mbr.part[i].sector_count_low;
+            auto part = new SingalPart{disk, start, size};
+            disk_stack.append(part);
 
-                switch (static_cast<System_ID>(sysid)) {
-                case System_ID::FAT12:
-                    break;
-                case System_ID::FAT16:
-                    //auto fat16 = new FAT16{};
-                    break;
-                case System_ID::NULL:
-                default:
-                    auto raw = new RAW{part};
-                    ;
-                    break;
-                }
+            // try file system
+            Cluster *fs;
+            switch (static_cast<System_ID>(sysid)) {
+            case System_ID::FAT12:
+                break;
+            case System_ID::FAT16:
+                fs = new FAT16{part};
+                linear_address_space->regist(fs);
+                break;
+            default:
+            case System_ID::Re:
+            case System_ID::NULL:
+                fs = new RAW{part};
+                linear_address_space->regist(fs);
+                break;
             }
         }
     }
-    else { return; } // MBR no found
+    else { 
+        kprint("No MBR:\n");
+        unsigned char *ptr = reinterpret_cast<unsigned char *>(mbr.buf);
+        for (unsigned i = 0;i < 512;i++) {
+            print_hex(ptr[i], false);print_char(' ');
+        }
+        kprint("\n===\n");
+        return;
+    } // MBR no found
 }

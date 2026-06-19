@@ -20,15 +20,14 @@ class LAS {
     };
     rtl::array<DriveInfo> space;
 
-    enum class Handle_Mode {
+    enum class Handle_Mode : unsigned char {
         read = 0x01,
         write = 0x02,
         exec = 0x04,
     };
     struct Handle {
-        unsigned file_handle; 
-
         unsigned ID;
+        unsigned file_handle; 
         String path_buf;
         Handle_Mode handle_mode;
         unsigned count;
@@ -44,7 +43,7 @@ public:
      * regist an FS mode
      * called by FS mode in initial function
      */
-    void regist(Cluster *, String);
+    void regist(Cluster *, String = String{});
 
     /**
      * read/write(Window, begin byte, byte nums) for read by sectors
@@ -60,10 +59,10 @@ public:
      * creat/del(Window, String path) for files or folders, 
      * folder as file in this way
      */
-    unsigned creat(_WIN&, String);
+    unsigned create(_WIN&, String);
     unsigned del(_WIN&, String);
-    unsigned info(_WIN&);
-    unsigned cmd(_WIN&, String);
+    Cluster_Info info(_WIN&, String);
+    unsigned cmd(_WIN&, unsigned, String);
 };
 
 extern LAS* linear_address_space;

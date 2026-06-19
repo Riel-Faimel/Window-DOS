@@ -1,7 +1,7 @@
 #ifndef __bootloader_PDS_pds_hpp
 #define __bootloader_PDS_pds_hpp
 
-#include <global/type.hpp>
+#include <interface/LDisk.hpp>
 #include <TL/container>
 
 class PDS {
@@ -12,11 +12,8 @@ public:
     };
     struct Storage {
         Info info;
-        class drive {
-            virtual unsigned read() = 0;
-            virtual unsigned write() = 0;
-            virtual unsigned cmd() = 0;
-        }* d;
+        using drive = LogicalDisk;
+        drive* d;
     };
     struct Network {
         Info info;

@@ -4,7 +4,7 @@
 #include <global/type.hpp>
 #include "ide_controller_init.hpp"
 #include <mm/mm.hpp>
-#define __independent_lib_Using_utility
+#include <LAS/PM.hpp>
 #include <TL/idlib>
 
 void init_IDE_controller(void* *ptr, size_t *size){
@@ -15,7 +15,10 @@ void init_IDE_controller(void* *ptr, size_t *size){
     };
     u8 exist_disk = 0;
     u8 j = 0;
-    for(u8 i = 0;i < 4;i++)if(re[i].exist)exist_disk++;
+    for(u8 i = 0;i < 4;i++)if(re[i].exist){
+        exist_disk++;
+        partmanager->resolve(&re[i]);
+    }
     IDE_DISK *re_;
     if(exist_disk > 0) re_ = new IDE_DISK[exist_disk];
     else {

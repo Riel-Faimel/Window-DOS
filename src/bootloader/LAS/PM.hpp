@@ -1,9 +1,9 @@
 #ifndef __bootloader_LAS_PM_hpp
 #define __bootloader_LAS_PM_hpp
 
+#include <LAS/PM_.hpp>
 #include <interface/LDisk.hpp>
 #include <TL/container>
-
 
 class PM {
 private:
@@ -35,8 +35,8 @@ private:
     enum class System_ID : unsigned char {
         NULL = 0x00,
         FAT12 = 0x01,
-        FAT16 = 0x04,
-        FAT16_ = 0x06,
+        FAT16_ = 0x04,
+        FAT16 = 0x06,
         FAT32 = 0x0B,
         FAT32_ = 0x0C,
         FAT16__ = 0x0E,
@@ -46,12 +46,13 @@ private:
         Linux = 0x83,
         Linux_LVM = 0x8E,
         RAW = 0xFF,
+        Re = 0xDA,
     };
 
     rtl::array<LogicalDisk *> disk_stack;
 public:
     PM();
-    ~PM();
+    ~PM() = default;
 
     void include(LogicalDisk *);
     void resolve(LogicalDisk *);

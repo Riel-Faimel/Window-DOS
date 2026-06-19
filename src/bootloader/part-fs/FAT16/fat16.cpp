@@ -1,50 +1,52 @@
 #include "_fat16.hpp"
 
 FAT16::FAT16(
-    DISK_PART *part_init, 
-    unsigned int part_id_, 
+    LogicalDisk *part_init, 
     bool force_part, 
     bool force_format, 
     unsigned int cluster_index
-):part(part_init), 
-part_id(part_id_), 
-status(NO), 
+):part(part_init), status(RAW), 
 cluster_size(1<<cluster_index){
     BPB bpb;
-    if(part->get_system_id(part_id) == 0x06){
-        part->set_block(part_id, 1);
-        part->read(bpb.buf, part_id, 0, 1);
-        if(
-            bpb.boot_sector_sign == 0xAA55 &&
-            bpb.bytes_per_sector == 512
-        ){
-            cluster_size = bpb.sectors_per_cluster;
-            if(bpb.fat_size_16 > 0){
-                status = FORMAT; //has BPB
-                part->set_block(part_id, cluster_size);
+    part->read(bpb.buf, 0, 0, 1);
+    if(
+        bpb.boot_sector_sign == 0xAA55 &&
+        bpb.bytes_per_sector == 512
+    ){
+        cluster_size = bpb.sectors_per_cluster;
+        if(bpb.fat_size_16 > 0){
+            status = FORMAT; //has BPB
+            goto FORMATED;
+        }else{
+            status = UNFORMAT;
+            if(force_format){
+                format();
                 goto FORMATED;
-            }else{
-                status = UNFORMAT;
-                if(force_format){
-                    format();
-                    goto FORMATED;
-                }
-                return;
             }
-        }else {
-            status = RAW;
-            goto SET_BPB;
-        };
-    }else {
-        //screen->print(" <no part> ");
-        status = NO;
-        if(force_part){
-            //screen->print(" <force part> ");
-            part->init_part(DISK_PART::System_ID::FAT16_, part_id);
-            goto SET_BPB;
+            return;
         }
-        return;
-    }
+    }else {
+        status = RAW;
+        goto SET_BPB;
+    };
+
+FORMATED:
+    /**
+     * TODO:
+     * new FAT table in memory
+     * read FAT table from disk
+     * check FAT1, FAT2
+     * 
+     * if error: back to FAT2
+     */
+    dir_entries = bpb.root_entries;
+    FAT_table = new unsigned short [bpb.fat_size_16];
+    part->read(FAT_table, 0, bpb.hidden_sectors + clu2blk, bpb.fat_size_16 + clu2blk);
+    root_dir = reinterpret_cast<DIR *>(new unsigned short [bpb.root_entries * 32]);
+    part->read(reinterpret_cast<unsigned short *>(root_dir), 0, bpb.hidden_sectors + clu2blk * 2, bpb.root_entries / 16);
+    //some problem
+    return;
+
 SET_BPB:
     for(unsigned i = 0;i < 256;i++){
         bpb.buf[i] = 0;
@@ -57,20 +59,22 @@ SET_BPB:
         bpb.oem[i] = "WINDOS0.1"[i];
     }
     
+    auto info = part->info({});
+
     bpb.bytes_per_sector = 512;//fixed
     bpb.sectors_per_cluster= 1 << cluster_index;
     cluster_size = bpb.sectors_per_cluster;
     bpb.reserved_sectors = 1;
     bpb.num_fats = 2; //
     bpb.root_entries = 512; //fixed
-    bpb.total_sectors_16 = (part->part_info[part_id].part_size > 65536) ? 0 : part->part_info[part_id].part_size;
+    bpb.total_sectors_16 = (info->total_bytes > 65536) ? 0 : info->total_bytes;
     bpb.medis_descriptor = 0xF8; //hdd
     bpb.fat_size_16 = 0;
     bpb.sectors_per_track = 63; //hdd
     bpb.num_heads = 16;
-    bpb.hidden_sectors = part->part_info[part_id].start;
+    bpb.hidden_sectors = 0;
     //screen->print(" <into setting> ");
-    bpb.total_sectors_32 = (part->part_info[part_id].part_size < 65536) ? 0 : part->part_info[part_id].part_size;
+    bpb.total_sectors_32 = (info->total_bytes < 65536) ? 0 : info->total_bytes;
     bpb.drive_number = 0x80;
     bpb.reserved1 = 0; //fixed
     bpb.boot_sign = 0x29; //extra, 0x28 for not extra
@@ -89,39 +93,22 @@ SET_BPB:
     }
     
     bpb.boot_sector_sign = 0xAA55;
-    part->write(bpb.buf, part_id, 0, 1);
+    part->write(bpb.buf, 0, 0, 1);
     status = UNFORMAT;
     if(force_format){
         format();
         goto FORMATED;
     }
     return;
-
-FORMATED:
-    /**
-     * TODO:
-     * new FAT table in memory
-     * read FAT table from disk
-     * check FAT1, FAT2
-     * 
-     * if error: back to FAT2
-     */
-    dir_entries = bpb.root_entries;
-    FAT_table = new unsigned short [bpb.fat_size_16];
-    part->read(FAT_table, part_id, bpb.hidden_sectors + clu2blk, bpb.fat_size_16 + clu2blk);
-    root_dir = reinterpret_cast<DIR *>(new unsigned short [bpb.root_entries * 32]);
-    part->read(reinterpret_cast<unsigned short *>(root_dir), part_id, bpb.hidden_sectors + clu2blk * 2, bpb.root_entries / 16);
-    //some problem
-    return;
 }
 
 void FAT16::format(){
     BPB bpb;
-    part->set_block(part_id, 1);
-    part->read(bpb.buf, part_id, 0, 1);
+    auto info = part->info({});
+    part->read(bpb.buf, 0, 0, 1);
 
     unsigned S = cluster_size;
-    unsigned T = part->part_info[part_id].part_size;
+    unsigned T = info->total_bytes;
     unsigned R, F, D, C;
     R = 1;
     F = 1;
@@ -149,30 +136,29 @@ void FAT16::format(){
     clu2blk = D / S;
     bpb.reserved_sectors = R;
     bpb.fat_size_16 = F;
-    part->write(bpb.buf, part_id, 0, 1);
+    part->write(bpb.buf, 0, 0, 1);
     
     unsigned short fat[256];
     for(int i = 0;i < 256;i++) fat[i] = 0;
     fat[0] = 0xFFF8;
     fat[1] = 0xFFFF;
-    part->write(fat, part_id, R, 1);
-    part->write(fat, part_id, R + F, 1);
+    part->write(fat, 0, R, 1);
+    part->write(fat, 0, R + F, 1);
     fat[0] = 0;
     fat[1] = 0;
     for(int i = 1;i < F;i++){
-        part->write(fat, part_id, R + i, 1);
-        part->write(fat, part_id, R + F + i, 1);
+        part->write(fat, 0, R + i, 1);
+        part->write(fat, 0, R + F + i, 1);
     }
     unsigned char *root = reinterpret_cast<unsigned char *>(fat);
     for(int i = 0;i < 11;i++)root[i] = bpb.volume_label[i];
     root[11] = 0x08;
-    part->write((unsigned short *)root, part_id, R + 2*F, 1);
+    part->write((unsigned short *)root, 0, R + 2*F, 1);
     for(int i = 0;i <= 11;i++)root[i] = 0;
     for(int i = 1;i < 32;i++){
-        part->write((unsigned short *)root, part_id, R + 2 * F + i, 1);
+        part->write((unsigned short *)root, 0, R + 2 * F + i, 1);
     }
     
-    part->set_block(part_id, S);
     //screen->print(" <done> ");
     status = FORMAT;
     return;
@@ -180,13 +166,11 @@ void FAT16::format(){
 
 void FAT16::set_filesystem_name(char name[11]){
     BPB bpb;
-    part->set_block(part_id, 1);
-    part->read(bpb.buf, part_id, 0, 1);
+    part->read(bpb.buf, 0, 0, 1);
     for(unsigned char i = 0;i < 11;i++){
         bpb.volume_label[i] = name[i];
     }
-    part->write(bpb.buf, part_id, 0, 1);
-    part->set_block(part_id, cluster_size);
+    part->write(bpb.buf, 0, 0, 1);
     screen->print("set name: ");screen->print(name);
 }
 
@@ -283,20 +267,43 @@ FAT16::~FAT16(){
     // 写回FAT表和根目录到磁盘
     if(status == FORMAT){
         BPB bpb;
-        part->set_block(part_id, 1);
-        part->read(bpb.buf, part_id, 0, 1);
+        part->read(bpb.buf, 0, 0, 1);
         
         // 写回FAT表到两个FAT副本
-        part->write(FAT_table, part_id, bpb.reserved_sectors, bpb.fat_size_16);
-        part->write(FAT_table, part_id, bpb.reserved_sectors + bpb.fat_size_16, bpb.fat_size_16);
+        part->write(FAT_table, 0, bpb.reserved_sectors, bpb.fat_size_16);
+        part->write(FAT_table, 0, bpb.reserved_sectors + bpb.fat_size_16, bpb.fat_size_16);
         
         // 写回根目录
-        part->write(reinterpret_cast<unsigned short *>(root_dir), part_id, bpb.reserved_sectors + 2 * bpb.fat_size_16, bpb.root_entries / 16);
+        part->write(reinterpret_cast<unsigned short *>(root_dir), 0, bpb.reserved_sectors + 2 * bpb.fat_size_16, bpb.root_entries / 16);
         
         // 释放内存
         delete [] FAT_table;
         delete [] reinterpret_cast<unsigned short *>(root_dir);
     }
+}
+
+unsigned FAT16::read(void *, unsigned int, unsigned int, unsigned int){
+    return 0;
+}
+
+unsigned FAT16::write(void *, unsigned int, unsigned int, unsigned int){
+    return 0;
+}
+
+unsigned FAT16::create(String) {
+    return 0;
+}
+
+unsigned FAT16::delet(String){
+    return 0;
+}
+
+Cluster_Info *FAT16::info(String) {
+    return {};
+}
+
+unsigned FAT16::cmd(unsigned int, String){
+    return 0;
 }
 
 /*

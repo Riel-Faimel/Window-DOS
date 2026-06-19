@@ -80,14 +80,12 @@ void LoaderMain(){
     asm volatile ("sti");
 
     PDS pds{};
-    LAS las{};
-
-    PM partmgr{};
+    StorageSubSystem sss{};
     
     PCI_space PCI_device_spaceP{false};
     PCI_device_spaceP.set_device_driver();
     //while(1){asm volatile ("hlt");}
-    DOScall disk_operating_system_system_call{idt};
+    //DOScall disk_operating_system_system_call{idt};
     GDT gdt{_gdt_space, 8192, idt};
     //CenterShell cs;
 }

@@ -22,7 +22,7 @@ export LDCMD32 LDCMD_F32
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.cpp
 	$(call MKDIR_F,$@)
-	$(CPP-ELF) -D_BITS_32 $(CPPFLAGS32) -c $< -o $@
+	$(CPP-ELF) -D_BITS_32 -std=c++20 $(CPPFLAGS32) -c $< -o $@
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c 
 	$(call MKDIR_F,$@)
@@ -38,4 +38,4 @@ $(BUILD_DIR)%.bin: $(SRC_DIR)%.asm
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.cppm
 	$(call MKDIR_F,$@)
-	$(CPP-ELF) -D_BITS_32 $(CPPFLAGS32) -c $< -o $@
+	$(CPP-ELF) -D_BITS_32 -std=c++20 $(CPPFLAGS32) -c $< -o $@

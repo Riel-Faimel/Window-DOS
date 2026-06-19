@@ -2,30 +2,11 @@
 
 LAS* linear_address_space;
 
-//===LAS prepare for Cluster interface===
-
-unsigned Cluster::open(String/*file_path*/) {
-    return (unsigned)-1;
-}
-
-unsigned Cluster::close(unsigned /*handle*/){
-    ;
-}
-
-unsigned Cluster::creat(String/*path*/){
-    ;
-}
-
-unsigned Cluster::delet(String/*path*/){
-    ;
-}
-
-//===LAS===
 LAS::LAS(){
     linear_address_space = this;
 }
 
-void LAS::regist(Cluster *clu, String le = {}){
+void LAS::regist(Cluster *clu, String le){
     String letter;
     if (le == String{}) {
         letter = {};
@@ -36,14 +17,13 @@ void LAS::regist(Cluster *clu, String le = {}){
             count /= 26;
         }
     }
-    else {
-        letter = le;
-    }
+    else { letter = le; }
 
     space.append(DriveInfo{
         clu, letter, did_count
     });
     did_count++;
+    kprint("\n===\nFound a disk! \n    ");kprint(letter);kprint(".\n");
 }
 
 unsigned LAS::read(_WIN &win, unsigned byte_offset, unsigned byte_read){
@@ -62,15 +42,21 @@ unsigned LAS::write(_WIN &win, unsigned byte_offset, unsigned byte_write){
     else { return (unsigned)-1; }
 }
 
-unsigned LAS::open(_WIN &, String file_path){
-    return (unsigned)-1;
+unsigned LAS::open(_WIN &, String){
+    ;//
 }
 
-unsigned LAS::close(_WIN &){
-    return (unsigned)-1;
+unsigned LAS::close(_WIN &win){
+    if(win.extra){
+        Handle* h = static_cast<Handle*>(win.extra);
+        delete win.extra;
+        win.extra = nullptr;
+        return space[h->ID].driver->close(h->file_handle);
+    }
+    return -1;
 }
 
-unsigned LAS::creat(_WIN &, String){
+unsigned LAS::create(_WIN &, String){
     return (unsigned)-1;
 }
 
@@ -78,11 +64,13 @@ unsigned LAS::del(_WIN &, String){
     return (unsigned)-1;
 }
 
-unsigned LAS::info(_WIN&){
-    return (unsigned)-1;
+Cluster_Info LAS::info(_WIN& win, String s){
+    if(win.extra) return *space[static_cast<Handle*>(win.extra)->ID].driver->info(s);
+    else return {};
 }
 
-unsigned LAS::cmd(_WIN &, String){
-    return (unsigned)-1;
+unsigned LAS::cmd(_WIN &win, unsigned n, String s){
+    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->cmd(n, s);
+    else return -1;
 }
 

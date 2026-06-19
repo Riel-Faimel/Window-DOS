@@ -14,9 +14,9 @@ public:
 
 private:
     Channal chan;
-    void read(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
-    void read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
-    void read_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
+    unsigned read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info);
+    unsigned read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
+    unsigned read_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
 
     void write(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
     void write_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
@@ -65,8 +65,8 @@ public:
     ~IDE_DISK() = default;
 
     void check();
-    unsigned read(void *buf, unsigned LBA, unsigned byte_offset, unsigned byte_read);
-    unsigned write(void *buf, unsigned LBA, unsigned byte_offset, unsigned byte_write);
+    unsigned read(void *buf, unsigned LBA, unsigned, unsigned sectors_read);
+    unsigned write(void *buf, unsigned LBA, unsigned, unsigned sectors_write);
     DISK_INFO* info(String);
     unsigned cmd(unsigned, String);
     

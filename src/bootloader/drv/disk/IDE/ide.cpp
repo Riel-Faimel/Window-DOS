@@ -114,12 +114,12 @@ void IDE_Channal::ata_sff_exec_command(IDE_Channal::ata_taskfile &tf){
     inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
 }
 
-void IDE_Channal::read(unsigned short *buf, unsigned int LBA, unsigned char count, DISK_INFO *info){
-    if(info->LBA_support)read_PIO_LBA(buf, LBA, count, info->device);
-    else read_PIO_CHS(buf, LBA, count, info->device);
+unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info){
+    if(info->LBA_support) return read_PIO_LBA(buf, LBA, count, info->device);
+    else return read_PIO_CHS(buf, LBA, count, info->device);
 }
 
-inline void IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned int LBA, unsigned char count, u8 dev){
+unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev){
     unsigned char status = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
     if(status & 0x80){
         unsigned i = 0;
@@ -127,7 +127,7 @@ inline void IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned int LBA, uns
             i++;
             if(i > 0x10000){
                 if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] time out\n");
-                return; //time out
+                return -1; //time out
             }
         };    
     }
@@ -147,23 +147,27 @@ inline void IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned int LBA, uns
     ata_sff_tf_load(tf);
     ata_sff_exec_command(tf);
 
+    unsigned re = 0;
     for(unsigned char fan = 0;fan < count;fan++){
         unsigned i = 0;
         while (!(inb(static_cast<u16>(chan) + static_cast<u8>(VALUE::ATA_REG_STATUS)) & 0x08)){
             i++;
             if(i > 10000){
                 if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] Time out\n");
-                return;
+                return -1;
             }
         };
         for(unsigned int i = 0;i < 256;i++){
             buf[i + fan * 256] = inw(static_cast<u16>(chan));
+            re += 2;
         }
     }
+    return re;
 }
 
-inline void IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned int /*LBA*/, unsigned char /*count*/, u8 /*dev*/){
+unsigned IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned /*LBA*/, unsigned /*count*/, u8 /*dev*/){
     kprint("[NOTICE] CHS read not implemented yet\r\n");
+    return -1;
 }
 
 void IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, DISK_INFO *info){
@@ -357,6 +361,8 @@ exist{true}, lock(c), info_{}{
     info_.LBA_support = (identify_info.support >> 9) & 0x1;
     info_.total_sectors = identify_info.LBA28_sectors;
     info_.PIO_supported = identify_info.PIO_supported & 0x8000 ? identify_info.PIO_supported & 0b11111111  : 0;
+    info_.cluster_size = 512;
+    info_.total_bytes = info_.total_sectors * info_.cluster_size;
     for(int i = 0;i < 40;i++){
         info_.model[i] = reinterpret_cast<char *>(identify_info.model)[i];
     }
@@ -420,27 +426,26 @@ exist{true}, lock(c), info_{}{
     info_.device = static_cast<u8>(dev);
 };
 
-unsigned IDE_DISK::read(void *buf, unsigned int LBA, unsigned /*byte_offset*/, unsigned /*byte_read*/){
-    unsigned count = 0;
-    if(lock)lock->read(static_cast<unsigned short *>(buf), LBA, count, &info_);
+unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
+    if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
+    else return -1;
 }
 
-unsigned IDE_DISK::write(void *buf, unsigned int LBA, unsigned /*byte_offset*/, unsigned /*byte_read*/){
-    unsigned count = 0;
-    if(lock)lock->write(static_cast<unsigned short *>(buf), LBA, count, &info_);
+unsigned IDE_DISK::write(void *buf, unsigned LBA, unsigned, unsigned sectors_write){
+    if(lock)lock->write(static_cast<unsigned short *>(buf), LBA, sectors_write, &info_);
+    else return -1;
 }
 
 DISK_INFO* IDE_DISK::info(String){
     return &info_;
 }
 
-unsigned IDE_DISK::cmd(unsigned int, String) {
+unsigned IDE_DISK::cmd(unsigned, String) {
     return 0;
 }
 
 void IDE_DISK::check(){
     outb(info_.device, static_cast<u16>(lock->chan) + static_cast<u16>(VALUE::ATA_REG_DEVICE));
-    io_wait();
     io_wait();
     
     auto status = inb(static_cast<u16>(lock->chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));

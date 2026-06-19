@@ -1,5 +1,5 @@
-#ifndef __bootloader_drv_PCI_pci_hpp
-#define __bootloader_drv_PCI_pci_hpp
+#ifndef __bootloader_PDS_PCI_pci_hpp
+#define __bootloader_PDS_PCI_pci_hpp
 #define __independent_lib_Using_template_container
 #include <TL/idlib>
 
@@ -66,6 +66,6 @@ public:
     void set_device_driver();
     rtl::array<PCI_device_config> config{8}; // 8 is initial size, but it can be expanded if needed
 };
-extern const PCI_device_config *PCI_device_config_pointer; // for public
-extern const unsigned PCI_device_numbers;
+
+
 #endif

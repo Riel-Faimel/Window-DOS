@@ -1,6 +1,7 @@
 #ifndef __bootloader_part_fs_FAT16_hpp
 #define __bootloader_part_fs_FAT16_hpp
-#include <part-fs/MBR/MBR_.hpp>
+
+#include <interface/cluster.hpp>
 #include <lib/cppstdlib/string>
 #include <part-fs/fs.hpp>
 
@@ -92,15 +93,13 @@ public:
 #pragma pack(pop)
 
     enum STATUS {
-        NO,
         RAW,
         UNFORMAT,
-        FORMAT
+        FORMAT,
     };
 
 // disk info
-    DISK_PART *part;
-    unsigned part_id;
+    LogicalDisk *part;
     unsigned cluster_size;
     unsigned char clu2blk;
 
@@ -115,8 +114,7 @@ public:
     unsigned dir_entries;
 public:
     FAT16(
-        DISK_PART *part, 
-        unsigned part_id, 
+        LogicalDisk *part, 
         bool force_part = false, 
         bool force_format = false, 
         unsigned cluster_index = 3
@@ -124,11 +122,17 @@ public:
 
     ~FAT16();
 
-    void format();
-
+    unsigned read(void *, unsigned, unsigned, unsigned);
+    unsigned write(void *, unsigned, unsigned, unsigned);
     unsigned open(String filename);
     unsigned close(unsigned );
+    unsigned create(String);
+    unsigned delet(String);
 
+    Cluster_Info* info(String);
+    unsigned cmd(unsigned, String);
+
+    void format();
     void set_filesystem_name(char *name);
 };
 

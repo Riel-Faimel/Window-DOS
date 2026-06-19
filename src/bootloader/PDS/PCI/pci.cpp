@@ -1,6 +1,4 @@
 #include "_pci.hpp"
-const PCI_device_config *PCI_device_config_pointer = NULL_PTR;
-const unsigned PCI_device_numbers = 0;
 
 PCI_space::PCI_space(bool print_info){
     for(int dev = 0;dev < 32;dev++){
@@ -17,8 +15,6 @@ PCI_space::PCI_space(bool print_info){
         print_hex(static_cast<u16>(config.get_size()));
         screen->print(" devices found\r\n");
     }
-    const_cast<PCI_device_config*&>(PCI_device_config_pointer) = config.get_ptr();
-    const_cast<unsigned &>(PCI_device_numbers) = config.get_size();
 };
 
 inline void PCI_space::pci_lookfor_addr(int bus, int dev, int func, int reg){
@@ -113,15 +109,15 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
 }
 
 void PCI_space::set_device_driver(){
-    for(unsigned i = 0;i < config.get_size();i++){
-        switch (config[i].Class_code[2]){
+    for(auto device : config){
+        switch (device.Class_code[2]){
         case 0x01: // stroage controller
-            switch (config[i].Class_code[1]){
+            switch (device.Class_code[1]){
             case 0x00: //SCSI
                 break;
             case 0x01: //IDE
                 screen->print("IDE controller\r\n");
-                init_IDE_controller(&config[i].dev_drv, &config[i].size);
+                init_IDE_controller(&device.dev_drv, &device.size);
                 break;
             case 0x02: //floppy
                 screen->print("floppy controller\r\n");
@@ -136,7 +132,7 @@ void PCI_space::set_device_driver(){
             }
             break;
         case 0x02: //network controller
-            switch (config[i].Class_code[1]){
+            switch (device.Class_code[1]){
             case 0x00:
                 //screen->print("internet controller\r\n");
                 break;
@@ -149,7 +145,7 @@ void PCI_space::set_device_driver(){
             break;
         case 0x06:
         /*
-            switch (config[i].Class_code[1]){
+            switch (device.Class_code[1]){
             case 0x00: //host bridge
                 screen->print("Host bridge\n");
                 break;
@@ -166,7 +162,7 @@ void PCI_space::set_device_driver(){
                 screen->print("PCI bridge\n");
                 break;
             default:
-                print_hex(static_cast<u16>(config[i].Class_code[1]<<8 | config[i].Class_code[0]));
+                print_hex(static_cast<u16>(device.Class_code[1]<<8 | device.Class_code[0]));
                 break;
             }
         */

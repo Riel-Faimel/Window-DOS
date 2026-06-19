@@ -25,11 +25,10 @@ extern bool *__boot_loader_end;
 #include <CenterShell/cs.hpp>
 #include <registry/registry.hpp>
 #include <IDT_L/IDNT.hpp>
-#include <drv/PCI/pci.hpp>
+#include <PDS/PCI/pci.hpp>
 //#include <part-fs/las.hpp>
-#include <LAS/LAS.hpp>
 #include <DOSsyscall/DOScall.hpp>
-#include <LAS/PM.hpp>
+#include <LAS/SSS.hpp>
 
 #include <interface/Window.hpp>
 

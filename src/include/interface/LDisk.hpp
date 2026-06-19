@@ -8,6 +8,9 @@ struct Cluster_Info {
     enum class Type{
         IDE_Disk_driver,
         SATA_Disk_driver,
+
+        Part,
+
         RAW,
         minFS,
         FAT16,
@@ -21,6 +24,13 @@ struct Cluster_Info {
  */
 class LogicalDisk {
 public:
+    /**
+     * if disk driver realize 
+     * read/write(buffer, LBA, 0, sector_deal)
+     * 
+     * if File system realize
+     * read/write(buffer, handle, byte_offset, byte_deal)
+     */
     virtual unsigned read(void *, unsigned, unsigned, unsigned) = 0;
     virtual unsigned write(void *, unsigned, unsigned, unsigned) = 0;
     virtual Cluster_Info* info(String) = 0;
