@@ -11,6 +11,7 @@
 #include <TL/container>
 
 class LAS {
+public:
     struct DriveInfo{
         Cluster *driver;
         /**
@@ -21,16 +22,16 @@ class LAS {
     };
     rtl::array<DriveInfo> space;
 
-    enum class Handle_Mode : unsigned char {
-        read = 0x01,
-        write = 0x02,
-        exec = 0x04,
+    enum Handle_Mode : unsigned char {
+        Read = 0x01,
+        Write = 0x02,
+        Exec = 0x04,
     };
     struct Handle {
         unsigned ID;
         unsigned file_handle; 
         String path_buf;
-        Handle_Mode handle_mode;
+        u8 handle_mode;
         unsigned count;
     };
     unsigned did_count = 1;
@@ -49,12 +50,12 @@ public:
     /**
      * read/write(Window, begin byte, byte nums) for read by sectors
      */
-    unsigned read(_WIN&, unsigned , unsigned);
+    unsigned read(_WIN&, unsigned, unsigned);
     unsigned write(_WIN&, unsigned, unsigned);
     /**
      * open(Window, String "A:\") for open a device also path on it
      */
-    unsigned open(_WIN&, String);
+    unsigned open(_WIN&, String, u8 = Read|Write);
     unsigned close(_WIN&);
     /**
      * creat/del(Window, String path) for files or folders, 

@@ -100,6 +100,7 @@ public:
 
 // disk info
     LogicalDisk *part;
+    Cluster_Info info_ {.type=Cluster_Info::Type::FAT16};
     unsigned cluster_size;
     unsigned char clu2blk;
 

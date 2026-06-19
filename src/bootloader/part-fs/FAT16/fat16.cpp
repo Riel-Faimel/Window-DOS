@@ -178,6 +178,7 @@ unsigned FAT16::open(String filename){
     if(status != FORMAT){
         return 0; // 未格式化，无法打开
     }
+    kprint("Formated!\n");
     
     // 解析文件名到8.3格式
     char name[9]; // 8个字符，空格填充
@@ -251,7 +252,7 @@ unsigned FAT16::open(String filename){
         // 返回起始簇号
         return root_dir[i]._8_3FN.first_cluster_low;
     }
-    
+    kprint("Not fount\n");
     return 0; // 未找到
 }
 
@@ -298,7 +299,7 @@ unsigned FAT16::delet(String){
 }
 
 Cluster_Info *FAT16::info(String) {
-    return {};
+    return &info_;
 }
 
 unsigned FAT16::cmd(unsigned int, String){

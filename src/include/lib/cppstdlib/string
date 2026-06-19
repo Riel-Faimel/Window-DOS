@@ -43,9 +43,10 @@ public:
     bool operator!=(const String &s) const;
 
     String operator+(const String &s) const;
-    String operator+(const char *s) const;
+    String operator+(char ) const;
     String& operator+=(const String &s);
     String& operator+=(const char *s);
+    String& operator+=(char );
 
     void clear();
     void append(char c);

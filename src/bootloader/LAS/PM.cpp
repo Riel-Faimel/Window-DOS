@@ -31,8 +31,13 @@ public:
 
 class RAW : public Cluster {
     LogicalDisk* disk;
+    Cluster_Info info_ {.type=Cluster_Info::Type::RAW};
 public:
-    RAW(LogicalDisk *d): disk{d}{}
+    RAW(LogicalDisk *d): disk{d}{
+        auto i = disk->info();
+        info_.cluster_size = i->cluster_size;
+        info_.total_bytes = i->total_bytes;
+    }
     ~RAW() = default;
 
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums) {
@@ -47,9 +52,7 @@ public:
     unsigned create(String) { return 0; }
     unsigned delet(String) { return 0; }
     Cluster_Info* info(String) {
-        auto re = disk->info();
-        re->type = Cluster_Info::Type::RAW;
-        return re;
+        return &info_;
     }
     unsigned cmd(unsigned cmdid, String args){
         return disk->cmd(cmdid, args);
@@ -77,7 +80,6 @@ void PM::resolve(LogicalDisk *disk) {
     if(mbr.sign == (unsigned short)0xAA55)
     for(unsigned char i = 0;i < 4;i++){
         auto sysid = mbr.part[i].system_id;
-        //kprint("System ID: ");print_hex(sysid);kprint("\n");
         if(sysid){
             size_t start = mbr.part[i].start_LBA_high << 16 | mbr.part[i].start_LBA_low;
             size_t size = mbr.part[i].sector_count_high << 16 | mbr.part[i].sector_count_low;
@@ -85,11 +87,17 @@ void PM::resolve(LogicalDisk *disk) {
             disk_stack.append(part);
 
             // try file system
+        kprint("System ID: ");print_hex(sysid);kprint("\n");
             Cluster *fs;
             switch (static_cast<System_ID>(sysid)) {
             case System_ID::FAT12:
                 break;
+            case System_ID::FAT32:
+            case System_ID::FAT32_:
+                break;
             case System_ID::FAT16:
+            case System_ID::FAT16_:
+            case System_ID::FAT16__:
                 fs = new FAT16{part};
                 linear_address_space->regist(fs);
                 break;

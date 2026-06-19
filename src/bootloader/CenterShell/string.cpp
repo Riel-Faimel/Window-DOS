@@ -128,6 +128,11 @@ String& String::operator+=(const char *s) {
     return *this;
 }
 
+String& String::operator+=(char ch) {
+    *this = *this + ch;
+    return *this;
+}
+
 String String::operator+(const String &s) const {
     String result;
     result.len = len + s.len;
@@ -138,11 +143,14 @@ String String::operator+(const String &s) const {
     return result;
 }
 
-String String::operator+(const char *s) const {
-    String result(len);
+String String::operator+(char ch) const {
+    String result;
+    result.len = len+1;
+    result.data = new char[result.len + 1];
     for(unsigned i = 0;i < len;i++)result.data[i] = data[i];
-    result.data[len] = '\0';
-    return result + String(s);
+    result.data[len] = ch;
+    result.data[result.len] = '\0';
+    return result;
 }
 
 void String::clear(){
@@ -253,12 +261,8 @@ String *String::split(char deli) const {
     rtl::array<String> re;
     String dealing{};
     for (auto ch : *this) {
-        if (ch == deli) {
-            re.append(dealing);
-        }
-        else {
-            dealing+=ch;
-        }
+        if (ch == deli) { re.append(dealing); }
+        else { dealing+=ch; }
     }
     return re.get_ptr();
 }

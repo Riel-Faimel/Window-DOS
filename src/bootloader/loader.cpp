@@ -88,5 +88,7 @@ void LoaderMain(){
     //DOScall disk_operating_system_system_call{idt};
     GDT gdt{_gdt_space, 8192, idt};
     //CenterShell cs;
-    ;
+    _WIN h;
+    linear_address_space->open(h, "B:\\init");
+    kprint("    Kernel initialized done!\r\n");
 }
