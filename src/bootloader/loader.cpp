@@ -88,4 +88,5 @@ void LoaderMain(){
     //DOScall disk_operating_system_system_call{idt};
     GDT gdt{_gdt_space, 8192, idt};
     //CenterShell cs;
+    ;
 }

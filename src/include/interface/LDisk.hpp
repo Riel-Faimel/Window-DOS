@@ -33,7 +33,7 @@ public:
      */
     virtual unsigned read(void *, unsigned, unsigned, unsigned) = 0;
     virtual unsigned write(void *, unsigned, unsigned, unsigned) = 0;
-    virtual Cluster_Info* info(String) = 0;
+    virtual Cluster_Info* info(String = {}) = 0;
     virtual unsigned cmd(unsigned, String) = 0;
 };
 

@@ -2,11 +2,10 @@
 
 FAT16::FAT16(
     LogicalDisk *part_init, 
-    bool force_part, 
     bool force_format, 
     unsigned int cluster_index
-):part(part_init), status(RAW), 
-cluster_size(1<<cluster_index){
+):part(part_init), cluster_size(1<<cluster_index), 
+status(RAW){
     BPB bpb;
     part->read(bpb.buf, 0, 0, 1);
     if(
@@ -120,7 +119,7 @@ void FAT16::format(){
             screen->print("div 0");
             return ;
         };
-        if((T - R - 2 * F - 32) < 0) {
+        if((int)(T - R - 2 * F - 32) < 0) {
             screen->print("small");
             return ;
         }
@@ -146,7 +145,7 @@ void FAT16::format(){
     part->write(fat, 0, R + F, 1);
     fat[0] = 0;
     fat[1] = 0;
-    for(int i = 1;i < F;i++){
+    for(unsigned i = 1;i < F;i++){
         part->write(fat, 0, R + i, 1);
         part->write(fat, 0, R + F + i, 1);
     }

@@ -42,7 +42,8 @@ entries(entries_init), limit(limit_init) {
     fresh_gdt(&gdt_ptr);
 }
 
-__attribute__((optimize("O0")))unsigned GDT::regist(
+__attribute__((optimize("O0")))
+unsigned GDT::regist(
     void *Segment_base, u32 Segment_limit, GDT::GDTType Type, u8 ring, 
     bool unit_of_1bit_or_4KB, bool is32_or16, bool is_64_long_mode, 
     bool isnot_System_segment, bool AVL
@@ -64,6 +65,7 @@ __attribute__((optimize("O0")))unsigned GDT::regist(
         entries[i].Segment_Descript.Base_address_high = (reinterpret_cast<u32>(Segment_base) >> 24) & 0xFF;
         return i;
     }
+    return -1;
 }
 
 __attribute__((optimize("O0")))unsigned int GDT::create_a_gate(
@@ -82,6 +84,7 @@ __attribute__((optimize("O0")))unsigned int GDT::create_a_gate(
         entries[i].Call_Gate.zero = 0;
         return i;
     };
+    return -1;
 }
 
 unsigned int GDT::create_tss(

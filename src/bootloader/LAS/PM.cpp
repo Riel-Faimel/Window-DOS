@@ -1,28 +1,24 @@
 #include "_PM.hpp"
 
 class SingalPart : public LogicalDisk {
-    Cluster_Info info_ {Cluster_Info::Type::Part};
+    Cluster_Info info_;
     size_t total_sectors;
     size_t start; //LBA
     LogicalDisk *disk;
 public:
-    SingalPart() = default;
     SingalPart(LogicalDisk *disk_, unsigned begin, unsigned size):
-    disk{disk_}, info_{.total_bytes = size}{
-        info_.cluster_size = disk->info({})->cluster_size;
+    info_{ .type=Cluster_Info::Type::Part, .total_bytes=size, .cluster_size=0 }, 
+    start{begin}, disk{disk_}{
+        info_.cluster_size = disk->info()->cluster_size;
         total_sectors = (info_.total_bytes + 1) / info_.cluster_size;
     };
 
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums){
-        unsigned read_num;
-        if (nums > total_sectors) read_num = total_sectors;
-        else read_num = nums; 
+        unsigned read_num = nums > total_sectors ? total_sectors - LBA : nums;
         return disk->read(buf, LBA + start, 0, read_num);
     }
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums){
-        unsigned write_num;
-        if (nums > total_sectors) write_num = total_sectors;
-        else write_num = nums; 
+        unsigned write_num = nums > total_sectors ? total_sectors - LBA : nums;
         return disk->write(buf, LBA + start, 0, write_num);
     }
     Cluster_Info* info(String){
@@ -51,7 +47,7 @@ public:
     unsigned create(String) { return 0; }
     unsigned delet(String) { return 0; }
     Cluster_Info* info(String) {
-        auto re = disk->info(String{});
+        auto re = disk->info();
         re->type = Cluster_Info::Type::RAW;
         return re;
     }
@@ -73,11 +69,16 @@ void PM::include(LogicalDisk *disk){
 void PM::resolve(LogicalDisk *disk) {
     MBR mbr;
     disk->read(mbr.buf, 0, 0, 1);
+    /*
+    for (unsigned i = 0;i < 512;i++) {
+        print_hex(reinterpret_cast<unsigned char *>(mbr.buf)[i], false);print_char(' ');
+    }
+    */
     if(mbr.sign == (unsigned short)0xAA55)
     for(unsigned char i = 0;i < 4;i++){
         auto sysid = mbr.part[i].system_id;
+        //kprint("System ID: ");print_hex(sysid);kprint("\n");
         if(sysid){
-            kprint("System ID: ");print_hex(sysid);kprint("\n");
             size_t start = mbr.part[i].start_LBA_high << 16 | mbr.part[i].start_LBA_low;
             size_t size = mbr.part[i].sector_count_high << 16 | mbr.part[i].sector_count_low;
             auto part = new SingalPart{disk, start, size};
@@ -102,12 +103,8 @@ void PM::resolve(LogicalDisk *disk) {
         }
     }
     else { 
-        kprint("No MBR:\n");
-        unsigned char *ptr = reinterpret_cast<unsigned char *>(mbr.buf);
-        for (unsigned i = 0;i < 512;i++) {
-            print_hex(ptr[i], false);print_char(' ');
-        }
-        kprint("\n===\n");
-        return;
+        auto i = disk->info();
+        auto part = new SingalPart{disk, 0, (i->total_bytes+1)/i->cluster_size};
+        disk_stack.append(part);
     } // MBR no found
 }

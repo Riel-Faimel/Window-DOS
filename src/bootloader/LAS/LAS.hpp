@@ -1,6 +1,7 @@
 #ifndef __bootloader_LAS_LAS_hpp
 #define __bootloader_LAS_LAS_hpp
 
+#include "LAS_.hpp"
 #include <global/type.hpp>
 #include <interface/cluster.hpp>
 #include <part-fs/MBR/MBR.hpp>
@@ -64,7 +65,5 @@ public:
     Cluster_Info info(_WIN&, String);
     unsigned cmd(_WIN&, unsigned, String);
 };
-
-extern LAS* linear_address_space;
 
 #endif

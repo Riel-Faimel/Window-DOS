@@ -249,6 +249,20 @@ String *String::split(const char *delimiter) const {
     return split(delimiter_str);
 }
 
+String *String::split(char deli) const {
+    rtl::array<String> re;
+    String dealing{};
+    for (auto ch : *this) {
+        if (ch == deli) {
+            re.append(dealing);
+        }
+        else {
+            dealing+=ch;
+        }
+    }
+    return re.get_ptr();
+}
+
 String String::trim() const {
     return trim_left().trim_right();
 }

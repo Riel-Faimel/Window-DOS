@@ -23,7 +23,7 @@ void *mm::alloc(size_t size){
         for(unsigned j = i;j < total_blocks;j++){
             //search forward
             if(j - i + 1>= blkneed){ //find!
-                for(int full = i;full <= j;full++){
+                for(unsigned full = i;full <= j;full++){
                     bitmap[full] = true;
                 } // as used
                 void *re = static_cast<unsigned char *>(base_address) + block_size * i;

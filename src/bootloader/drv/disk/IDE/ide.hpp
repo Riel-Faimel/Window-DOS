@@ -18,9 +18,9 @@ private:
     unsigned read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
     unsigned read_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
 
-    void write(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
-    void write_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
-    void write_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
+    unsigned write(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
+    unsigned write_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
+    unsigned write_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
     /**
      * from Linux2.6.32.1
      * include/linux/ata.h

@@ -34,7 +34,7 @@ IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
         : "memory"
     );
 
-    for(volatile unsigned i = 0;i < 256 * sizeof(IDT_item);i++){
+    for(volatile unsigned i = 0;i < 256 * sizeof(IDT_item);++i){
         reinterpret_cast<volatile unsigned char *>(idt_base)[i] = 0;
     }
 
@@ -128,7 +128,7 @@ extern "C" void DF_handler_c(){
         asm volatile ("hlt");
     };
 }
-extern "C" void __attribute__((optimize("O0")))GP_handler_c(_program_status *frame){
+extern "C" void __attribute__((optimize("O0")))GP_handler_c(_program_status * /*frame*/){
     screen->print("\r\n#GP: General protect fault!\r\n");
     qps("#GP: General protect fault!\n");
     //print_program_status(frame);

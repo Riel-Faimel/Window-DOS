@@ -8,7 +8,7 @@ struct StorageSubSystem {
     LAS las;
     PM pm;
 
-    StorageSubSystem():
+    inline StorageSubSystem():
     las{}, pm{} {}
 };
 

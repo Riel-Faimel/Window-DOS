@@ -2,7 +2,25 @@
 #define __lib_cppstdlib_string
 class String{
     char *data;
-    unsigned int len;
+    unsigned len;
+
+    class Iterator {
+        char *ptr;
+
+    public:
+        Iterator(char *ptr_): ptr{ptr_}{}
+        ~Iterator() = default;
+
+        constexpr bool operator!= (const Iterator &it) const {
+            return ptr != it.ptr;
+        }
+        constexpr Iterator &operator++() {
+            ptr+=1;
+            return *this;
+        }
+        constexpr Iterator operator++(int ) = delete;
+        constexpr char operator* () const { return *ptr; }
+    };
 public:
     String();
     String(const char *s) noexcept;
@@ -16,7 +34,7 @@ public:
     String& operator=(const String &s) noexcept;
     String& operator=(String &&s) noexcept;
 
-    int length() const;
+    unsigned length() const;
     bool empty() const;
     const char * c_str() const;
 
@@ -43,6 +61,7 @@ public:
 
     String *split(const String &delimiter) const;
     String *split(const char *delimiter) const;
+    String *split(char ) const;
 
     String trim() const;
     String trim_left() const;
@@ -52,6 +71,12 @@ public:
     unsigned extract_int(const char *) const;
 
     operator const char *() const;
+    inline Iterator begin() const {
+        return Iterator{data};
+    }
+    inline Iterator end() const {
+        return Iterator{data+len};
+    }
 };
 
 inline String::String():data(nullptr), len(0) {}
@@ -75,7 +100,7 @@ inline bool String::operator!=(const String &s) const {
 inline String::operator const char *() const {
     return c_str();
 }
-inline int String::length() const {
+inline unsigned String::length() const {
     return len;
 }
 inline const char * String::c_str() const {

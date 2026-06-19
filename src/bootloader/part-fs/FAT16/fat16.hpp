@@ -115,7 +115,6 @@ public:
 public:
     FAT16(
         LogicalDisk *part, 
-        bool force_part = false, 
         bool force_format = false, 
         unsigned cluster_index = 3
     );

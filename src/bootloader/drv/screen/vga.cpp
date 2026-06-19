@@ -61,7 +61,7 @@ void VGA_text_mode::push() volatile{
     }
 }
 
-void VGA_text_mode::print(const char *str) volatile{
+void VGA_text_mode::print(const char *str) volatile {
     for(unsigned i = 0; str[i]; i++){
         switch(str[i]){
         case '\r':
@@ -89,7 +89,7 @@ void VGA_text_mode::return_carriage() volatile {
     offset = 0;
 }
 
-void VGA_text_mode::newline() volatile{
+void VGA_text_mode::newline() volatile {
     line++;
     if(line < LINE_NUM){
         if(registry.do_VGA_text_mode_always_use_carriage_return_after_newline)offset = 0;

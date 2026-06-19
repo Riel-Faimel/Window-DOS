@@ -42,8 +42,16 @@ unsigned LAS::write(_WIN &win, unsigned byte_offset, unsigned byte_write){
     else { return (unsigned)-1; }
 }
 
-unsigned LAS::open(_WIN &, String){
-    ;//
+unsigned LAS::open(_WIN &win, String file_path){
+    if(win.extra) { return -1; }
+    // win.extra has other handle
+    auto path_part = file_path.split(':');
+    for (auto [driver, letter, id] : space) {
+        if (letter == path_part[0]) {
+            auto handle = driver->open(path_part[1]);
+            win.extra = new Handle {};
+        }
+    }
 }
 
 unsigned LAS::close(_WIN &win){
