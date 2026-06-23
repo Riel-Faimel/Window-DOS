@@ -2,9 +2,42 @@
 #define ___Using_pointer_system
 
 #include <TL/bits/callable>
+#include <TL/bits/forward>
 #include <global/type.hpp>
 
 namespace rtl {
+
+template<typename T>
+class sheath {
+    T obj;
+public:
+    sheath(T &&obj_):obj{bits::forward(obj_)} {}
+    sheath &operator= (T &&obj_) {
+        obj.~T();
+        new (&obj) T{move(obj_)};
+        obj_.~T();
+        return *this;
+    }
+    sheath(sheath &&sh):obj{move(sh.obj)} {}
+    sheath &operator= (sheath &&sh) {
+        if (this == &sh) return *this;
+        obj.~T();
+        new (&obj) T{move(sh.obj)};
+        return *this;
+    }
+
+    sheath(T &) = delete;
+    sheath &operator= (T &) = delete;
+    sheath(sheath &) = delete;
+    sheath &operator= (sheath &) = delete;
+
+    ~sheath(){ obj.~T(); }
+
+    T &operator* () & { return obj; }
+    T *operator-> () & { return &obj; }
+    const T &operator* () const & { return obj; }
+    const T *operator-> () const & { return &obj; }
+};
 
 // A pointer build from address
 template<typename T, typename State>
@@ -66,11 +99,8 @@ concept deleter = requires(D *ptr) {
 
 template<typename T>
 struct default_delete {
-    static inline void del(T *ptr){
-        delete ptr;
-    }
+    static inline void del(T *ptr){ delete ptr; }
 };
-
 struct no_delete {
     static inline void del(void *){}
 };
@@ -95,78 +125,23 @@ public:
         return *this;
     } // move
 
-    ~vested_ptr(){
-        D::del(ptr);
-    }
+    ~vested_ptr(){ D::del(ptr); }
 
     vested_ptr(T *) = delete;
     vested_ptr operator= (T *) = delete; // ptr
-    
-    vested_ptr(const T *ptr_) = delete;
-    vested_ptr operator= (const T *) = delete; // const ptr
 
     vested_ptr() = delete;
 
-    T *get() const {
-        return ptr;
-    }
+    T *get() const & { return ptr; }
+    void del(){ D::del(ptr); }
 
-    T &operator *() {
-        return *ptr;
-    }
-
-    const T &operator *() const {
-        return *ptr;
-    }
+    T &operator *() { return *ptr; }
+    const T &operator *() const { return *ptr; }
+    T *operator->() { return ptr; }
+    T *operator->() const { return ptr; }
 
     void *operator new(size_t, dummy_ptr<T> *place){
         return place;
-    }
-
-    void del(){
-        D::del(ptr);
-    }
-};
-
-template<typename T>
-class aeonian_ptr {
-    T *ptr;
-public:
-    aeonian_ptr(T &obj_):ptr(&obj_){}
-
-    aeonian_ptr(aeonian_ptr &&) = delete;
-    aeonian_ptr &operator= (aeonian_ptr &&) = delete; //self &&
-
-    aeonian_ptr(aeonian_ptr &) = delete;
-    aeonian_ptr &operator= (aeonian_ptr &) = delete; //self &
-
-    aeonian_ptr(const aeonian_ptr &) = delete;
-    aeonian_ptr &operator= (const aeonian_ptr &) = delete; //const self &
-
-    aeonian_ptr(T *) = delete;
-    aeonian_ptr operator= (T *) = delete; // pointer
-
-    aeonian_ptr(const T *) = delete;
-    aeonian_ptr operator= (const T *) = delete; // const pointer
-
-    T &operator* (){
-        return *ptr;
-    }
-
-    const T &operator* () const {
-        return *ptr;
-    }
-
-    T *operator ->() noexcept {
-        return ptr;
-    }
-
-    const T *operator->() const noexcept {
-        return ptr;
-    }
-
-    void *operator new(size_t, dummy_ptr<T> &place){
-        return &place;
     }
 };
 
@@ -175,9 +150,7 @@ class dummy_ptr {
     T *space___all_right_so_anyway_this_object_will_not_be_used;
 public:
     dummy_ptr() = default;
-
     T &operator *() = delete;
-
     T &operator ->() = delete;
 };
 

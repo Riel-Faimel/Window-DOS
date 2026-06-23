@@ -11,7 +11,7 @@ void LAS::regist(Cluster *clu, String le){
     if (le == String{}) {
         letter = {};
         unsigned count = did_count;
-        for (unsigned i = 0;count && i < 26^5;i++) {
+        for (unsigned i = 0;count && i < 11881376 /*  26^5 */;i++) {
             char ch = count % 26;
             letter.append(ch+'A');
             count /= 26;
@@ -23,49 +23,28 @@ void LAS::regist(Cluster *clu, String le){
         clu, letter, did_count
     });
     did_count++;
-    kprint("===\nFound a disk! \n    ");kprint(letter);
-    kprint(", Type: ");print_hex((u8)clu->info()->type);kprint(".\n");
-}
-
-unsigned LAS::read(_WIN &win, unsigned byte_offset, unsigned byte_read){
-    if(win.extra){
-        Handle *h = reinterpret_cast<Handle *>(win.extra);
-        return space[h->ID].driver->read(reinterpret_cast<unsigned short *>(&win+1), h->file_handle, byte_offset, byte_read);
-    }
-    else { return (unsigned)-1; }
-}
-
-unsigned LAS::write(_WIN &win, unsigned byte_offset, unsigned byte_write){
-    if(win.extra){
-        Handle *h = reinterpret_cast<Handle *>(win.extra);
-        return space[h->ID].driver->write(
-            reinterpret_cast<unsigned short *>(&win+1), 
-            h->file_handle, byte_offset, byte_write
-        );
-    }
-    else { return (unsigned)-1; }
+    //kprint("===\nFound a disk! \n    ");kprint(letter);kprint(", Type: ");print_hex((u8)clu->info()->type);kprint(".\n");
 }
 
 unsigned LAS::open(_WIN &win, String file_path, u8 mode){
     if(win.extra) { return -1; }
     // win.extra has other handle
     auto path_part = file_path.split(':');
-    kprint("Dealing: ");kprint(path_part[0]);\
-    kprint(", Path: ");kprint(path_part[1]);
-    print_char('\n');
+    //for (auto s : path_part) { kprint("token: ");kprint(s);print_char('\n'); }
     for (auto [driver, letter, id] : space) {
-        kprint("Open: ");kprint(letter);print_char('\n');
+        //kprint("Open: ");kprint(letter);print_char('\n');
         if (letter == path_part[0]) {
-            auto handle = driver->open(/*path_part[1]*/"\\");
-            kprint("Open done: ");print_hex(handle);print_char('\n');
+            auto handle = driver->open(path_part[1]);
+            //kprint("Open done: ");print_hex(handle);print_char('\n');
+            if (handle == (unsigned)-1) return -1; // not found
             win.extra = new Handle {
-                .ID=id, .file_handle=handle, .path_buf="",//path_part[1],
-                .handle_mode=mode, .count=0
+                .ID=id, .file_handle=handle, 
+                .count=0, .handle_mode=mode
             };
-            return 0;
+            return handle;
         }
     }
-    return -1;
+    return -2; // no such disk
 }
 
 unsigned LAS::close(_WIN &win){
@@ -80,7 +59,37 @@ unsigned LAS::close(_WIN &win){
     return -1;
 }
 
-unsigned LAS::create(_WIN &, String){
+unsigned LAS::read(_WIN &win, unsigned byte_offset, unsigned byte_read){
+    if(win.extra){
+        Handle *h = reinterpret_cast<Handle *>(win.extra);
+        for (auto [driver, _, id] : space) {
+            if (id == h->ID) {
+                auto b = reinterpret_cast<unsigned short *>(&win+1);
+                //*
+                kprint("read into: ");print_hex((size_t)b);print_char('\n');
+                //*/
+                return driver->read(
+                    b, 
+                    h->file_handle, byte_offset, byte_read
+                );
+            }
+        }
+    }
+    return (unsigned)-1;
+}
+
+unsigned LAS::write(_WIN &win, unsigned byte_offset, unsigned byte_write){
+    if(win.extra){
+        Handle *h = reinterpret_cast<Handle *>(win.extra);
+        return space[h->ID].driver->write(
+            reinterpret_cast<unsigned short *>(&win+1), 
+            h->file_handle, byte_offset, byte_write
+        );
+    }
+    else { return (unsigned)-1; }
+}
+
+unsigned LAS::create(_WIN &win, String filename){
     return (unsigned)-1;
 }
 
@@ -93,8 +102,8 @@ Cluster_Info LAS::info(_WIN& win, String s){
     else return {};
 }
 
-unsigned LAS::cmd(_WIN &win, unsigned n, String s){
-    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->cmd(n, s);
+unsigned LAS::cmd(_WIN &win, unsigned n, String s, void *argv, unsigned argc){
+    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->cmd(n, s,argv, argc);
     else return -1;
 }
 

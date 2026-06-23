@@ -115,6 +115,9 @@ void IDE_Channal::ata_sff_exec_command(IDE_Channal::ata_taskfile &tf){
 }
 
 unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info){
+    //*
+    print_char('<');print_hex(LBA);print_char(',');print_hex(count);print_char('>');
+    //*/
     if(info->LBA_support) return read_PIO_LBA(buf, LBA, count, info->device);
     else return read_PIO_CHS(buf, LBA, count, info->device);
 }
@@ -431,8 +434,11 @@ lock(c), info_{}, exist{true}{
 };
 
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
+    //*
+    print_char('<');print_hex(LBA);kprint(", ");print_hex(sectors_read);print_char('>');
+    //*/
     if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
-    else return -1;
+    else while(1);//return -1;
 }
 
 unsigned IDE_DISK::write(void *buf, unsigned LBA, unsigned, unsigned sectors_write){
@@ -444,7 +450,7 @@ DISK_INFO* IDE_DISK::info(String){
     return &info_;
 }
 
-unsigned IDE_DISK::cmd(unsigned, String) {
+unsigned IDE_DISK::cmd(unsigned, String, void *, unsigned) {
     return 0;
 }
 
@@ -472,4 +478,43 @@ void IDE_DISK::check(){
     
     // 打印完整状态值（调试用）
     print_hex(status);
+}
+
+
+// ======
+
+#include <LAS/PM.hpp>
+
+void init_IDE_controller(void* *ptr, size_t *size){
+    IDE_DISK *re = new IDE_DISK[4];
+    new IDE_Channal[2]{
+        {re[0], re[1], IDE_Channal::Channal::Master_Channel, idt}, 
+        {re[2], re[3], IDE_Channal::Channal::Slave_Channel, idt}, 
+    };
+    u8 exist_disk = 0;
+    u8 j = 0;
+    for(u8 i = 0;i < 4;i++)if(re[i].exist){
+        exist_disk++;
+        partmanager->resolve(&re[i]);
+    }
+    IDE_DISK *re_;
+    if(exist_disk > 0) re_ = new IDE_DISK[exist_disk];
+    else {
+        screen->print("[INFO] No disk found\r\n");
+        *ptr = nullptr;
+        *size = 0;
+        return;
+    }
+    for(u8 i = 0;i < 4;i++){
+        if(re[i].exist){
+            re_[j] = rtl::move(re[i]);
+            j++;
+        }
+    }
+    delete[] re;
+    *ptr = re_;
+    *size = exist_disk;
+    screen->print("[INFO] IDE Disk: ");
+    print_hex(exist_disk);
+    screen->print("\r\n");
 }

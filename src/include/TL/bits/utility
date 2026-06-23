@@ -1,8 +1,6 @@
 #ifndef __include_TL_bits_utility
 #define __include_TL_bits_utility
 
-#include <TL/bits/forward>
-
 namespace rtl {
 
 template<bool c, typename T1, typename T2>
@@ -18,10 +16,47 @@ struct conditional<false, T1, T2> {
     using type = T2;
 };
 
+namespace bits {
+
+// delete & for T or T& or T&&
+template<typename T>
+struct remove_reference {
+    using type = T;
+};
+template<typename T>
+struct remove_reference<T&> {
+    using type = T;
+};
+template<typename T>
+struct remove_reference<T&&> {
+    using type = T;
+};
+
+template<typename T>
+struct remove_const {
+    using type = T;
+};
+
+template<typename T>
+struct remove_const<const T>{
+    using type = T;
+};
+
+template<typename T>
+using remove_reference_t = remove_reference<T>::type;
+template<typename T>
+using remove_const_t = remove_const<T>::type;
+
 template<typename T>
 struct decay {
-    using type = int;
+    using type = remove_const_t<
+        remove_reference_t<T>
+    >;
 };
+template<typename T>
+using decay_t = decay<T>::type;
+    
+} // namespace bits
 
 } // namespace rtl
 

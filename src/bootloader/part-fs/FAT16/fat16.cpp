@@ -38,11 +38,13 @@ FORMATED:
      * 
      * if error: back to FAT2
      */
+    clu2blk = (bpb.reserved_sectors + bpb.fat_size_16 * bpb.num_fats + (bpb.root_entries * 32 + bpb.bytes_per_sector - 1) / bpb.bytes_per_sector) - 2 * cluster_size;
     dir_entries = bpb.root_entries;
-    FAT_table = new unsigned short [bpb.fat_size_16];
-    part->read(FAT_table, 0, bpb.hidden_sectors + clu2blk, bpb.fat_size_16 + clu2blk);
-    root_dir = reinterpret_cast<DIR *>(new unsigned short [bpb.root_entries * 32]);
-    part->read(reinterpret_cast<unsigned short *>(root_dir), 0, bpb.hidden_sectors + clu2blk * 2, bpb.root_entries / 16);
+    FAT_table = new unsigned short [bpb.fat_size_16 * 256];
+    part->read(FAT_table, bpb.reserved_sectors, 0, bpb.fat_size_16);
+    root_dir = (DIR *)new unsigned char [bpb.root_entries * 32];
+    rootdir_cluster_num = (cluster_size * 2) + clu2blk - (sizeof(DIR) * bpb.root_entries) / bpb.bytes_per_sector;
+    part->read(root_dir, rootdir_cluster_num, 0, (bpb.root_entries + 15) / 16);
     //some problem
     return;
 
@@ -62,7 +64,6 @@ SET_BPB:
 
     bpb.bytes_per_sector = 512;//fixed
     bpb.sectors_per_cluster= 1 << cluster_index;
-    cluster_size = bpb.sectors_per_cluster;
     bpb.reserved_sectors = 1;
     bpb.num_fats = 2; //
     bpb.root_entries = 512; //fixed
@@ -71,7 +72,6 @@ SET_BPB:
     bpb.fat_size_16 = 0;
     bpb.sectors_per_track = 63; //hdd
     bpb.num_heads = 16;
-    bpb.hidden_sectors = 0;
     //screen->print(" <into setting> ");
     bpb.total_sectors_32 = (info->total_bytes < 65536) ? 0 : info->total_bytes;
     bpb.drive_number = 0x80;
@@ -163,7 +163,7 @@ void FAT16::format(){
     return;
 }
 
-void FAT16::set_filesystem_name(char name[11]){
+void FAT16::set_filesystem_name(char *name){
     BPB bpb;
     part->read(bpb.buf, 0, 0, 1);
     for(unsigned char i = 0;i < 11;i++){
@@ -174,86 +174,88 @@ void FAT16::set_filesystem_name(char name[11]){
 }
 
 unsigned FAT16::open(String filename){
-    // 打开文件：根据文件名查找根目录中的条目，返回起始簇号
-    if(status != FORMAT){
-        return 0; // 未格式化，无法打开
+    if(status != FORMAT){ return -1; }
+    if(root_dir == nullptr) { 
+        return -1; // fresh root directory
     }
-    kprint("Formated!\n");
-    
-    // 解析文件名到8.3格式
-    char name[9]; // 8个字符，空格填充
-    char ext[4]; // 3个字符，空格填充
-    
-    // 查找点的位置
-    unsigned int dot_pos = filename.length();
-    for(unsigned int i = 0; i < filename.length(); i++){
-        if(filename[i] == '.'){
-            dot_pos = i;
-            break;
-        }
-    }
-    
-    if(dot_pos < filename.length()){
-        // 有扩展名
-        String base = filename.substr(0, dot_pos);
-        String extension = filename.substr(dot_pos + 1);
-        
-        // 复制文件名，大写，截断到8字符
-        for(unsigned int i = 0; i < 8 && i < base.length(); i++){
-            char c = base[i];
-            if(c >= 'a' && c <= 'z') c -= 32;
-            name[i] = c;
-        }
-        
-        // 复制扩展名，大写，截断到3字符
-        for(unsigned int i = 0; i < 3 && i < extension.length(); i++){
-            char c = extension[i];
-            if(c >= 'a' && c <= 'z') c -= 32;
-            ext[i] = c;
-        }
+    filename.get_word('\\'); // skip the first '\' for root directory
+    if (filename == String{}) return rootdir_cluster_num;
+
+    DIR *dir = root_dir;
+    unsigned short dir_buf [cluster_size*256];
+    unsigned cluster_id;
+    u8 attr;
+
+    if (auto this_filename = filename.get_word('\\');resolv_dir(dir, 512, this_filename) != 0) {
+        // found
+        cluster_id = dir->_8_3FN.first_cluster_low|(dir->_8_3FN.first_cluster_high << 16);
+        print_hex(cluster_id);print_char('\n');
+        dir = reinterpret_cast<DIR *>(&dir_buf[0]);
+        part->read(dir, cluster_id, 0, cluster_size);
     } else {
-        // 无扩展名
-        for(unsigned int i = 0; i < 8 && i < filename.length(); i++){
-            char c = filename[i];
-            if(c >= 'a' && c <= 'z') c -= 32;
-            name[i] = c;
+        // no such file
+        return -1;
+    }
+    if (filename != String{})
+    while(1) {
+        auto thisname = filename.get_word('\\');
+        attr = resolv_dir(dir, cluster_size*256/sizeof(DIR), thisname);
+        if (!attr) { return -1; } // no such file
+        // fresh cluster need to read and dir
+        cluster_id = dir->_8_3FN.first_cluster_low|(dir->_8_3FN.first_cluster_high << 16);
+        dir = reinterpret_cast<DIR *>(&dir_buf[0]);
+        if (filename == String{}) break; // resolv done
+        if (!(attr & attribute_choice::dir)) { return -1; }
+        part->read(dir, cluster_id, 0, cluster_size);
+    };
+    return cluster_id;
+}
+
+u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
+    for(unsigned i = 0;i < num;i++) {
+        auto item = dir[i]._8_3FN; // each directory item
+        
+        // directory end
+        if (item.name[0] == 0x00) break;
+        // delete file
+        if ((u8)(item.name[0]) == 0xE5) continue;
+
+        String itemname;
+        if (item.attribute & long_filename) {
+            auto re = &dir[i];
+            for (;i < num;i++) {
+                auto long_item = dir[i].LFN;
+                for (auto uch : long_item.final_name) {
+                    if (uch == 0) goto done;
+                    itemname += (u8)uch;
+                }
+                for (auto uch : long_item.next_name) {
+                    if (uch == 0) goto done;
+                    itemname += (u8)uch;
+                }
+                for (auto uch : long_item.final_name) {
+                    if (uch == 0) goto done;
+                    itemname += (u8)uch;
+                }
+            };// handle long filename
+            // read whole dir buf but not done
+            return 0;
+        done:
+            if (itemname != dirname) continue;
+
+            dir = re;
+            return (u8)item.attribute;
+        } else {
+            itemname = String{item.name, 8}.trim();
+            auto extname = String{item.ext, 3}.trim();
+            if (extname != String{}) itemname = itemname + '.' + extname;
+            if (dirname != itemname) continue;
+
+            dir = &dir[i];
+            return (u8)item.attribute;
         }
     }
-    
-    // 在根目录中查找
-    for(unsigned i = 0; i < dir_entries; i++){
-        if(root_dir[i]._8_3FN.name[0] == 0xE5 || root_dir[i]._8_3FN.name[0] == 0x00){
-            continue; // 跳过删除或空条目
-        }
-        
-        // 比较名称和扩展名
-        bool match = true;
-        for(unsigned int j = 0; j < 8; j++){
-            if(root_dir[i]._8_3FN.name[j] != name[j]){
-                match = false;
-                break;
-            }
-        }
-        if(!match) continue;
-        
-        for(unsigned int j = 0; j < 3; j++){
-            if(root_dir[i]._8_3FN.ext[j] != ext[j]){
-                match = false;
-                break;
-            }
-        }
-        if(!match) continue;
-        
-        // 找到匹配，且不是目录（假设只打开文件）
-        if((unsigned char)root_dir[i]._8_3FN.attribute & (unsigned char)attribute_choice::dir){
-            continue; // 跳过目录
-        }
-        
-        // 返回起始簇号
-        return root_dir[i]._8_3FN.first_cluster_low;
-    }
-    kprint("Not fount\n");
-    return 0; // 未找到
+    return 0;
 }
 
 unsigned FAT16::close(unsigned ){
@@ -282,7 +284,33 @@ FAT16::~FAT16(){
     }
 }
 
-unsigned FAT16::read(void *, unsigned int, unsigned int, unsigned int){
+unsigned FAT16::read(void *buf, unsigned cluster_start, unsigned byte_from, unsigned byte_read){
+    
+    auto sec_read_pos = cluster_start*cluster_size + clu2blk - byte_from / 512;
+    auto bytes_skip = byte_from % 512;
+    unsigned char skip_buf [512];
+    /*
+    kprint("[cluster start, bytes start, bytes read] : ");
+    print_hex(cluster_start);print_hex(byte_from);print_hex(byte_read);
+    kprint(", sectors read");print_hex(sec_read_pos);print_char('\n');
+    //*/
+    part->read(skip_buf, 0x60, 0, 1);
+    //*
+    for(unsigned i = 0;i < 512;i++) {
+        print_hex(skip_buf[i], false);print_char(' ');
+    }
+    //*/
+    while(1);
+
+    part->read(skip_buf, sec_read_pos, 0, 1);
+
+    unsigned i = 0;
+    for (unsigned j = bytes_skip;j < 512;i++, j++) {
+        static_cast<unsigned char *>(buf)[i] = skip_buf[j];
+    }
+
+    part->read(static_cast<unsigned char *>(buf)+i, sec_read_pos, 0, (byte_read-i)/512);
+    while(1);
     return 0;
 }
 
@@ -302,8 +330,23 @@ Cluster_Info *FAT16::info(String) {
     return &info_;
 }
 
-unsigned FAT16::cmd(unsigned int, String){
-    return 0;
+unsigned FAT16::cmd(unsigned cmd_id, String param, void *, unsigned ){
+    switch (cmd_id) {
+    case 0:
+        set_filesystem_name(param.c_str());
+        return 0;
+    
+    default:
+        return 0;
+    }
+}
+
+unsigned FAT16::fat_map(unsigned itemid) const {
+    return FAT_table[itemid];
+}
+    
+unsigned FAT16::clu2sec_map(unsigned clu)const {
+    return (clu-2) * cluster_size + clu2blk;
 }
 
 /*

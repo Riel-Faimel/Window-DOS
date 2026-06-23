@@ -4,15 +4,7 @@ unsigned MinFS::open(String /*filename*/){
     ;
 }
 
-void MinFS::close(unsigned /*file_id*/){
-    ;
-}
-
-void MinFS::cd(String){
-    return;
-}
-
-void MinFS::dir(){
+unsigned MinFS::close(unsigned /*file_id*/){
     ;
 }
 

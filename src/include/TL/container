@@ -2,7 +2,7 @@
 #ifndef ___Using_template_container_protect
 #define ___Using_template_container_protect
 
-#include <TL/bits/utility>
+#include <TL/utility>
 #include <global/type.hpp>
 
 namespace rtl {
@@ -42,10 +42,22 @@ public:
         if(ptr) delete ptr;
     }
 
-    void append(const T &obj){
+    constexpr void append(const T &obj) {
+        __append(const_cast<T &>(obj));
+    }
+    constexpr void append(T &obj) {
+        __append(bits::forward(obj));
+    }
+    constexpr void append(T &&obj) {
+        __append(move(obj));
+    }
+
+private:
+    template<typename V>
+    void __append(V &&obj){
         if(size >= capacity){
             size_t new_capacity = capacity * 2;
-            T *new_ptr = new T[new_capacity];
+            T *new_ptr = new T [new_capacity];
             for(size_t i = 0;i < size;i++){
                 new_ptr[i] = ptr[i];
             }
@@ -53,10 +65,11 @@ public:
             ptr = new_ptr;
             capacity = new_capacity;
         }
-        ptr[size] = obj;
+        ptr[size] = bits::forward(obj);
         size++;
     }
 
+public:
     inline T &operator[](size_t index){
         return ptr[index];
     }

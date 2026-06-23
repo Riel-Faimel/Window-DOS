@@ -1,17 +1,15 @@
 #ifndef __bootloader_part_fs_minfs_minfs_hpp
 #define __bootloader_part_fs_minfs_minfs_hpp
-#include <part-fs/fs.hpp>
 
-class MinFS : FileSystem {
+#include <interface/cluster.hpp>
+
+class MinFS : Cluster {
     struct BPB {
         ;
     };
 public:
     unsigned open(String);
-    void close(unsigned);
-
-    void cd(String);
-    void dir();
+    unsigned close(unsigned);
 };
 
 #endif

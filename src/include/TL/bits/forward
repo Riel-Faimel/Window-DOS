@@ -1,32 +1,20 @@
 #ifndef __bootloader_src_include_TL_bits_forward
 #define __bootloader_src_include_TL_bits_forward
 
+#include <TL/bits/utility>
+
 namespace rtl {
 
 namespace bits {
 
-// delete & for T or T& or T&&
-template<typename T>
-struct remove_reference {
-    using type = T;
-};
-template<typename T>
-struct remove_reference<T&> {
-    using type = T;
-};
-template<typename T>
-struct remove_reference<T&&> {
-    using type = T;
-};
-
 // append && back of T, because &&&->& and &&&&->&&, so it keep & nums
 template<typename T>
-constexpr T&& forward(typename remove_reference<T>::type& t)noexcept{
-    return static_cast<T&&>(t);
+constexpr remove_reference_t<T> & forward(T &t)noexcept{
+    return t;
 }
 template<typename T>
-constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
-    return static_cast<T&&>(t);
+constexpr remove_reference_t<T> && forward(T &&t)noexcept{
+    return t;
 }
 
 };

@@ -14,17 +14,28 @@ public:
     };
 
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums){
-        unsigned read_num = nums > total_sectors ? total_sectors - LBA : nums;
+        unsigned read_num = 
+        /*
+        nums > total_sectors ? total_sectors - LBA : 
+        //*/
+        nums;
+        //*
+        kprint("reaing: ");print_hex(LBA+start);print_char(',');print_hex(read_num);print_char('\n');
+        //*/
         return disk->read(buf, LBA + start, 0, read_num);
     }
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums){
-        unsigned write_num = nums > total_sectors ? total_sectors - LBA : nums;
+        unsigned write_num = 
+        /*
+        nums > total_sectors ? total_sectors - LBA : 
+        //*/
+        nums;
         return disk->write(buf, LBA + start, 0, write_num);
     }
     Cluster_Info* info(String){
         return &info_;
     }
-    unsigned cmd(unsigned, String){
+    unsigned cmd(unsigned, String, void *, unsigned){
         return 0;
     }
 };
@@ -54,8 +65,8 @@ public:
     Cluster_Info* info(String) {
         return &info_;
     }
-    unsigned cmd(unsigned cmdid, String args){
-        return disk->cmd(cmdid, args);
+    unsigned cmd(unsigned cmdid, String args, void *argv, unsigned argc){
+        return disk->cmd(cmdid, args, argv, argc);
     }
 };
 
@@ -76,7 +87,7 @@ void PM::resolve(LogicalDisk *disk) {
     for (unsigned i = 0;i < 512;i++) {
         print_hex(reinterpret_cast<unsigned char *>(mbr.buf)[i], false);print_char(' ');
     }
-    */
+    //*/
     if(mbr.sign == (unsigned short)0xAA55)
     for(unsigned char i = 0;i < 4;i++){
         auto sysid = mbr.part[i].system_id;
@@ -111,8 +122,6 @@ void PM::resolve(LogicalDisk *disk) {
         }
     }
     else { 
-        auto i = disk->info();
-        auto part = new SingalPart{disk, 0, (i->total_bytes+1)/i->cluster_size};
-        disk_stack.append(part);
+        disk_stack.append(disk);
     } // MBR no found
 }

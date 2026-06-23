@@ -3,6 +3,7 @@
 #define ___Using_utility
 
 #include <TL/bits/utility>
+#include <TL/bits/forward>
 
 namespace rtl {
 
@@ -26,15 +27,10 @@ constexpr decltype(auto) move(T &&obj){ //decltype for DO NOT automatic degradat
     return static_cast<typename remove_reference<T>::type &&>(obj);
 }
 
-// append && back of T, because &&&->& and &&&&->&&, so it keep & nums
 template<typename T>
-constexpr T&& forward(typename remove_reference<T>::type& t)noexcept{
-    return static_cast<T&&>(t);
-}
-template<typename T>
-constexpr T&& forward(typename remove_reference<T>::type&& t)noexcept{
-    return static_cast<T&&>(t);
-}
+decltype(auto) forward(T &&t) {
+    return bits::forward(t);
+};
 
 }
 

@@ -1,5 +1,8 @@
 #ifndef __lib_cppstdlib_string
 #define __lib_cppstdlib_string
+
+#include <TL/container>
+
 class String{
     char *data;
     unsigned len;
@@ -36,7 +39,7 @@ public:
 
     unsigned length() const;
     bool empty() const;
-    const char * c_str() const;
+    char * c_str() const;
 
     bool operator==(const String &s) const;
     bool operator==(const char *s) const;
@@ -60,9 +63,9 @@ public:
     unsigned find(const String &s) const;
     unsigned find(const char *s) const;
 
-    String *split(const String &delimiter) const;
-    String *split(const char *delimiter) const;
-    String *split(char ) const;
+    rtl::array<String> split(const String &delimiter) const;
+    rtl::array<String> split(const char *delimiter) const;
+    rtl::array<String> split(char ) const;
 
     String trim() const;
     String trim_left() const;
@@ -70,6 +73,8 @@ public:
 
     String extract_param(const char *) const;
     unsigned extract_int(const char *) const;
+
+    String get_word(char);
 
     operator const char *() const;
     inline Iterator begin() const {
@@ -85,16 +90,6 @@ inline String::String(String &&s) noexcept :data(s.data), len(s.len){
     s.data = nullptr;
     s.len = 0;
 }
-inline String& String::operator=(String &&s) noexcept {
-    if(this != &s){
-        if(data)delete[] data;
-        data = s.data;
-        len = s.len;
-        s.data = nullptr;
-        s.len = 0;
-    }
-    return *this;
-}
 inline bool String::operator!=(const String &s) const {
     return !(*this == s);
 }
@@ -104,8 +99,8 @@ inline String::operator const char *() const {
 inline unsigned String::length() const {
     return len;
 }
-inline const char * String::c_str() const {
-    return data ? data : "";
+inline char * String::c_str() const {
+    return data ? data : const_cast<char *>("");
 }
 inline bool String::empty() const {
     return len == 0;

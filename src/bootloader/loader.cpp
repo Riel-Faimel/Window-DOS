@@ -62,8 +62,11 @@ void LoaderMain(){
     /**
      * TODO: (Done)
      * take care of the address, if it write the code section?
+     * 
+     * TODO:
+     * take care if this allloccater full
      */
-    new (&reserved_space_for_mm) mm(4096, 256, (void *)0x100000, __boot_loader_end);
+    new (&reserved_space_for_mm) mm(4096, 1024, (void *)0x100000, __boot_loader_end);
     registry_editor reg_edit;
     screen = init_screen();
 
@@ -88,7 +91,20 @@ void LoaderMain(){
     //DOScall disk_operating_system_system_call{idt};
     GDT gdt{_gdt_space, 8192, idt};
     //CenterShell cs;
-    _WIN h;
-    linear_address_space->open(h, "B:\\init");
+    #pragma pack(push, 1)
+    struct {
+        _WIN h;
+        unsigned char buf[512];
+    } win;
+    #pragma pack(pop)
+    if (linear_address_space->open(win.h, "B:\\INIT") == (unsigned)-1) \
+    { kprint("    Not found initializer!\n"); } \
+    else kprint("Found INIT\n");
+    
+    linear_address_space->read(win.h, 0, 512);
     kprint("    Kernel initialized done!\r\n");
+    //for (unsigned i = 0;i < 512;i++) {\
+        auto ch = win.buf[i];\
+        print_hex(ch, false);print_char(' ');\
+    }
 }

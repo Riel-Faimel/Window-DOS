@@ -30,9 +30,8 @@ public:
     struct Handle {
         unsigned ID;
         unsigned file_handle; 
-        String path_buf;
-        u8 handle_mode;
         unsigned count;
+        u8 handle_mode;
     };
     unsigned did_count = 1;
     /**
@@ -64,7 +63,7 @@ public:
     unsigned create(_WIN&, String);
     unsigned del(_WIN&, String);
     Cluster_Info info(_WIN&, String);
-    unsigned cmd(_WIN&, unsigned, String);
+    unsigned cmd(_WIN&, unsigned, String, void *argv, unsigned argc);
 };
 
 #endif

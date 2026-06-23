@@ -7,7 +7,7 @@
 
 class FAT16 : public Cluster {
 public:
-    enum class attribute_choice : unsigned char {
+    enum attribute_choice : unsigned char {
         read_only = 0b00000001,
         hidden = 0b00000010,
         system = 0b00000100,
@@ -32,11 +32,11 @@ public:
             unsigned short fat_size_16;
             unsigned short sectors_per_track;
             unsigned short num_heads;
-            unsigned hidden_sectors;
+            unsigned reserved1; //hidden sectors
             unsigned total_sectors_32;
             
             unsigned char drive_number;
-            unsigned char reserved1;
+            unsigned char reserved2;
             unsigned char boot_sign;
             unsigned volume_id;
             unsigned char volume_label[11];
@@ -101,8 +101,9 @@ public:
 // disk info
     LogicalDisk *part;
     Cluster_Info info_ {.type=Cluster_Info::Type::FAT16};
-    unsigned cluster_size;
-    unsigned char clu2blk;
+    unsigned cluster_size; // sectors num
+    unsigned char clu2blk; // sector offset
+    unsigned rootdir_cluster_num;
 
 // status machine
     STATUS status;
@@ -130,10 +131,15 @@ public:
     unsigned delet(String);
 
     Cluster_Info* info(String);
-    unsigned cmd(unsigned, String);
+    unsigned cmd(unsigned, String, void *argv, unsigned argc);
 
     void format();
     void set_filesystem_name(char *name);
+
+    private:
+    u8 resolv_dir(DIR *&, unsigned, String);
+    unsigned fat_map(unsigned) const;
+    unsigned clu2sec_map(unsigned)const;
 };
 
 #endif

@@ -1,7 +1,6 @@
 #include <lib/cppstdlib/string>
 #include <global/type.hpp>
-#define __independent_lib_Using_template_container
-#include <TL/idlib>
+#include <TL/utility>
 
 int strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2)) {
@@ -59,7 +58,10 @@ String::String(char *s, unsigned n) noexcept {
         len = 0;
     }else{
         len = n;
-        data = s;
+        data = new char [n+1];
+        for (unsigned i = 0;i < n;i++) {
+            data[i] = s[i];
+        }
         data[n] = '\0';
     }
 }
@@ -73,6 +75,17 @@ String::String(const String &s) noexcept {
     }else{
         data = nullptr;
     }
+}
+
+String& String::operator=(String &&s) noexcept {
+    if(this != &s){
+        if(data)delete[] data;
+        data = s.data;
+        len = s.len;
+        s.len = 0;
+        s.data = nullptr;
+    }
+    return *this;
 }
 
 String::String(unsigned n, char c) noexcept :data(new char[n + 1]), len(n) {
@@ -119,17 +132,17 @@ bool String::operator==(const char *s) const {
 }
 
 String& String::operator+=(const String &s) {
-    *this = *this + s;
+    *this = rtl::move(*this + s);
     return *this;
 }
 
 String& String::operator+=(const char *s) {
-    *this = *this + String(s);
+    *this = rtl::move(*this + String(s));
     return *this;
 }
 
 String& String::operator+=(char ch) {
-    *this = *this + ch;
+    *this = rtl::move(*this + ch);
     return *this;
 }
 
@@ -220,7 +233,7 @@ unsigned String::find(const char *s) const{
     return find(s_str);
 }
 
-String *String::split(const String &delimiter) const {
+rtl::array<String> String::split(const String &delimiter) const {
     unsigned count = 1;
     for(unsigned i = 0;i <= len - delimiter.len;i++){
         bool found = true;
@@ -232,7 +245,7 @@ String *String::split(const String &delimiter) const {
         }
         if(found)count++;
     }
-    String *result = new String[count];
+    rtl::array<String> result{count};
     unsigned index = 0;
     unsigned start = 0;
     for(unsigned i = 0;i <= len - delimiter.len;i++){
@@ -252,19 +265,23 @@ String *String::split(const String &delimiter) const {
     return result;
 }
 
-String *String::split(const char *delimiter) const {
+rtl::array<String> String::split(const char *delimiter) const {
     String delimiter_str(delimiter);
     return split(delimiter_str);
 }
 
-String *String::split(char deli) const {
+rtl::array<String> String::split(char deli) const {
     rtl::array<String> re;
     String dealing{};
     for (auto ch : *this) {
-        if (ch == deli) { re.append(dealing); }
+        if (ch == deli) { 
+            re.append(rtl::move(dealing));
+            dealing = {};
+        }
         else { dealing+=ch; }
     }
-    return re.get_ptr();
+    re.append(rtl::move(dealing));
+    return re;
 }
 
 String String::trim() const {
@@ -302,6 +319,17 @@ unsigned String::extract_int(const char* param) const {
     String val = extract_param(param);
     if(val.empty()) return -1;
     return val.to_int();
+}
+
+String String::get_word(char ch) {
+    for (unsigned i = 0;i < len;i++) {
+        if (data[i] == ch) {
+            String re = substr(0, i);
+            *this = substr(i+1);
+            return re;
+        }
+    }
+    return rtl::move(*this);
 }
 
 //=====================================================================

@@ -1,4 +1,8 @@
+#ifndef __bootloader_mm_mm_hpp
+#define __bootloader_mm_mm_hpp
+
 #include <global/type.hpp>
+#include <global/new.hpp>
 
 class _ptr2size;
 
@@ -21,9 +25,4 @@ public:
 
 extern mm *memorymanager_objectpointer;
 
-void *operator new(size_t);
-void *operator new(size_t, void *);
-void operator delete(void *);
-void operator delete(void *, unsigned);
-void operator delete[](void *);
-void operator delete[](void *, unsigned);
+#endif
