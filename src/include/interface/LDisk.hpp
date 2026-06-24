@@ -19,6 +19,18 @@ struct Cluster_Info {
     size_t cluster_size;
 };
 
+struct DISK_INFO : public Cluster_Info {
+    int total_sectors;
+    int LBA_support;
+    int PIO_supported;
+    char model[41];
+    u8 device; 
+    u16 CHS_cylinders;
+    u16 CHS_heads;
+    u16 CHS_sectors_per_track;
+    u32 multi_count;
+};
+
 /**
  * real disk and virtual disk also logical disk
  */

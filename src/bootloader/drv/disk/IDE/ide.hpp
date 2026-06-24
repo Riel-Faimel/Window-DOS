@@ -1,7 +1,7 @@
 #ifndef __bootloader_drv_disk_IDE_ide_hpp
 #define __bootloader_drv_disk_IDE_ide_hpp
 #include <IDT_L/idt.hpp> 
-#include <drv/disk/disk.hpp>
+#include <interface/LDisk.hpp>
 #include "ide_.hpp"
 
 class IDE_DISK : public LogicalDisk {

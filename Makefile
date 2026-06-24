@@ -33,7 +33,7 @@ libs: libos.a
 module: module_32
 
 MBR.bin: 
-boot.img: $(BUILD_DIR)bootloader/boot.bin $(BUILD_DIR)bootloader.bin
+boot.img: $(BUILD_DIR)bootloader/start/boot.bin $(BUILD_DIR)bootloader.bin
 	copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
 kernel.exe:
 result: boot.img kernel.exe

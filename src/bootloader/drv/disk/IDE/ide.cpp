@@ -483,7 +483,7 @@ void IDE_DISK::check(){
 
 // ======
 
-#include <LAS/PM.hpp>
+#include <SSS/PM.hpp>
 
 void init_IDE_controller(void* *ptr, size_t *size){
     IDE_DISK *re = new IDE_DISK[4];

@@ -97,11 +97,11 @@ void LoaderMain(){
         unsigned char buf[512];
     } win;
     #pragma pack(pop)
-    if (linear_address_space->open(win.h, "B:\\INIT") == (unsigned)-1) \
+    if (driver_letter_space->open(win.h, "B:\\INIT") == (unsigned)-1) \
     { kprint("    Not found initializer!\n"); } \
     else kprint("Found INIT\n");
     
-    linear_address_space->read(win.h, 0, 512);
+    driver_letter_space->read(win.h, 0, 512);
     kprint("    Kernel initialized done!\r\n");
     //for (unsigned i = 0;i < 512;i++) {\
         auto ch = win.buf[i];\

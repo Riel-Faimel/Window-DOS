@@ -1,7 +1,6 @@
 #include "ide.hpp"
 #include <lib/hardlib/x86/port.h>
 #include <drv/screen/screen_srv.hpp>
-#define __independent_lib_Using_utility
 #include <TL/idlib>
 #include <registry/registry.hpp>
 
@@ -107,7 +106,7 @@ enum class VALUE : u32{
 	ATA_ID_HW_CONFIG	= 93,
 	ATA_ID_SPG		= 98,
 	ATA_ID_LBA_CAPACITY_2	= 100,
-	ATA_ID_LAST_LUN		= 126,
+	ATA_ID_DLST_LUN		= 126,
 	ATA_ID_DLF		= 128,
 	ATA_ID_CSFO		= 129,
 	ATA_ID_CFA_POWER	= 160,

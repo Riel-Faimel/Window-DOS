@@ -116,7 +116,7 @@ void PCI_space::set_device_driver(){
             case 0x00: //SCSI
                 break;
             case 0x01: //IDE
-                screen->print("IDE controller\r\n");
+                //screen->print("IDE controller\r\n");
                 init_IDE_controller(&device.dev_drv, &device.size);
                 break;
             case 0x02: //floppy

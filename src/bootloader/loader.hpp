@@ -20,15 +20,15 @@ extern bool *__boot_loader_end;
 #include <mm/mm.hpp>
 #include <mm/gdt.hpp>
 #include <drv/drv.hpp>
-#include <srv/serve.hpp>
+//#include <srv/serve.hpp>
 #include <IDT_L/idt.hpp>
-#include <CenterShell/cs.hpp>
+//#include <CenterShell/cs.hpp>
 #include <registry/registry.hpp>
 #include <IDT_L/IDNT.hpp>
 #include <PDS/PCI/pci.hpp>
 //#include <part-fs/las.hpp>
 #include <DOSsyscall/DOScall.hpp>
-#include <LAS/SSS.hpp>
+#include <SSS/SSS.hpp>
 
 #include <interface/Window.hpp>
 
