@@ -4,8 +4,8 @@
 
 extern "C" {
 
-__attribute__((always_inline, Optimize("O3")))
-int strcmp(const char* s1, const char* s2) {
+__attribute__((always_inline, optimize("O3")))
+inline int strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2)) {
         s1++;
         s2++;
@@ -13,8 +13,8 @@ int strcmp(const char* s1, const char* s2) {
     return *(unsigned char*)s1 - *(unsigned char*)s2;
 }
 
-__attribute__((always_inline, Optimize("O3")))
-int strncmp(const char *s1, const char *s2, size_t n) {
+__attribute__((always_inline, optimize("O3")))
+inline int strncmp(const char *s1, const char *s2, size_t n) {
     if (n == 0) return 0;
     
     const unsigned char *p1 = (const unsigned char *)s1;

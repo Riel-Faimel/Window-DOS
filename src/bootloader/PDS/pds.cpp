@@ -1,16 +1,7 @@
 #include "_pds.hpp"
 
-void PDS::append(Info i, Storage::drive* d){
-    device_space.s.append(Storage{i, d});
-}
-void PDS::append(Info i, Network::drive* d){
-    device_space.n.append(Network{i, d});
-}
-void PDS::append(Info i, Bridge::drive* d){
-    device_space.b.append(Bridge{i, d});
-}
 void PDS::remove(unsigned long long tpid){
-    auto [s, n, b] = device_space;
+    auto [s, n, b] = /*device_space*/{0, 0, 0};
     size_t i = 0;
     for (auto item : s) {
         if (item.info.type_id == tpid) {

@@ -1,7 +1,7 @@
 #include "PM.hpp"
 
 #include <SSS/DLS.hpp>
-#include <interface/cluster.hpp>
+#include <interface/dev_cls/cluster.hpp>
 #include <global/type.hpp>
 #include <drv/fs/FAT16/fat16.hpp>
 

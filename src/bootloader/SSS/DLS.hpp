@@ -1,9 +1,14 @@
 #ifndef __bootloader_DLS_DLS_hpp
 #define __bootloader_DLS_DLS_hpp
 
+/**
+ * DLS (Driver Letter Space) is a space for all  file systems
+ * it is manage and give call to file system
+ */
+
 #include "DLS_.hpp"
 #include <global/type.hpp>
-#include <interface/cluster.hpp>
+#include <interface/dev_cls/cluster.hpp>
 //#include <part-fs/MBR/MBR.hpp>
 #include <global/WIN.hpp>
 #include <PDS/pds.hpp>

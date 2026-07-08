@@ -484,8 +484,9 @@ void IDE_DISK::check(){
 // ======
 
 #include <SSS/PM.hpp>
+#include <PDS/PCI/pci.hpp>
 
-void init_IDE_controller(void* *ptr, size_t *size){
+void init_IDE_controller(void *ptr){
     IDE_DISK *re = new IDE_DISK[4];
     new IDE_Channal[2]{
         {re[0], re[1], IDE_Channal::Channal::Master_Channel, idt}, 
@@ -499,12 +500,7 @@ void init_IDE_controller(void* *ptr, size_t *size){
     }
     IDE_DISK *re_;
     if(exist_disk > 0) re_ = new IDE_DISK[exist_disk];
-    else {
-        screen->print("[INFO] No disk found\r\n");
-        *ptr = nullptr;
-        *size = 0;
-        return;
-    }
+    else { return; }
     for(u8 i = 0;i < 4;i++){
         if(re[i].exist){
             re_[j] = rtl::move(re[i]);
@@ -512,9 +508,4 @@ void init_IDE_controller(void* *ptr, size_t *size){
         }
     }
     delete[] re;
-    *ptr = re_;
-    *size = exist_disk;
-    screen->print("[INFO] IDE Disk: ");
-    print_hex(exist_disk);
-    screen->print("\r\n");
 }

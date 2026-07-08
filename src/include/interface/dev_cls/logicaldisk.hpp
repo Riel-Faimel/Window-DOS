@@ -1,5 +1,5 @@
-#ifndef __include_interface_LDisk_hpp
-#define __include_interface_LDisk_hpp
+#ifndef __include_interface_logicaldisk_hpp
+#define __include_interface_logicaldisk_hpp
 
 #include <global/type.hpp>
 #include <cppstdlib/string>

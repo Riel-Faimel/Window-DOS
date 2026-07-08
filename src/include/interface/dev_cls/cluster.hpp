@@ -1,7 +1,7 @@
 #ifndef __include_interface_bootoader_cluster_hpp
 #define __include_interface_bootoader_cluster_hpp
 
-#include <interface/LDisk.hpp>
+#include <interface/dev_cls/logicaldisk.hpp>
 #include <cppstdlib/string>
 
 class Cluster : public LogicalDisk {

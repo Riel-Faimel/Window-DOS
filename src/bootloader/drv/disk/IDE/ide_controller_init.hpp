@@ -13,5 +13,5 @@
 #endif
 #include <global/type.hpp>
 */
-void init_IDE_controller(void* *, size_t *);
+void init_IDE_controller(void *);
 #endif

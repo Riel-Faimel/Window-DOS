@@ -117,7 +117,7 @@ void PCI_space::set_device_driver(){
                 break;
             case 0x01: //IDE
                 //screen->print("IDE controller\r\n");
-                init_IDE_controller(&device.dev_drv, &device.size);
+                init_IDE_controller(&device);
                 break;
             case 0x02: //floppy
                 screen->print("floppy controller\r\n");

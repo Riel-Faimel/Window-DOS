@@ -1,0 +1,40 @@
+#ifndef __include_TL_map
+#define __include_TL_map
+#include <global/type.hpp>
+#include <TL/container>
+
+namespace rtl{
+
+template<typename T>
+size_t hash(T t);
+
+template<>
+constexpr size_t hash(int num) { return num; }
+
+template<typename N>
+concept Key = 
+requires (N n) { n == n; }
+&& ( 
+    requires (N n){ n.hash(); } 
+    || requires (N n) { hash(n); } 
+);
+
+template<Key N, typename M>
+class map {
+private:
+    struct item {};
+    array<item> map_list;
+public:
+    map(/* args */){}
+    ~map(){}
+
+    M& operator[] (size_t i) {}
+    bool exist(N n) {}
+    size_t size() {}
+};
+
+
+} // namespace rtl
+
+
+#endif
