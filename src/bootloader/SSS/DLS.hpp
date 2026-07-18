@@ -67,6 +67,9 @@ public:
      */
     unsigned create(_WIN&, String);
     unsigned del(_WIN&, String);
+    /**
+     * Info(Window, String path) for get info of a file or folder or device
+     */
     Cluster_Info info(_WIN&, String);
     unsigned cmd(_WIN&, unsigned, String, void *argv, unsigned argc);
 };

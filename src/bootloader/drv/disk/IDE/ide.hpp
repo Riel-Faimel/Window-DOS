@@ -16,10 +16,11 @@ class IDE_DISK : public LogicalDisk {
 public:
     bool exist;
     IDE_DISK();
-    ~IDE_DISK() = default;
-    IDE_DISK(Device dev, IDT &idt, IDE_Channal *);
-
     IDE_DISK(IDE_DISK &) = delete;
+    IDE_DISK(IDE_DISK &&);
+    IDE_DISK(Device dev, IDT &idt, IDE_Channal *);
+    ~IDE_DISK() = default;
+
     IDE_DISK& operator=(IDE_DISK&&);
     IDE_DISK& operator=(IDE_DISK&) = delete;
     IDE_DISK& operator=(const IDE_DISK&) = delete;

@@ -294,13 +294,12 @@ unsigned FAT16::read(void *buf, unsigned cluster_start, unsigned byte_from, unsi
     print_hex(cluster_start);print_hex(byte_from);print_hex(byte_read);
     kprint(", sectors read");print_hex(sec_read_pos);print_char('\n');
     //*/
-    part->read(skip_buf, 0x60, 0, 1);
-    //*
+    /*
+    part->read(skip_buf, sec_read_pos, 0, 1);
     for(unsigned i = 0;i < 512;i++) {
         print_hex(skip_buf[i], false);print_char(' ');
     }
     //*/
-    while(1);
 
     part->read(skip_buf, sec_read_pos, 0, 1);
 
@@ -310,7 +309,6 @@ unsigned FAT16::read(void *buf, unsigned cluster_start, unsigned byte_from, unsi
     }
 
     part->read(static_cast<unsigned char *>(buf)+i, sec_read_pos, 0, (byte_read-i)/512);
-    while(1);
     return 0;
 }
 

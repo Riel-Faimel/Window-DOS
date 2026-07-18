@@ -286,18 +286,21 @@ template<typename N, typename M>
 struct pair {
     N key;
     M value;
+    pair():key{}, value{}{};
     pair(N key_i, M value_i):key{key_i}, value{value_i}{};
 }; 
 
 template<typename N, typename M>
-class map : public array<pair<N, M>>{
+class map{
+    array<pair<N, M>> data;
 public:
+    map(): data{}{}
     M &operator[](N key){
-        for (unsigned i = 0; i < this->size; i++){
-            if (this->ptr[i].key == key) return this->ptr[i].value;
+        for (auto &[k, v] : data) {
+            if (k == key) return v;
         }
-        append({key, {}});
-        return this->ptr[this->size - 1].value;
+        data.append({key, {}});
+        return data.back().value;
     }
 };
 

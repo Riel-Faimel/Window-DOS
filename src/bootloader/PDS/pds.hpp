@@ -9,15 +9,19 @@
 #include <interface/dev_cls/logicaldisk.hpp>
 #include <TL/container>
 
-class PCI_space;
-class USB_space;
+#include <PDS/PCI/pci.hpp>
+#include <PDS/USB/usb.hpp>
 
 class PDS {
 private:
-    PCI_space *pci;
-    USB_space *usb;
+    PCI_space pci;
+    USB_space usb;
+
+    rtl::map<size_t, void *> drivers;
 public:
-    PDS() = default;
+    PDS();
+    void probe();
+    void set_driver();
     void remove(unsigned long long);
 };
 

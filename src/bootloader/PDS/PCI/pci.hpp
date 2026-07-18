@@ -1,6 +1,8 @@
 #ifndef __bootloader_PDS_PCI_pci_hpp
 #define __bootloader_PDS_PCI_pci_hpp
+
 #include <TL/idlib>
+#include <interface/enumer.hpp>
 
 #pragma pack(push, 1)
 struct PCI_device_config{
@@ -41,16 +43,13 @@ struct PCI_device_config{
 };
 #pragma pack(pop)
 
-class PCI_space {
+class PCI_space : public enumer {
 
     /**
      * this type is static
      */
-    struct {
-        rtl::array<Storage> s{};
-        rtl::array<Network> n{};
-        rtl::array<Bridge> b{};        
-    } device_space;
+
+    bool print_info;
 
     enum class Commmand_bits {
         command_IO_space = 1 << 0,
@@ -64,7 +63,8 @@ class PCI_space {
     void pci_probe_device(int, int, bool);
 public:
     PCI_space(bool print_info = true);
-    void set_device_driver();
+    void probe() override;
+    void set_driver();
     rtl::array<PCI_device_config> config{}; // 8 is initial size, but it can be expanded if needed
 };
 

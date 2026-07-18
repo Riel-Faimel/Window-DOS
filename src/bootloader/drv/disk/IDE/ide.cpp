@@ -5,7 +5,7 @@ inline bool is_power_of_2(u32 n){
 }
 extern "C" void when_PATA_Master_cut_handler();
 extern "C" void when_PATA_Slave_cut_handler();
-constexpr u16 ctl = 0x206;
+//constexpr u16 ctl = 0x206;
 
 IDE_Channal::IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan_, IDT& idt):
 chan(chan_){
@@ -28,94 +28,58 @@ chan(chan_){
     else if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] Slave disk not found\r\n");
 }
 
-/**
- * from Linux 2.6.32.1
- * driver/ata/libata-sff.c
- */
-/**
- *	ata_sff_tf_read - input device's ATA taskfile shadow registers
- *	@ap: Port from which input is read
- *	@tf: ATA taskfile register set for storing input
- *
- *	Reads ATA taskfile registers for currently-selected device
- *	into @tf. Assumes the device has a fully SFF compliant task file
- *	layout and behaviour. If you device does not (eg has a different
- *	status method) then you will need to provide a replacement tf_read
- *
- *	LOCKING:
- *	Inherited from caller.
- */
-void IDE_Channal::ata_sff_tf_read(IDE_Channal::ata_taskfile &tf){
-	tf.command = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
-	tf.feature = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_ERR));
-	tf.nsect = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_NSECT));
-	tf.lbal = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAL));
-	tf.lbam = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAM));
-	tf.lbah = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAH));
-	tf.device = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_DEVICE));
+void IDE_Channal::get_ctlpkg(ctlpkg &cp){
+	cp.cmd_stat = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
+	cp.feature = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_ERR));
+	cp.nsect = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+	cp.l = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+	cp.m = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+	cp.h = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
+	cp.device = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_DEVICE));
 
-	if (tf.flags & static_cast<u8>(VALUE::ATA_TFLAG_LBA48)) {
-		outb(tf.ctl | static_cast<u8>(VALUE::ATA_HOB), static_cast<u16>(chan) + static_cast<u8>(VALUE::ATA_PCI_CTL_OFS));
-		tf.hob_feature = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_ERR));
-		tf.hob_nsect = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_NSECT));
-		tf.hob_lbal = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAL));
-		tf.hob_lbam = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAM));
-		tf.hob_lbah = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAH));
-		outb(tf.ctl, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_PCI_CTL_OFS));
+	if (cp.flags & static_cast<u8>(ATA::TFLAG_LBA48)) {
+		outb(cp.ctl | static_cast<u8>(ATA::HOB), static_cast<u16>(chan) + static_cast<u8>(ATA::PCI_CTL_OFS));
+		cp.hob.feature = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_ERR));
+		cp.hob.nsect = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+		cp.hob.l = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+		cp.hob.m = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+		cp.hob.h = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
+		outb(cp.ctl, static_cast<u16>(chan) + static_cast<u16>(ATA::PCI_CTL_OFS));
 	}
 }
-/**
- *	ata_sff_tf_load - send taskfile registers to host controller
- *	@ap: Port to which output is sent
- *	@tf: ATA taskfile register set
- *
- *	Outputs ATA taskfile to standard ATA host controller.
- *
- *	LOCKING:
- *	Inherited from caller.
- */
-void IDE_Channal::ata_sff_tf_load(IDE_Channal::ata_taskfile &tf){
-	unsigned int is_addr = tf.flags & static_cast<u8>(VALUE::ATA_TFLAG_ISADDR);
 
-	if (is_addr && (tf.flags & static_cast<u8>(VALUE::ATA_TFLAG_LBA48))) {
-		outb(tf.hob_feature, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_FEATURE));
-		outb(tf.hob_nsect, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_NSECT));
-		outb(tf.hob_lbal, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAL));
-		outb(tf.hob_lbam, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAM));
-		outb(tf.hob_lbah, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAH));
+void IDE_Channal::send_ctlpkg(IDE_Channal::ctlpkg &cp){
+	unsigned int is_addr = cp.flags & static_cast<u8>(ATA::TFLAG_ISADDR);
+
+	if (is_addr && (cp.flags & static_cast<u8>(ATA::TFLAG_LBA48))) {
+		outb(cp.hob.feature, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_FEATURE));
+		outb(cp.hob.nsect, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+		outb(cp.hob.l, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+		outb(cp.hob.m, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+		outb(cp.hob.h, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
 	}
 
 	if (is_addr) {
-		outb(tf.feature, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_FEATURE));
-		outb(tf.nsect, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_NSECT));
-		outb(tf.lbal, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAL));
-		outb(tf.lbam, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAM));
-		outb(tf.lbah, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAH));
+		outb(cp.feature, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_FEATURE));
+		outb(cp.nsect, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+		outb(cp.l, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+		outb(cp.m, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+		outb(cp.h, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
 	}
 
-	if (tf.flags & static_cast<u8>(VALUE::ATA_TFLAG_DEVICE)) {
-		outb(tf.device, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_DEVICE));
+	if (cp.flags & static_cast<u8>(ATA::TFLAG_DEVICE)) {
+		outb(cp.device, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_DEVICE));
 	}
-    while(inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS)) & static_cast<u8>(VALUE::ATA_BUSY));
+    while(inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & static_cast<u8>(ATA::BUSY));
 }
-/**
- *	ata_sff_exec_command - issue ATA command to host controller
- *	@ap: port to which command is being issued
- *	@tf: ATA taskfile register set
- *
- *	Issues ATA command, with proper synchronization with interrupt
- *	handler / other threads.
- *
- *	LOCKING:
- *	spin_lock_irqsave(host lock)
- */
-void IDE_Channal::ata_sff_exec_command(IDE_Channal::ata_taskfile &tf){
-	outb(tf.command, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_CMD));
-    inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
+
+void IDE_Channal::effect_ctlpkg(IDE_Channal::ctlpkg &cp){
+	outb(cp.cmd_stat, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_CMD));
+    inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
 }
 
 unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info){
-    //*
+    /*
     print_char('<');print_hex(LBA);print_char(',');print_hex(count);print_char('>');
     //*/
     if(info->LBA_support) return read_PIO_LBA(buf, LBA, count, info->device);
@@ -123,40 +87,43 @@ unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DI
 }
 
 unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev){
-    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
+    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
     if(status & 0x80){
         unsigned i = 0;
-        while ((inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS)) & 0x80)){
+        while ((inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x80)){
             i++;
             if(i > 0x10000){
-                if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] time out\n");
+                if(registry.do_IDE_controller_initialization_print_info)
+                screen->print("[NOTICE] time out\n");
                 return -1; //time out
             }
         };    
     }
-    ata_taskfile tf{
-        .flags = static_cast<u32>(VALUE::ATA_TFLAG_ISADDR) | 
-        static_cast<u32>(VALUE::ATA_TFLAG_DEVICE) | 
-        static_cast<u32>(VALUE::ATA_TFLAG_LBA),
-        .protocol = static_cast<u8>(VALUE::ATA_PROT_FLAG_PIO),
+    ctlpkg cp {
+        .flags = static_cast<u32>(ATA::TFLAG_ISADDR) | 
+        static_cast<u32>(ATA::TFLAG_DEVICE) | 
+        static_cast<u32>(ATA::TFLAG_LBA),
+        .protocol = static_cast<u8>(ATA::PROT_FLAG_PIO),
         .ctl = 0,
         .nsect = (u8)count,
-        .lbal = (u8)(LBA & 0xFF),
-        .lbam = (u8)((LBA >> 8) & 0xFF),
-        .lbah = (u8)((LBA >> 16) & 0xFF),
+        .l = (u8)(LBA & 0xFF),
+        .m = (u8)((LBA >> 8) & 0xFF),
+        .h = (u8)((LBA >> 16) & 0xFF),
+        .hob = {},
         .device = (u8)(dev | ((LBA >> 24) & 0x0F)),
-        .command = static_cast<u8>(VALUE::ATA_CMD_PIO_READ)
+        .cmd_stat = static_cast<u8>(ATA::CMD_PIO_READ)
     };
-    ata_sff_tf_load(tf);
-    ata_sff_exec_command(tf);
+    send_ctlpkg(cp);
+    effect_ctlpkg(cp);
 
     unsigned re = 0;
     for(unsigned char fan = 0;fan < count;fan++){
         unsigned i = 0;
-        while (!(inb(static_cast<u16>(chan) + static_cast<u8>(VALUE::ATA_REG_STATUS)) & 0x08)){
+        while (!(inb(static_cast<u16>(chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
             i++;
             if(i > 10000){
-                if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] Time out\n");
+                if(registry.do_IDE_controller_initialization_print_info)
+                kprint("[NOTICE] Time out\n");
                 return -1;
             }
         };
@@ -179,21 +146,33 @@ unsigned IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char
 }
 
 inline unsigned IDE_Channal::write_PIO_LBA(unsigned short *buf, unsigned int LBA, unsigned char count, u8 dev){
-    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u8>(VALUE::ATA_REG_STATUS));
+    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x80){
-        while ((inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS)) & 0x80));        
+        while ((inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x80));        
     }
-    outb(count, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_NSECT));
-    outb(LBA & 0xFF, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAL));
-    outb((LBA >> 8) & 0xFF, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAM));
-    outb((LBA >> 16) & 0xFF, static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_LBAH));
-    outb(dev | ((LBA >> 24) & 0x0F), static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_DEVICE));
-    outb(static_cast<char>(VALUE::ATA_CMD_PIO_WRITE), static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_CMD));
+
+    ctlpkg cp {
+        .flags = static_cast<u32>(ATA::TFLAG_ISADDR) | 
+        static_cast<u32>(ATA::TFLAG_DEVICE) | 
+        static_cast<u32>(ATA::TFLAG_LBA),
+        .protocol = static_cast<u8>(ATA::PROT_FLAG_PIO),
+        .ctl = 0,
+        .nsect = (u8)count,
+        .l = (u8)(LBA & 0xFF),
+        .m = (u8)((LBA >> 8) & 0xFF),
+        .h = (u8)((LBA >> 16) & 0xFF),
+        .hob = {},
+        .device = (u8)(dev | ((LBA >> 24) & 0x0F)),
+        .cmd_stat = static_cast<u8>(ATA::CMD_PIO_WRITE)
+    };
+    send_ctlpkg(cp);
+    effect_ctlpkg(cp);
+
 
     unsigned re = 0;
     for(unsigned char fan = 0;fan < count;fan++){
         unsigned i = 0;
-        while (!(inb(static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_STATUS)) & 0x08)){
+        while (!(inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x08)){
             i++;
             if(i > 10000){
                 if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] Time out\r\n");
@@ -201,7 +180,7 @@ inline unsigned IDE_Channal::write_PIO_LBA(unsigned short *buf, unsigned int LBA
             }
         };
         for(unsigned int i = 0;i < 256;i++){
-            outw(buf[i + fan * 256], static_cast<u16>(chan) + static_cast<u16>(VALUE::ATA_REG_DATA));
+            outw(buf[i + fan * 256], static_cast<u16>(chan) + static_cast<u16>(ATA::REG_DATA));
             re += 2;
         }
     }
@@ -228,12 +207,18 @@ IDE_DISK &IDE_DISK::operator=(IDE_DISK &&other){
 }
 
 IDE_DISK::IDE_DISK():lock(nullptr), info_(), exist{false} {}
+IDE_DISK::IDE_DISK(IDE_DISK &&disk_):
+lock(disk_.lock), info_(disk_.info_), exist(disk_.exist){
+    disk_.lock = nullptr;
+    disk_.info_ = {};
+    disk_.exist = false;
+}
 
 IDE_DISK::IDE_DISK(Device dev, IDT &/*idt*/, IDE_Channal *c):
 lock(c), info_{}, exist{true}{
-    outb(static_cast<u8>(dev), static_cast<u16>(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_DEVICE)));
+    outb(static_cast<u8>(dev), static_cast<u16>(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE)));
     io_wait();
-    auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_STATUS));
+    auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status == 0xFF){
         if(registry.do_IDE_controller_initialization_print_info)screen->print("[ERROR] No disk found\n");
         exist = false;
@@ -330,9 +315,9 @@ lock(c), info_{}, exist{true}{
 #pragma pack(pop)
 
 //read_identify:
-    outb(static_cast<u8>(dev), static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_DEVICE));
+    outb(static_cast<u8>(dev), static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE));
     unsigned i = 0;
-    while(inb(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_STATUS)) & 0x80){
+    while(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x80){
         i++;
         if(i > 0x10000){
             if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] time out\n");
@@ -341,11 +326,11 @@ lock(c), info_{}, exist{true}{
         }
     }; 
     // wait until device is not busy
-    outb(static_cast<u8>(0xEC), static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_CMD)); 
+    outb(static_cast<u8>(0xEC), static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_CMD)); 
     // send identify command
 
     i = 0;
-    while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_STATUS)) & 0x08)){
+    while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
         i++;
         if(i > 0x10000){
             if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] time out\n");
@@ -354,14 +339,14 @@ lock(c), info_{}, exist{true}{
         }
     }; 
     // 在读取数据之前应该检查 ERR 位
-    status = inb(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_STATUS));
+    status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x01) {
         if(registry.do_IDE_controller_initialization_print_info)screen->print("[ERROR] IDENTIFY command failed\n");
         exist = false;
         return;
     }
     for(int i = 0;i < 256;i++){
-        id[i] = inw(static_cast<u16>(c->chan) + static_cast<u8>(VALUE::ATA_REG_DATA));
+        id[i] = inw(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DATA));
     }
 
 //full_info_:
@@ -385,7 +370,7 @@ lock(c), info_{}, exist{true}{
         identify_info.general_config == 0x045A
     ) { //兼容CF卡的小玩意
 		/* CPRM may make this media unusable */
-		if (id[static_cast<u32>(VALUE::ATA_ID_CFA_KEY_MGMT)] & 1)
+		if (id[static_cast<u32>(ATA::ID_CFA_KEY_MGMT)] & 1)
         if(registry.do_IDE_controller_initialization_print_info)screen->print("supports DRM functions and may not be fully accessable.\n");
 	} else {
 		/* Warn the user if the device has TPM extensions */
@@ -434,7 +419,8 @@ lock(c), info_{}, exist{true}{
 };
 
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
-    //*
+    /*
+    print_char('{');print_hex((unsigned)(&lock));print_char('}');
     print_char('<');print_hex(LBA);kprint(", ");print_hex(sectors_read);print_char('>');
     //*/
     if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
@@ -455,10 +441,10 @@ unsigned IDE_DISK::cmd(unsigned, String, void *, unsigned) {
 }
 
 void IDE_DISK::check(){
-    outb(info_.device, static_cast<u16>(lock->chan) + static_cast<u16>(VALUE::ATA_REG_DEVICE));
+    outb(info_.device, static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_DEVICE));
     io_wait();
     
-    auto status = inb(static_cast<u16>(lock->chan) + static_cast<u16>(VALUE::ATA_REG_STATUS));
+    auto status = inb(static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_STATUS));
     
     if(status == 0xFF) {
         screen->print("-- No Device --\n");
@@ -486,7 +472,7 @@ void IDE_DISK::check(){
 #include <SSS/PM.hpp>
 #include <PDS/PCI/pci.hpp>
 
-void init_IDE_controller(void *ptr){
+void init_IDE_controller(void *){
     IDE_DISK *re = new IDE_DISK[4];
     new IDE_Channal[2]{
         {re[0], re[1], IDE_Channal::Channal::Master_Channel, idt}, 
@@ -496,7 +482,6 @@ void init_IDE_controller(void *ptr){
     u8 j = 0;
     for(u8 i = 0;i < 4;i++)if(re[i].exist){
         exist_disk++;
-        partmanager->resolve(&re[i]);
     }
     IDE_DISK *re_;
     if(exist_disk > 0) re_ = new IDE_DISK[exist_disk];
@@ -504,6 +489,7 @@ void init_IDE_controller(void *ptr){
     for(u8 i = 0;i < 4;i++){
         if(re[i].exist){
             re_[j] = rtl::move(re[i]);
+            partmanager->resolve(&re_[j]);
             j++;
         }
     }

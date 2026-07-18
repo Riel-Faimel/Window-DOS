@@ -1,6 +1,8 @@
 #include "_pci.hpp"
 
-PCI_space::PCI_space(bool print_info){
+PCI_space::PCI_space(bool print_info): print_info(print_info){};
+
+inline void PCI_space::probe(){
     for(int dev = 0;dev < 32;dev++){
         pci_probe_device(0, dev, print_info);
     }
@@ -15,7 +17,7 @@ PCI_space::PCI_space(bool print_info){
         print_hex(static_cast<u16>(config.get_size()));
         screen->print(" devices found\r\n");
     }
-};
+}
 
 inline void PCI_space::pci_lookfor_addr(int bus, int dev, int func, int reg){
     unsigned int addr = (1<<31)|(bus<<16)|(dev<<11)|(func<<8)|(reg&0xFC);
@@ -108,7 +110,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
     }
 }
 
-void PCI_space::set_device_driver(){
+void PCI_space::set_driver(){
     for(auto device : config){
         switch (device.Class_code[2]){
         case 0x01: // stroage controller

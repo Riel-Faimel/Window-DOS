@@ -15,18 +15,18 @@ public:
 
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums){
         unsigned read_num = 
-        /*
+        //*
         nums > total_sectors ? total_sectors - LBA : 
         //*/
         nums;
-        //*
+        /*
         kprint("reaing: ");print_hex(LBA+start);print_char(',');print_hex(read_num);print_char('\n');
         //*/
         return disk->read(buf, LBA + start, 0, read_num);
     }
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums){
         unsigned write_num = 
-        /*
+        //*
         nums > total_sectors ? total_sectors - LBA : 
         //*/
         nums;
