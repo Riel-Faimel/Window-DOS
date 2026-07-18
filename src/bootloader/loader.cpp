@@ -98,7 +98,7 @@ void LoaderMain(){
     driver_letter_space->read(win.h, 0, 5120);
     kprint("goto exe!\r\n");
     for(unsigned i = 0;i < 512;i++){
-        print_hex(win.buf[i+512], false);print_char(' ');
+        print_hex(win.buf[i+3], false);print_char(' ');
     }
     while(1);
     asm volatile 

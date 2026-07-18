@@ -284,32 +284,51 @@ FAT16::~FAT16(){
     }
 }
 
-unsigned FAT16::read(void *buf, unsigned cluster_start, unsigned byte_from, unsigned byte_read){
+unsigned FAT16::read(void *buf, unsigned cluster_start, unsigned byte_from, unsigned byte_read) {
+
+    unsigned start_sector = cluster_start * cluster_size + clu2blk + byte_from / 512;
+    unsigned byte_offset = byte_from % 512;
     
-    auto sec_read_pos = cluster_start*cluster_size + clu2blk - byte_from / 512;
-    auto bytes_skip = byte_from % 512;
-    unsigned char skip_buf [512];
-    /*
-    kprint("[cluster start, bytes start, bytes read] : ");
-    print_hex(cluster_start);print_hex(byte_from);print_hex(byte_read);
-    kprint(", sectors read");print_hex(sec_read_pos);print_char('\n');
-    //*/
-    /*
-    part->read(skip_buf, sec_read_pos, 0, 1);
-    for(unsigned i = 0;i < 512;i++) {
-        print_hex(skip_buf[i], false);print_char(' ');
+    unsigned char *dest = static_cast<unsigned char *>(buf);
+    unsigned bytes_copied = 0;
+    
+    if (byte_offset != 0) {
+        unsigned char temp_buf[512];
+        part->read(temp_buf, start_sector, 0, 1);
+        
+        unsigned first_copy = (512 - byte_offset < byte_read) ? 
+                              (512 - byte_offset) : byte_read;
+        
+        for (unsigned j = 0; j < first_copy; j++) {
+            dest[j] = temp_buf[byte_offset + j];
+        }
+        
+        bytes_copied = first_copy;
+        start_sector++;
     }
-    //*/
-
-    part->read(skip_buf, sec_read_pos, 0, 1);
-
-    unsigned i = 0;
-    for (unsigned j = bytes_skip;j < 512;i++, j++) {
-        static_cast<unsigned char *>(buf)[i] = skip_buf[j];
+    
+    if (bytes_copied < byte_read) {
+        unsigned remaining = byte_read - bytes_copied;
+        unsigned full_sectors = remaining / 512;
+        
+        if (full_sectors > 0) {
+            part->read(dest + bytes_copied, start_sector, 0, full_sectors);
+            bytes_copied += full_sectors * 512;
+            start_sector += full_sectors;
+        }
+        
+        if (bytes_copied < byte_read) {
+            unsigned char temp_buf[512];
+            part->read(temp_buf, start_sector, 0, 1);
+            
+            unsigned last_copy = byte_read - bytes_copied;
+            for (unsigned j = 0; j < last_copy; j++) {
+                dest[bytes_copied + j] = temp_buf[j];
+            }
+        }
     }
-
-    part->read(static_cast<unsigned char *>(buf)+i, sec_read_pos, 0, (byte_read-i)/512);
-    return 0;
+    
+    return bytes_copied;
 }
 
 unsigned FAT16::write(void *, unsigned int, unsigned int, unsigned int){
