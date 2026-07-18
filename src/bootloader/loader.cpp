@@ -87,23 +87,48 @@ void LoaderMain(){
     
     GDT gdt{_gdt_space, 8192, idt};
 
+    //*
     #pragma pack(push, 1)
     struct {
         _WIN h;
-        unsigned char buf[512];
+        unsigned char buf[5120];
+    } win;
+    #pragma pack(pop)
+    driver_letter_space->open(win.h, "B:\\C.EXE");
+    driver_letter_space->read(win.h, 0, 5120);
+    kprint("goto exe!\r\n");
+    for(unsigned i = 0;i < 512;i++){
+        print_hex(win.buf[i+512], false);print_char(' ');
+    }
+    while(1);
+    asm volatile 
+    (
+        "jmp *%0"
+        :
+        : "r"(win.buf)
+        : "memory"
+    );
+    //*/
+
+    /*
+    #pragma pack(push, 1)
+    struct {
+        _WIN h;
+        unsigned char buf[1024];
     } win;
     #pragma pack(pop)
     if (driver_letter_space->open(win.h, "B:\\INIT") == (unsigned)-1) \
     { kprint("    Not found initializer!\n"); } \
     else kprint("Found INIT\n");
     
-    driver_letter_space->read(win.h, 0, 512);
+    driver_letter_space->read(win.h, 0, 1024);
     kprint("    Kernel initialized done!\r\n");
 
-    for (unsigned i = 0;i < 512;i++) {\
+    for (unsigned i = 0;i < 1024;i++) {\
         auto ch = win.buf[i];\
         print_hex(ch, false);print_char(' ');\
     }
+    //*/
     /*
     PCI_space PCI_device_spaceP{false};
     PCI_device_spaceP.set_device_driver();
