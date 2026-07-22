@@ -10,6 +10,7 @@ include $(SRC_DIR)bootloader/registry/registry.mk
 include $(SRC_DIR)bootloader/DOSsyscall/DOSsyscall.mk
 include $(SRC_DIR)bootloader/SSS/DLS.mk
 include $(SRC_DIR)bootloader/PDS/pds.mk
+include $(SRC_DIR)bootloader/multiCE/multiCE.mk
 
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -28,13 +29,14 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/drv.o\
 	$(BUILD_DIR)bootloader/module.o\
 	$(BUILD_DIR)bootloader/registry.o\
-	$(BUILD_DIR)bootloader/DOSsyscall.o\
 	$(BUILD_DIR)bootloader/SSS.o\
-	$(BUILD_DIR)bootloader/PDS.o
+	$(BUILD_DIR)bootloader/PDS.o\
+	$(BUILD_DIR)bootloader/multiCE.o
 
 #	$(BUILD_DIR)bootloader/test.o\
 	$(BUILD_DIR)bootloader/CenterShell.o\
 	$(BUILD_DIR)bootloader/part-fs.o\
+	$(BUILD_DIR)bootloader/DOSsyscall.o\
 	
 	$(LDCMD_F32) $@ $^
 

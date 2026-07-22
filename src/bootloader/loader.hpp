@@ -29,6 +29,7 @@ extern bool *__boot_loader_end;
 //#include <part-fs/las.hpp>
 #include <DOSsyscall/DOScall.hpp>
 #include <SSS/SSS.hpp>
+#include <multiCE/Multi-Channel_exec.hpp>
 
 #include <interface/Window.hpp>
 

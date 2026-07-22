@@ -79,15 +79,16 @@ void LoaderMain(){
     screen->print("[INFO] PIC set done\n");
 
     asm volatile ("sti");
+    GDT gdt{_gdt_space, 8192, idt};
 
     StorageSubSystem sss{};
     PDS pds{};
     pds.probe();
     pds.set_driver();
     
-    GDT gdt{_gdt_space, 8192, idt};
+    multiCE executor;
 
-    //*
+    /*
     #pragma pack(push, 1)
     struct {
         _WIN h;
