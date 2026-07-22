@@ -1,10 +1,10 @@
-#ifndef __global_WIN_hpp
-#define __global_WIN_hpp
+#ifndef __globalWinHandle_hpp
+#define __globalWinHandle_hpp
 #include <global/type.hpp>
 #include <interface/WMgr.hpp>
 
 #pragma pack(push, 1)
-class _WIN {
+class WinHandle {
 protected:
 public:
     friend class WinMgr;
@@ -12,9 +12,9 @@ public:
     unsigned long long flag;
     void *extra;
     unsigned long long size;
-    inline _WIN(){};
-    _WIN(_WIN*);
-    inline ~_WIN(){};
+    inline WinHandle(){};
+    WinHandle(WinHandle*);
+    inline ~WinHandle(){};
 };
 #pragma pack(pop)
 

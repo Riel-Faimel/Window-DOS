@@ -129,6 +129,7 @@ public:
     unsigned close(unsigned );
     unsigned create(String);
     unsigned delet(String);
+    void *mmap(String);
 
     Cluster_Info* info(String);
     unsigned cmd(unsigned, String, void *argv, unsigned argc);

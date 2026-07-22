@@ -1,4 +1,4 @@
-#ifndef __global_WIN__hpp
-#define __global_WIN__hpp
-class _WIN;
+#ifndef __globalWinHandle__hpp
+#define __globalWinHandle__hpp
+class WinHandle;
 #endif

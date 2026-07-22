@@ -54,24 +54,28 @@ public:
     /**
      * read/write(Window, begin byte, byte nums) for read by sectors
      */
-    unsigned read(_WIN&, unsigned, unsigned);
-    unsigned write(_WIN&, unsigned, unsigned);
+    unsigned read(WinHandle&, unsigned, unsigned);
+    unsigned write(WinHandle&, unsigned, unsigned);
     /**
      * open(Window, String "A:\") for open a device also path on it
      */
-    unsigned open(_WIN&, String, u8 = Read|Write);
-    unsigned close(_WIN&);
+    unsigned open(WinHandle&, String, u8 = Read|Write);
+    unsigned close(WinHandle&);
     /**
      * creat/del(Window, String path) for files or folders, 
      * folder as file in this way
      */
-    unsigned create(_WIN&, String);
-    unsigned del(_WIN&, String);
+    unsigned create(WinHandle&, String);
+    unsigned del(WinHandle&, String);
     /**
      * Info(Window, String path) for get info of a file or folder or device
      */
-    Cluster_Info info(_WIN&, String);
-    unsigned cmd(_WIN&, unsigned, String, void *argv, unsigned argc);
+    Cluster_Info info(WinHandle&, String);
+    unsigned cmd(WinHandle&, unsigned, String, void *argv, unsigned argc);
+    /**
+     * mmap(Window, String) for map handling object to memory
+     */
+    void *mmap(WinHandle, String);
 };
 
 #endif

@@ -92,7 +92,7 @@ void LoaderMain(){
     /*
     #pragma pack(push, 1)
     struct {
-        _WIN h;
+        WinHandle h;
         unsigned char buf[5120];
     } win;
     #pragma pack(pop)
@@ -115,7 +115,7 @@ void LoaderMain(){
     /*
     #pragma pack(push, 1)
     struct {
-        _WIN h;
+        WinHandle h;
         unsigned char buf[1024];
     } win;
     #pragma pack(pop)

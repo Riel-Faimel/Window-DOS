@@ -26,7 +26,7 @@ void DLS::regist(Cluster *clu, String le){
     //kprint("===\nFound a disk! \n    ");kprint(letter);kprint(", Type: ");print_hex((u8)clu->info()->type);kprint(".\n");
 }
 
-unsigned DLS::open(_WIN &win, String file_path, u8 mode){
+unsigned DLS::open(WinHandle &win, String file_path, u8 mode){
     if(win.extra) { return -1; }
     // win.extra has other handle
     auto path_part = file_path.split(':');
@@ -47,7 +47,7 @@ unsigned DLS::open(_WIN &win, String file_path, u8 mode){
     return -2; // no such disk
 }
 
-unsigned DLS::close(_WIN &win){
+unsigned DLS::close(WinHandle &win){
     if(win.extra){
         Handle* h = static_cast<Handle*>(win.extra);
         auto id = h->ID;
@@ -59,7 +59,7 @@ unsigned DLS::close(_WIN &win){
     return -1;
 }
 
-unsigned DLS::read(_WIN &win, unsigned byte_offset, unsigned byte_read){
+unsigned DLS::read(WinHandle &win, unsigned byte_offset, unsigned byte_read){
     if(win.extra){
         Handle *h = reinterpret_cast<Handle *>(win.extra);
         for (auto [driver, _, id] : space) {
@@ -78,7 +78,7 @@ unsigned DLS::read(_WIN &win, unsigned byte_offset, unsigned byte_read){
     return (unsigned)-1;
 }
 
-unsigned DLS::write(_WIN &win, unsigned byte_offset, unsigned byte_write){
+unsigned DLS::write(WinHandle &win, unsigned byte_offset, unsigned byte_write){
     if(win.extra){
         Handle *h = reinterpret_cast<Handle *>(win.extra);
         return space[h->ID].driver->write(
@@ -89,21 +89,25 @@ unsigned DLS::write(_WIN &win, unsigned byte_offset, unsigned byte_write){
     else { return (unsigned)-1; }
 }
 
-unsigned DLS::create(_WIN &win, String filename){
+unsigned DLS::create(WinHandle &win, String filename){
     return (unsigned)-1;
 }
 
-unsigned DLS::del(_WIN &, String){
+unsigned DLS::del(WinHandle &, String){
     return (unsigned)-1;
 }
 
-Cluster_Info DLS::info(_WIN& win, String s){
+Cluster_Info DLS::info(WinHandle& win, String s){
     if(win.extra) return *space[static_cast<Handle*>(win.extra)->ID].driver->info(s);
     else return {};
 }
 
-unsigned DLS::cmd(_WIN &win, unsigned n, String s, void *argv, unsigned argc){
+unsigned DLS::cmd(WinHandle &win, unsigned n, String s, void *argv, unsigned argc){
     if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->cmd(n, s,argv, argc);
     else return -1;
 }
 
+void *DLS::mmap(WinHandle win, String filepath) {
+    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->mmap(filepath);
+    else return nullptr;
+}
