@@ -11,6 +11,7 @@ include $(SRC_DIR)bootloader/DOSsyscall/DOSsyscall.mk
 include $(SRC_DIR)bootloader/SSS/DLS.mk
 include $(SRC_DIR)bootloader/PDS/pds.mk
 include $(SRC_DIR)bootloader/multiCE/multiCE.mk
+include $(SRC_DIR)bootloader/TM/TM.mk
 
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -31,7 +32,8 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/registry.o\
 	$(BUILD_DIR)bootloader/SSS.o\
 	$(BUILD_DIR)bootloader/PDS.o\
-	$(BUILD_DIR)bootloader/multiCE.o
+	$(BUILD_DIR)bootloader/multiCE.o\
+	$(BUILD_DIR)bootloader/TM.o
 
 #	$(BUILD_DIR)bootloader/test.o\
 	$(BUILD_DIR)bootloader/CenterShell.o\

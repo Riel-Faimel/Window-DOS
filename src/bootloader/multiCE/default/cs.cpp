@@ -15,6 +15,6 @@ void cs::Ready() {
     tcbv[run_id].state = TCB::State::Run;
 }
 
-void cs::run(void (*)(size_t argc, void *argv)) {}
+void cs::run(void (*func)(size_t, void *)) {}
 
 void cs::cut(size_t tid, size_t num) {}

@@ -1,6 +1,5 @@
 #include "loader.hpp"
 
-mm reserved_space_for_mm;
 BootINFO *boot_infomation = reinterpret_cast<BootINFO *>(0x7C00 + 320);
 _Screen *screen;
 volatile IDT::IDT_item _IDT[256];
@@ -66,7 +65,7 @@ void LoaderMain(){
      * TODO:
      * take care if this allloccater full
      */
-    new (&reserved_space_for_mm) mm(4096, 1024, (void *)0x100000, __boot_loader_end);
+    mm(4096, 1024, (void *)0x100000, __boot_loader_end);
     registry_editor reg_edit;
     screen = init_screen();
 
@@ -86,7 +85,9 @@ void LoaderMain(){
     pds.probe();
     pds.set_driver();
     
-    multiCE executor;
+    TaskManager taskmgr;
+
+    taskmgr.exec("B:\\INIT");
 
     /*
     #pragma pack(push, 1)

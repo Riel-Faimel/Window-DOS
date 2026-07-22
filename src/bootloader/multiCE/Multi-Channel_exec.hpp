@@ -8,6 +8,10 @@ class multiCE {
 
 public:
     multiCE();
+
+    void run(void (*func)(size_t, void *));
+    void cut(size_t, size_t);
+    void yield();
 };
 
 #endif

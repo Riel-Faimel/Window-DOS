@@ -189,7 +189,7 @@ unsigned FAT16::open(String filename){
     if (auto this_filename = filename.get_word('\\');resolv_dir(dir, 512, this_filename) != 0) {
         // found
         cluster_id = dir->_8_3FN.first_cluster_low|(dir->_8_3FN.first_cluster_high << 16);
-        print_hex(cluster_id);print_char('\n');
+        //print_hex(cluster_id);print_char('\n');
         dir = reinterpret_cast<DIR *>(&dir_buf[0]);
         part->read(dir, cluster_id, 0, cluster_size);
     } else {
