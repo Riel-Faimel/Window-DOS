@@ -42,8 +42,6 @@ _start:
     jmp .ctor_loop
 .ctor_done:
 
-    sti
-
     call LoaderMain
 
     cli

@@ -451,11 +451,11 @@ void IDE_DISK::check(){
         return;
     }
     
-    if(status & 0x80) screen->print("-- Device Busy --\n");
-    if(status & 0x40) screen->print("-- Device Ready --\n");
-    if(status & 0x20) screen->print("-- Device Fault --\n");
-    if(status & 0x10) screen->print("-- Data Request Ready --\n");
-    if(status & 0x08) screen->print("-- Device Error --\n");
+    if(status & 0x80) kprint("-- Device Busy --\n");
+    if(status & 0x40) kprint("-- Device Ready --\n");
+    if(status & 0x20) kprint("-- Device Fault --\n");
+    if(status & 0x10) kprint("-- Data Request Ready --\n");
+    if(status & 0x08) kprint("-- Device Error --\n");
     
     // 空闲状态：不忙、无错误、无数据请求
     if(!(status & 0x80) && !(status & 0x08) && !(status & 0x10)) {

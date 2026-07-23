@@ -1,6 +1,7 @@
 #ifndef __bootloader_MCE_Multi_Channel_exec_hpp
 #define __bootloader_MCE_Multi_Channel_exec_hpp
 
+#include <global/type.hpp>
 #include <interface/TD/sechduler.hpp>
 
 class multiCE {

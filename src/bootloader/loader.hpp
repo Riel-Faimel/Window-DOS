@@ -20,21 +20,16 @@ extern bool *__boot_loader_end;
 #include <mm/mm.hpp>
 #include <mm/gdt.hpp>
 #include <drv/drv.hpp>
-//#include <srv/serve.hpp>
 #include <IDT_L/idt.hpp>
-//#include <CenterShell/cs.hpp>
 #include <registry/registry.hpp>
 #include <IDT_L/IDNT.hpp>
 #include <PDS/PCI/pci.hpp>
-//#include <part-fs/las.hpp>
-#include <DOSsyscall/DOScall.hpp>
 #include <SSS/SSS.hpp>
 #include <TM/TM.hpp>
-
 #include <interface/Window.hpp>
 
-//#include <hardlib/x86/port.h>
-//#include <module/changestack.cpp>
+//#include <DOSsyscall/DOScall.hpp>
+
 import changestack;
 import lib32;
 //import cs_mod;

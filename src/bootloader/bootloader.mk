@@ -3,9 +3,7 @@ include $(MK_DIR)x86.mk
 include $(SRC_DIR)bootloader/mm/mm.mk
 include $(SRC_DIR)bootloader/IDT_L/idt.mk
 include $(SRC_DIR)bootloader/drv/drv.mk
-#include $(SRC_DIR)bootloader/part-fs/part-fs.mk
 include $(SRC_DIR)bootloader/module/module.mk
-#include $(SRC_DIR)bootloader/CenterShell/CenterShell.mk
 include $(SRC_DIR)bootloader/registry/registry.mk
 include $(SRC_DIR)bootloader/DOSsyscall/DOSsyscall.mk
 include $(SRC_DIR)bootloader/SSS/DLS.mk
@@ -18,7 +16,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 -include $(OBJECTS:.o=.d)
 
 $(BUILD_DIR)bootloader/loader.o: $(SRC_DIR)bootloader/loader.cpp
-#$(BUILD_DIR)bootloader/test.o: $(SRC_DIR)bootloader/test.cpp
 $(BUILD_DIR)bootloader/start/_start.o: $(SRC_DIR)bootloader/start/_start.asm
 $(BUILD_DIR)bootloader/start/boot.bin: $(SRC_DIR)bootloader/start/boot.asm
 

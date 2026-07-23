@@ -4,8 +4,7 @@ BootINFO *boot_infomation = reinterpret_cast<BootINFO *>(0x7C00 + 320);
 _Screen *screen;
 volatile IDT::IDT_item _IDT[256];
 volatile GDT::GDTEntry _gdt_space[8192];
-
-Window<32> win;
+IDT idt(_IDT);
 
 _Screen *init_screen(){
     if(boot_infomation->screen_mode){
@@ -29,35 +28,10 @@ _Screen *init_screen(){
         }
     };
 }
-/*
-void print_esp() {
-    void *p;
-    screen->print("esp: ");
-    asm volatile (
-        "mov %%esp, %0"
-        : "=r"(p)
-    );
-    print_hex(reinterpret_cast<unsigned>(p));
-    screen->print("\r\n");
-}
 
-void print_ss() {
-    void *p;
-    screen->print("ss: ");
-    asm volatile (
-        "mov %%ss, %0"
-        : "=r"(p)
-    );
-    print_hex(reinterpret_cast<unsigned>(p));
-    screen->print("\r\n");
-}
-*/
-IDT idt(_IDT);
 
 __attribute__((optimize("O0")))
 void LoaderMain(){
-    asm volatile ("cli");
-
     /**
      * TODO: (Done)
      * take care of the address, if it write the code section?
@@ -65,7 +39,7 @@ void LoaderMain(){
      * TODO:
      * take care if this allloccater full
      */
-    mm(4096, 1024, (void *)0x100000, __boot_loader_end);
+    mm(4096, 4096, (void *)0x100000, __boot_loader_end);
     registry_editor reg_edit;
     screen = init_screen();
 
@@ -87,55 +61,5 @@ void LoaderMain(){
     
     TaskManager taskmgr;
 
-    taskmgr.exec("B:\\INIT");
-
-    /*
-    #pragma pack(push, 1)
-    struct {
-        _WIN h;
-        unsigned char buf[5120];
-    } win;
-    #pragma pack(pop)
-    driver_letter_space->open(win.h, "B:\\C.EXE");
-    driver_letter_space->read(win.h, 0, 5120);
-    kprint("goto exe!\r\n");
-    for(unsigned i = 0;i < 512;i++){
-        print_hex(win.buf[i+3], false);print_char(' ');
-    }
-    while(1);
-    asm volatile 
-    (
-        "jmp *%0"
-        :
-        : "r"(win.buf)
-        : "memory"
-    );
-    //*/
-
-    /*
-    #pragma pack(push, 1)
-    struct {
-        _WIN h;
-        unsigned char buf[1024];
-    } win;
-    #pragma pack(pop)
-    if (driver_letter_space->open(win.h, "B:\\INIT") == (unsigned)-1) \
-    { kprint("    Not found initializer!\n"); } \
-    else kprint("Found INIT\n");
-    
-    driver_letter_space->read(win.h, 0, 1024);
-    kprint("    Kernel initialized done!\r\n");
-
-    for (unsigned i = 0;i < 1024;i++) {\
-        auto ch = win.buf[i];\
-        print_hex(ch, false);print_char(' ');\
-    }
-    //*/
-    /*
-    PCI_space PCI_device_spaceP{false};
-    PCI_device_spaceP.set_device_driver();
-    while(1){asm volatile ("hlt");}
-    DOScall disk_operating_system_system_call{idt};
-    CenterShell cs;
-    //*/
+    taskmgr.exec("B:\\INIT.EXE");
 }

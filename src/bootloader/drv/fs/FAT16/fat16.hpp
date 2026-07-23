@@ -136,7 +136,7 @@ public:
     void format();
     void set_filesystem_name(char *name);
 
-    private:
+private:
     u8 resolv_dir(DIR *&, unsigned, String);
     unsigned fat_map(unsigned) const;
     unsigned clu2sec_map(unsigned)const;
