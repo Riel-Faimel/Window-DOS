@@ -75,7 +75,7 @@ public:
     /**
      * mmap(Window, String) for map handling object to memory
      */
-    void *mmap(WinHandle, String);
+    void *mmap(WinHandle, String, void *);
 };
 
 #endif

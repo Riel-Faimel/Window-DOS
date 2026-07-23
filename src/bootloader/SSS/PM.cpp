@@ -58,6 +58,7 @@ public:
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums) {
         return disk->write(buf, LBA, 0, nums);
     }
+    void *mmap(String, void * = nullptr){};
     unsigned open(String s) { return static_cast<unsigned>(s.to_int()); }
     unsigned close(unsigned) { return 0; }
     unsigned create(String) { return 0; }

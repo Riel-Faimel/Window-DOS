@@ -366,6 +366,6 @@ unsigned FAT16::clu2sec_map(unsigned clu)const {
     return (clu-2) * cluster_size + clu2blk;
 }
 
-void *FAT16::mmap(String filepath) {
+void *FAT16::mmap(String filepath, void * = nullptr) {
     ;
 }

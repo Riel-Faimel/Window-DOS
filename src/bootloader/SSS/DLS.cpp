@@ -107,7 +107,7 @@ unsigned DLS::cmd(WinHandle &win, unsigned n, String s, void *argv, unsigned arg
     else return -1;
 }
 
-void *DLS::mmap(WinHandle win, String filepath) {
-    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->mmap(filepath);
+void *DLS::mmap(WinHandle win, String filepath, void *addr = nullptr) {
+    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->mmap(filepath, addr);
     else return nullptr;
 }

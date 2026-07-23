@@ -11,7 +11,7 @@ public:
     virtual unsigned create(String) = 0;
     virtual unsigned delet(String) = 0;
 
-    virtual void *mmap(String) = 0;
+    virtual void *mmap(String, void *) = 0;
 };
 
 #endif
