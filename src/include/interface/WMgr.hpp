@@ -7,11 +7,11 @@
 
 class WinMgr{
 private:
-    friend class _WIN;
-    bool regist(_WIN win);
-    void destroy(_WIN win);
+    friend class WinHandle;
+    bool regist(WinHandle win);
+    void destroy(WinHandle win);
 };
 
-extern WinMgr *_WINDOW_MANAGER;
+extern WinMgr *WinHandleDOW_MANAGER;
 
 #endif

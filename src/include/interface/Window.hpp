@@ -1,23 +1,23 @@
-#ifndef ____WIN
-#define ____WIN
+#ifndef ___WinHandle
+#define ___WinHandle
 
 #include <global/WIN.hpp>
 
 template<unsigned N>
-class Window : _WIN {
+class Window : WinHandle {
 private:
     unsigned char buffer[N];
 public:
     Window(){
         size = N;
     }
-    Window(_WIN *win):_WIN{win}{
+    Window(WinHandle *win):WinHandle{win}{
         if(win != this){
             *win = {};
         }
     }
     Window(Window &) = delete;
-    Window(Window &&win):Window{static_cast<_WIN *>(&win)}{}
+    Window(Window &&win):Window{static_cast<WinHandle *>(&win)}{}
     ~Window() = default;
 
     template<typename T>
@@ -30,13 +30,13 @@ public:
         if((id++) * sizeof(T) <= N)return reinterpret_cast<T *>(buffer)[id];
     }
 
-    Window &operator= (_WIN *win){
-        *static_cast<_WIN*>(this) = *win;
+    Window &operator= (WinHandle *win){
+        *static_cast<WinHandle*>(this) = *win;
         *win = {};
         return *this;
     }
     Window &operator= (Window &&win){
-        *static_cast<_WIN*>(this) = *static_cast<_WIN*>(&win);
+        *static_cast<WinHandle*>(this) = *static_cast<WinHandle*>(&win);
         win = {};
         return *this;
     }
@@ -50,7 +50,7 @@ public:
 
 /*
 template<>
-class Window<0xFFFFFFFF> : _WIN{
+class Window<0xFFFFFFFF> : WinHandle{
 private:
     unsigned char *buffer;
 public:
