@@ -1,20 +1,13 @@
-#ifndef __bootloader_IDT_L_idt_hpp
-#define __bootloader_IDT_L_idt_hpp
+#ifndef __bootloader_DescrpTable_idt_hpp
+#define __bootloader_DescrpTable_idt_hpp
 
 #include <global/type.hpp>
-#include <IDT_L/idt_.hpp>
+#include <DescrpTable/idt_.hpp>
+#include "descrptor.hpp"
 
 class IDT{
-public:
-#pragma pack(push, 1)
-    struct IDT_item{
-        u16 addr_low = 0;
-        u16 selector = 0x08;
-        u8 zero = 0;
-        u8 type_attr = 0x8E;
-        u16 addr_high = 0;
-    };
-#pragma pack(pop)
+    using IDT_item = descrptor::IDTEntry;
+
 private:
     volatile IDT_item *idt_base;
 public:
@@ -32,6 +25,6 @@ public:
 };
 
 extern unsigned long long _time_count;
-extern volatile IDT::IDT_item _IDT[256];
+extern volatile descrptor::IDTEntry _IDT[256];
 
 #endif

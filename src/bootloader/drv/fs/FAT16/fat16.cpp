@@ -10,7 +10,7 @@ status(RAW){
     part->read(bpb.buf, 0, 0, 1);
     if(
         bpb.boot_sector_sign == 0xAA55 &&
-        bpb.bytes_per_sector == 512
+        bpb.root_entries == 512
     ){
         cluster_size = bpb.sectors_per_cluster;
         if(bpb.fat_size_16 > 0){
@@ -43,9 +43,9 @@ FORMATED:
     FAT_table = new unsigned short [bpb.fat_size_16 * 256];
     part->read(FAT_table, bpb.reserved_sectors, 0, bpb.fat_size_16);
     root_dir = (DIR *)new unsigned char [bpb.root_entries * 32];
-    rootdir_cluster_num = (cluster_size * 2) + clu2blk - (sizeof(DIR) * bpb.root_entries) / bpb.bytes_per_sector;
-    part->read(root_dir, rootdir_cluster_num, 0, (bpb.root_entries + 15) / 16);
-    //some problem
+    rootdir_sector_num = bpb.reserved_sectors + bpb.num_fats * bpb.fat_size_16;
+    part->read(root_dir, rootdir_sector_num, 0, (bpb.root_entries + 15) / 16);
+    //for(unsigned i = 0;i < 512;i++) { print_hex(reinterpret_cast<unsigned char *>(root_dir)[i], false);print_char(' '); }
     return;
 
 SET_BPB:
@@ -65,14 +65,13 @@ SET_BPB:
     bpb.bytes_per_sector = 512;//fixed
     bpb.sectors_per_cluster= 1 << cluster_index;
     bpb.reserved_sectors = 1;
-    bpb.num_fats = 2; //
+    bpb.num_fats = 2;
     bpb.root_entries = 512; //fixed
     bpb.total_sectors_16 = (info->total_bytes > 65536) ? 0 : info->total_bytes;
     bpb.medis_descriptor = 0xF8; //hdd
     bpb.fat_size_16 = 0;
     bpb.sectors_per_track = 63; //hdd
     bpb.num_heads = 16;
-    //screen->print(" <into setting> ");
     bpb.total_sectors_32 = (info->total_bytes < 65536) ? 0 : info->total_bytes;
     bpb.drive_number = 0x80;
     bpb.reserved1 = 0; //fixed
@@ -115,14 +114,6 @@ void FAT16::format(){
     unsigned R_ = R;
     while(true){
         F_ = F;
-        if(!S){
-            screen->print("div 0");
-            return ;
-        };
-        if((int)(T - R - 2 * F - 32) < 0) {
-            screen->print("small");
-            return ;
-        }
         F = (T - R - 2 * F - 32 + 256 * S - 1)/(256 * S);
         if(F != F_)continue;
         R_ = R;
@@ -158,7 +149,6 @@ void FAT16::format(){
         part->write((unsigned short *)root, 0, R + 2 * F + i, 1);
     }
     
-    //screen->print(" <done> ");
     status = FORMAT;
     return;
 }
@@ -170,7 +160,7 @@ void FAT16::set_filesystem_name(char *name){
         bpb.volume_label[i] = name[i];
     }
     part->write(bpb.buf, 0, 0, 1);
-    screen->print("set name: ");screen->print(name);
+    kprint("set name: ");kprint(name);
 }
 
 unsigned FAT16::open(String filename){
@@ -179,7 +169,7 @@ unsigned FAT16::open(String filename){
         return -1; // fresh root directory
     }
     filename.get_word('\\'); // skip the first '\' for root directory
-    if (filename == String{}) return rootdir_cluster_num;
+    if (filename == String{}) return rootdir_sector_num;
 
     DIR *dir = root_dir;
     unsigned short dir_buf [cluster_size*256];
@@ -190,7 +180,7 @@ unsigned FAT16::open(String filename){
         // found
         cluster_id = dir->_8_3FN.first_cluster_low|(dir->_8_3FN.first_cluster_high << 16);
         //print_hex(cluster_id);print_char('\n');
-        dir = reinterpret_cast<DIR *>(&dir_buf[0]);
+        dir = reinterpret_cast<DIR *>(dir_buf);
         part->read(dir, cluster_id, 0, cluster_size);
     } else {
         // no such file
@@ -203,9 +193,9 @@ unsigned FAT16::open(String filename){
         if (!attr) { return -1; } // no such file
         // fresh cluster need to read and dir
         cluster_id = dir->_8_3FN.first_cluster_low|(dir->_8_3FN.first_cluster_high << 16);
-        dir = reinterpret_cast<DIR *>(&dir_buf[0]);
         if (filename == String{}) break; // resolv done
         if (!(attr & attribute_choice::dir)) { return -1; }
+        dir = reinterpret_cast<DIR *>(dir_buf);
         part->read(dir, cluster_id, 0, cluster_size);
     };
     return cluster_id;
@@ -241,6 +231,7 @@ u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
             // read whole dir buf but not done
             return 0;
         done:
+            //kprint(itemname);
             if (itemname != dirname) continue;
 
             dir = re;
@@ -249,6 +240,7 @@ u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
             itemname = String{item.name, 8}.trim();
             auto extname = String{item.ext, 3}.trim();
             if (extname != String{}) itemname = itemname + '.' + extname;
+            //kprint(itemname);
             if (dirname != itemname) continue;
 
             dir = &dir[i];

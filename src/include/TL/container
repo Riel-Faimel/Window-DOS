@@ -52,6 +52,15 @@ public:
         __append(move(obj));
     }
 
+    void init(T* ptr, size_t size_){
+        if(!ptr)return;
+        this->size = size_;
+        capacity = 1;
+        while(capacity < size_) capacity <<= 2;
+        if (this->ptr) delete[] this->ptr;
+        this->ptr = ptr;
+    }
+
 private:
     template<typename V>
     void __append(V &&obj){

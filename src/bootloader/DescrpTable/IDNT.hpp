@@ -1,5 +1,5 @@
-#ifndef __bootloader_IDT_L_IDNT_hpp
-#define __bootloader_IDT_L_IDNT_hpp
+#ifndef __bootloader_DescrpTable_IDNT_hpp
+#define __bootloader_DescrpTable_IDNT_hpp
 
 enum class IDNT : unsigned int {
     _DE = 0,

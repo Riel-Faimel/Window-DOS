@@ -1,6 +1,6 @@
 #include "_mm.hpp"
 
-mm::mm(
+MemoryManager::MemoryManager(
     unsigned block_size_init, 
     unsigned total_blocks_init, 
     void *base_address_init, 
@@ -15,7 +15,7 @@ bitmap(bitmap_init){
     alloclist = new(&reserved_space_for_ptr2size_list_of_mememory_manager) _ptr2size(alloc(sizeof(ptr2size_list_item) * size), size);
 }
 
-void *mm::alloc(size_t size){
+void *MemoryManager::alloc(size_t size){
     unsigned blkneed = (size / block_size) + 1;
     for(unsigned i = 0;i < total_blocks;i++){
         if(bitmap[i])continue;
@@ -40,21 +40,19 @@ void *mm::alloc(size_t size){
     return NULL_PTR;
 }
 
-void mm::dealloc(void *ptr){
-    unsigned size = alloclist->xxx(ptr);
+void MemoryManager::dealloc(void *ptr){
+    unsigned size = alloclist->remove(ptr);
     if(size == 0xFFFFFFFF)return ;
     unsigned blkfree = (size + block_size - 1)/ block_size;
     unsigned blkstart = (static_cast<unsigned char *>(ptr) - static_cast<unsigned char *>(base_address))/block_size;
     for(unsigned free = 0;free < blkfree;free++){
         bitmap[blkstart + free] = false;
-    };
+    }
 }
 
 inline _ptr2size::_ptr2size(void *ptr, unsigned int size):
 list_address(static_cast<ptr2size_list_item *>(ptr)),
-list_size(size){
-    ;
-}
+list_size(size){}
 
 void _ptr2size::regist(void *ptr, unsigned int size){
     for(unsigned i = 0;i < list_size;i++){
@@ -73,7 +71,7 @@ unsigned int _ptr2size::get_size(void *ptr){
     return 0xFFFFFFFF;
 }
 
-unsigned int _ptr2size::xxx(void *ptr){
+unsigned int _ptr2size::remove(void *ptr){
     for(unsigned i = 0;i < list_size;i++){
         if(list_address[i].ptr == ptr){
             unsigned re = list_address[i].size;
@@ -85,7 +83,7 @@ unsigned int _ptr2size::xxx(void *ptr){
     return 0xFFFFFFFF;
 }
 
-mm *memorymanager_objectpointer;
+MemoryManager *memorymanager_objectpointer;
 
 void *operator new(size_t size){
     return memorymanager_objectpointer->alloc(size);

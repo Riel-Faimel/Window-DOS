@@ -2,20 +2,18 @@
 
 BootINFO *boot_infomation = reinterpret_cast<BootINFO *>(0x7C00 + 320);
 _Screen *screen;
-volatile IDT::IDT_item _IDT[256];
-volatile GDT::GDTEntry _gdt_space[8192];
+volatile descrptor::IDTEntry _IDT[256];
+volatile descrptor::Entry _gdt_space[8192];
 IDT idt(_IDT);
 
 _Screen *init_screen(){
     if(boot_infomation->screen_mode){
-        //return new VBE;
         _Screen *re = new VGA_text_mode;
         re->clear();
         re->print("[INFO] VBE mode\r\n");
         return re;
     }else{
         if(boot_infomation->graphic_mode){
-            //return new VGA_graphic_mode;
             _Screen *re = new VGA_text_mode;
             re->clear();
             re->print("[INFO] VGA graphic mode\r\n");
@@ -39,7 +37,7 @@ void LoaderMain(){
      * TODO:
      * take care if this allloccater full
      */
-    mm(4096, 4096, (void *)0x100000, __boot_loader_end);
+    MemoryManager mm{4096, 4096, (void *)0x100000, __boot_loader_end};
     registry_editor reg_edit;
     screen = init_screen();
 
@@ -55,11 +53,16 @@ void LoaderMain(){
     GDT gdt{_gdt_space, 8192, idt};
 
     StorageSubSystem sss{};
-    PDS pds{};
+    PeripheralDeviceSpace pds{};
     pds.probe();
     pds.set_driver();
     
     TaskManager taskmgr;
 
     taskmgr.exec("B:\\INIT.EXE");
+    /**
+     * shouldn't fall through to here
+     */
+
+    kprint("Unexcept Exit!\n");
 }

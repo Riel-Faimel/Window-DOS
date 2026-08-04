@@ -102,7 +102,7 @@ public:
     Cluster_Info info_ {.type=Cluster_Info::Type::FAT16};
     unsigned cluster_size; // sectors num
     unsigned char clu2blk; // sector offset
-    unsigned rootdir_cluster_num;
+    unsigned rootdir_sector_num;
 
 // status machine
     STATUS status;

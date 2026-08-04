@@ -1,6 +1,6 @@
 #ifndef __bootloader_drv_disk_IDE_ide_hpp
 #define __bootloader_drv_disk_IDE_ide_hpp
-#include <IDT_L/idt.hpp> 
+#include <DescrpTable/idt.hpp> 
 #include <interface/dev_cls/logicaldisk.hpp>
 #include "ide_.hpp"
 

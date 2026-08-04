@@ -1,5 +1,5 @@
 #include "_ide.hpp"
-#include <IDT_L/IDNT.hpp>
+#include <DescrpTable/IDNT.hpp>
 inline bool is_power_of_2(u32 n){
     return (n != 0) && ((n & (n - 1)) == 0);
 }

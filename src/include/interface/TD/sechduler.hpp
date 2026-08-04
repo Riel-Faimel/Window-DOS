@@ -5,21 +5,24 @@
 #include <global/type.hpp>
 #include "TCB.hpp"
 
-class Sec {
+class Sche {
 public:
-    virtual void init(TCB*) = 0;
+    virtual void init(TCB* tcbv, size_t tcvc) = 0;
 
-    virtual void Switch() = 0;
+    /**
+     * Schedule Decision
+     */
+    virtual void ScheduleDecision() = 0;
+    /**
+     * TCB ID.
+     * -1: this thread control block
+     * -2: any thread control block
+     */
+    virtual void Switch(size_t to) = 0;
+    virtual void cut(size_t thread_id, size_t int_num) = 0;
+    virtual void run(void (*func)(size_t, void *), size_t argc, void *argv) = 0; // Create Thread
 
-    virtual void kill() = 0; // Run/Wait -> Die
-    virtual void yield() = 0; // Run -> Wait
-    virtual void Ready() = 0; // Wait -> Run
-
-    virtual void cut(size_t, size_t) = 0;
-
-    virtual void run(void (*)(size_t, void *)) = 0; // Create Thread
-
-    virtual ~Sec() = default;
+    virtual ~Sche() = default;
 };
 
 #endif

@@ -18,11 +18,11 @@ extern bool *__boot_loader_end;
 
 // bootloader modes
 #include <mm/mm.hpp>
-#include <mm/gdt.hpp>
+#include <DescrpTable/gdt.hpp>
 #include <drv/drv.hpp>
-#include <IDT_L/idt.hpp>
+#include <DescrpTable/idt.hpp>
 #include <registry/registry.hpp>
-#include <IDT_L/IDNT.hpp>
+#include <DescrpTable/IDNT.hpp>
 #include <PDS/PCI/pci.hpp>
 #include <SSS/SSS.hpp>
 #include <TM/TM.hpp>

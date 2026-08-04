@@ -6,7 +6,7 @@
 
 class _ptr2size;
 
-class mm{
+class MemoryManager{
 private:
     unsigned block_size;
     unsigned total_blocks;
@@ -14,8 +14,8 @@ private:
     bool *bitmap;
     _ptr2size *alloclist;
 public:
-    mm(){};
-    mm(
+    MemoryManager(){};
+    MemoryManager(
         unsigned, unsigned, void *, bool *,
         unsigned size = 1024
     );
@@ -23,6 +23,6 @@ public:
     void dealloc(void *);
 };
 
-extern mm *memorymanager_objectpointer;
+extern MemoryManager *memorymanager_objectpointer;
 
 #endif

@@ -2,7 +2,7 @@
 #define __bootloader_drv_keyboard_keyboard_hpp
 
 #include <global/type.hpp>
-#include <IDT_L/idt_.hpp>
+#include <DescrpTable/idt_.hpp>
 namespace KeyBoard {
 extern char buffer[1024];
 extern bool click;

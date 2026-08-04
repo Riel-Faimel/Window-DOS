@@ -1,4 +1,4 @@
-#include <IDT_L/idt.hpp>
+#include <DescrpTable/idt.hpp>
 
 class DOScall {
 public:

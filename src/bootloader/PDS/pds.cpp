@@ -1,15 +1,15 @@
 #include "_pds.hpp"
 
-PDS::PDS(): pci{false}, usb() {}
+PeripheralDeviceSpace::PeripheralDeviceSpace(): pci{false}, usb() {}
 
-void PDS::remove(unsigned long long tpid){}
+void PeripheralDeviceSpace::remove(unsigned long long tpid){}
 
-void PDS::probe() {
+void PeripheralDeviceSpace::probe() {
     pci.probe();
     usb.probe();
 }
 
-void PDS::set_driver() {
+void PeripheralDeviceSpace::set_driver() {
     usb.set_driver();
     pci.set_driver();
 }

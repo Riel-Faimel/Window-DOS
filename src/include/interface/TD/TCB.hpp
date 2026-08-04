@@ -6,6 +6,7 @@
 /**
  * for both rax/eax
  */
+#pragma pack(push, 1)   
 struct TCB {
     size_t thread_ID;
 
@@ -46,6 +47,10 @@ struct TCB {
 
 //=== other ===
 
+    /**
+     * change only by multiCE
+     * scheduler can read only
+     */
     enum class State : unsigned char {
         Die,
         Run,
@@ -55,5 +60,6 @@ struct TCB {
     
     unsigned char time_size;
 };
+#pragma pack(pop)
 
 #endif
