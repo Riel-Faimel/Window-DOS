@@ -9,7 +9,8 @@ import lib32;
 #define LINE_NUM 25
 
 VGA_text_mode::VGA_text_mode(){
-    ;
+    clear();
+    screen = this;
 };
 
 void VGA_text_mode::_prt(char ch){
@@ -116,19 +117,3 @@ void VGA_text_mode::pt(const char *str, unsigned offset){
         buffer[offset + i] = 0x1F00 | str[i];
     }
 }
-
-bool VGA_text_mode::do_it_has_graphic_mode(){
-    return false;
-}
-
-_Screen::Screen_INFO VGA_text_mode::get_info(){}
-
-void VGA_text_mode::draw(
-    unsigned int /*left_down_x_offset*/, 
-    unsigned int /*left_down_y_offset*/, 
-    unsigned char */*picture*/, 
-    unsigned int /*picture_x_range*/, 
-    unsigned int //picture_y_range
-){}
-
-// === VGA graphic mode ===

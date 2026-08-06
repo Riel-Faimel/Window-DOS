@@ -59,6 +59,7 @@ public:
     /**
      * open(Window, String "A:\") for open a device also path on it
      */
+    __attribute__((regpram(3)))
     unsigned open(WinHandle&, String, u8 = Read|Write);
     unsigned close(WinHandle&);
     /**

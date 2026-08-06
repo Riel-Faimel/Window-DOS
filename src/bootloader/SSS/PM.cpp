@@ -111,13 +111,13 @@ void PM::resolve(LogicalDisk *disk) {
             case System_ID::FAT16_:
             case System_ID::FAT16__:
                 fs = new FAT16{part};
-                driver_letter_space->regist(fs);
+                driverletterspace->regist(fs);
                 break;
             default:
             case System_ID::Re:
             case System_ID::NULL:
                 fs = new RAW{part};
-                driver_letter_space->regist(fs);
+                driverletterspace->regist(fs);
                 break;
             }
         }

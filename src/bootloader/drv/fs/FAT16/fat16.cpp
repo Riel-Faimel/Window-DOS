@@ -231,7 +231,7 @@ u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
             // read whole dir buf but not done
             return 0;
         done:
-            //kprint(itemname);
+            print_char('<');kprint(itemname);print_char('>');
             if (itemname != dirname) continue;
 
             dir = re;
@@ -240,7 +240,7 @@ u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
             itemname = String{item.name, 8}.trim();
             auto extname = String{item.ext, 3}.trim();
             if (extname != String{}) itemname = itemname + '.' + extname;
-            //kprint(itemname);
+            //print_char('<');kprint(itemname);print_char('>');
             if (dirname != itemname) continue;
 
             dir = &dir[i];

@@ -1,20 +1,8 @@
 #include <global/type.hpp>
-extern "C" void LoaderMain();
+extern "C" {
+    void LoaderMain();
+}
 
-#pragma pack(push, 1)
-struct BootINFO {
-    unsigned char screen_mode: 1;
-    unsigned char graphic_mode: 1;
-    unsigned char buffer_base;
-    unsigned char bpp;
-    unsigned short width;
-    unsigned short height;
-    unsigned char boot_device;
-    unsigned char mmap_size;
-};
-#pragma pack(pop)
-
-extern bool *__boot_loader_end;
 
 // bootloader modes
 #include <mm/mm.hpp>
@@ -27,6 +15,7 @@ extern bool *__boot_loader_end;
 #include <SSS/SSS.hpp>
 #include <TM/TM.hpp>
 #include <interface/Window.hpp>
+#include <start/BIOSinfo.hpp>
 
 //#include <DOSsyscall/DOScall.hpp>
 

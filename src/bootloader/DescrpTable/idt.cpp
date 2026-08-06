@@ -180,7 +180,7 @@ void print_program_status(_program_status *frame){
     screen->print("\n");
     screen->print("\n");*/
 }
-
+/*
 void __attribute__((optimize("O0")))IDT::idtt() volatile {
     screen->print("idt object  idt table address :\r\n");
     print_hex((unsigned)this);
@@ -188,3 +188,4 @@ void __attribute__((optimize("O0")))IDT::idtt() volatile {
     print_hex((unsigned )idt_base);
     screen->print("\r\n");
 }
+*/

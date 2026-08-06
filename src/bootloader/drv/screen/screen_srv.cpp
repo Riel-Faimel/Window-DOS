@@ -1,6 +1,8 @@
 #include "screen_srv.hpp"
 #include "interface.hpp"
 
+VGA_text_mode *screen;
+
 void kprint(char *string){
     screen->print(string);
 }
@@ -54,6 +56,6 @@ void print_hex(unsigned val, bool a){
 }
 
 void print_char(char ch){
-    static void (_Screen::*print_func)(char) = &_Screen::_prt;
+    static void (VGA_text_mode::*print_func)(char) = &VGA_text_mode::_prt;
     (screen->*print_func)(ch);
 }

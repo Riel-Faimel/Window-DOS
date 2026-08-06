@@ -13,8 +13,8 @@ extern "C" {
 TaskManager::TaskManager() {}
 
 void TaskManager::exec(String filepath) {
-    WinHandle win;
-    if(driver_letter_space->open(win, filepath) == -1) {
+    WinHandle win{};
+    if(driverletterspace->open(win, filepath) == (unsigned)-1) {
         //No such file
         return;
     }

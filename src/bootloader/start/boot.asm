@@ -14,6 +14,7 @@ boot:
 
     cli 
     
+    ;read bootloader to 0x10000
     mov si, dap
     mov ah, 0x42
     int 0x13
@@ -41,8 +42,38 @@ boot:
     int 0x13
 .loader_done:
 
+    ;VGA text mode
     mov ax, 0x0003
     int 0x10
+
+;    jmp .mem_done
+;touch memory
+.mem:
+    mov eax, 0xE820
+    mov ecx, 20
+    mov edx, 0x534D4150
+    xor ebx, ebx
+    mov di, 0x5000
+    mov [di + 20], dword 1
+
+.mem_loop:
+    mov eax, 0xE820
+    mov ecx, 20
+    mov edx, 0x534D4150
+    int 0x15
+
+    jc $
+
+    cmp eax, 0x534D4150
+    jne $
+
+    add di, 20
+    inc byte [INFO.mmap_size]
+
+    test ebx, ebx
+    jnz .mem_loop
+
+.mem_done:
 
     ;A20 address bus
     in al, 0x92
@@ -82,13 +113,6 @@ _GDT:
     dd gdt
 
 times 320-($-$$) db 0
-Display_mode:
-    .attr db 0
-Vedio_base:
-    .buffer_base dd 0
-    .bpp db 0
-    .width dw 0
-    .height dw 0
 INFO:
     .boot_device db 0
     .mmap_size db 0

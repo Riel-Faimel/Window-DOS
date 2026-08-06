@@ -1,9 +1,9 @@
 #include "_DLS.hpp"
 
-DLS* driver_letter_space;
+DLS* driverletterspace;
 
 DLS::DLS(){
-    driver_letter_space = this;
+    driverletterspace = this;
 }
 
 void DLS::regist(Cluster *clu, String le){
@@ -26,16 +26,14 @@ void DLS::regist(Cluster *clu, String le){
     //kprint("===\nFound a disk! \n    ");kprint(letter);kprint(", Type: ");print_hex((u8)clu->info()->type);kprint(".\n");
 }
 
+__attribute__((regpram(4)))
 unsigned DLS::open(WinHandle &win, String file_path, u8 mode){
     if(win.extra) { return -1; }
     // win.extra has other handle
     auto path_part = file_path.split(':');
-    //for (auto s : path_part) { kprint("token: ");kprint(s);print_char('\n'); }
     for (auto [driver, letter, id] : space) {
-        //kprint("Open: ");kprint(letter);print_char('\n');
         if (letter == path_part[0]) {
             auto handle = driver->open(path_part[1]);
-            //kprint("Open done: ");print_hex(handle);print_char('\n');
             if (handle == (unsigned)-1) return -1; // not found
             win.extra = new Handle {
                 .ID=id, .file_handle=handle, 

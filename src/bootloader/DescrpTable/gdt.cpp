@@ -35,9 +35,11 @@ entries(entries_init), limit(limit_init) {
     gdt_ptr.limit = sizeof(GDTEntry) * limit - 1;
     gdt_ptr.base = reinterpret_cast<u32>(entries);
 
+    /*
     screen->print("GDT in: ");
     print_hex(reinterpret_cast<unsigned>(entries));
     print_char('\n');
+    //*/
 
     fresh_gdt(&gdt_ptr);
 }

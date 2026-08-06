@@ -8,7 +8,6 @@
 class IDT{
     using IDT_item = descrptor::IDTEntry;
 
-private:
     volatile IDT_item *idt_base;
 public:
     IDT(volatile IDT_item *);
@@ -19,9 +18,6 @@ public:
     bool had_handler(unsigned i) const;
 
     void set_PIC() volatile;
-
-public:
-    void idtt() volatile;
 };
 
 extern unsigned long long _time_count;
