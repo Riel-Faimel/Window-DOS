@@ -1,9 +1,11 @@
 #ifndef _GLOBAL_TYPE_HPP
 #define _GLOBAL_TYPE_HPP
 
+#include "bits/type.hpp"
+
 #ifdef _BITS_32
 #ifdef _BITS_64
-#error "danm define 32 and 64 bits for the same time!"
+#error "defined 32 and 64 bits for the same time!"
 #endif
 #endif
 
@@ -20,11 +22,118 @@ using __l16 = u16;
 using s32 = signed int;
 using u32 = unsigned int;
 using __l32 = u32;
+
 //only base on Windows_64
 #ifdef _BITS_32
 using size_t = unsigned int;
 using uintptr_t = unsigned long;
 using intptr_t = long;
+
+struct u64 {
+    u32 high;
+    u32 low;
+
+    constexpr u64() : high(0), low(0) {}
+    constexpr u64(u32 val) : high(0), low(val) {}
+    constexpr u64(u32 h, u32 l) : high(h), low(l) {}
+
+    constexpr u64 operator+(const u64& other) const {
+        u64 result;
+        result.low = low + other.low;
+        result.high = high + other.high + (result.low < low ? 1 : 0);
+        return result;
+    }
+    constexpr u64 operator+(const u32& other) const {
+        return u64{high, low+other};
+    }
+    constexpr u64 operator-(const u64& other) const {
+        u64 result;
+        result.low = low - other.low;
+        result.high = high - other.high - (low < other.low ? 1 : 0);
+        return result;
+    }
+    constexpr u64 operator-(const u32& other) {
+        return u64{high, low-other};
+    }
+    template<typename T>
+    constexpr u64 &operator+= (const T& other) {
+        *this = *this + other;
+        return *this;
+    }
+    template<typename T>
+    constexpr u64 &operator-= (const T& other) {
+        *this = *this - other;
+        return *this;
+    }
+
+    constexpr auto operator <=> (const u64& other) {
+        if (high != other.high) {
+            return high <=> other.high;
+        }
+        return low <=> other.low;
+    }
+    constexpr auto operator <=> (const u32& other) {
+        return high <=> 0 && low <=> other;
+    }
+
+    constexpr u64 operator|(const u64& other) const { return u64(high | other.high, low | other.low); }
+    constexpr u64 operator&(const u64& other) const { return u64(high & other.high, low & other.low); }
+
+    constexpr u64 operator<<(int bits) const {
+        if (bits <= 0) return *this;
+        if (bits >= 64) return u64(0, 0);
+        if (bits >= 32) return u64(low << (bits - 32), 0);
+        return u64((high << bits) | (low >> (32 - bits)), low << bits);
+    }
+    constexpr u64 operator>>(int bits) const {
+        if (bits <= 0) return *this;
+        if (bits >= 64) return u64(0, 0);
+        if (bits >= 32) return u64(0, high >> (bits - 32));
+        return u64(high >> bits, (low >> bits) | (high << (32 - bits)));
+    }
+
+    constexpr u64 operator*(const u64& other) = delete;
+    constexpr u64 operator*(u32 other) const {
+        u64 result(0, 0);
+        u64 tmp = *this;
+        while (other) {
+            if (other & 1) result += tmp;
+            tmp = tmp << 1;
+            other >>= 1;
+        }
+        return result;
+    }
+    constexpr u64 operator/(const u64& other) = delete;
+    constexpr u64 operator/(u32 divisor) const {
+        if (divisor == 0) return u64(0, 0);
+
+        u64 quotient(0, 0);
+        u64 remainder(0, 0);
+
+        for (int i = 63; i >= 0; i--) {
+            remainder = (remainder << 1) | u64(0, (*this >> i).low & 1);
+            if (remainder >= u64(0, divisor)) {
+                remainder = remainder - u64(0, divisor);
+                quotient = quotient | (u64(0, 1) << i);
+            }
+        }
+        return quotient;
+    }
+    constexpr u64 operator%(const u64& other) = delete;
+    constexpr u64 operator%(u32 divisor) const {
+        if (divisor == 0) return u64(0, 0);
+
+        u64 remainder(0, 0);
+        for (int i = 63; i >= 0; i--) {
+            remainder = (remainder << 1) | u64(0, (*this >> i).low & 1);
+            if (remainder >= u64(0, divisor)) {
+                remainder = remainder - u64(0, divisor);
+            }
+        }
+        return remainder;
+    }
+};
+
 #endif
 #ifdef _BITS_64
 using size_t = unsigned long long;

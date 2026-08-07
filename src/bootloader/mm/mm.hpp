@@ -6,10 +6,8 @@
 
 #pragma pack(push, 1)
 struct address_package {
-    u32 address_high;
-    u32 address_low;
-    u32 len_high;
-    u32 len_low;
+    u64 address;
+    u64 len;
 };
 
 class PhysicalPage {
@@ -56,11 +54,23 @@ public:
 
     address_generator aloc(size_t page_nums, bool need_continuous = false);
     unsigned dloc(address_package mem);
+    unsigned neaten();
 
 private:
-    mem_list* mem_list_root;
+    friend class Iterator;
+    static mem_list* mem_list_root;
 
+    class Iterator {
+        unsigned count = 0;
+        bool done = false;
+    public:
+        mem_list *operator* ();
+        bool operator!= (Iterator&);
+        Iterator& operator++ ();
+    };
     mem_list *findspace();
+    Iterator begin();
+    Iterator end();
 };
 
 

@@ -2,37 +2,30 @@
 
 MemoryManager::allocable *allocator;
 PhysicalPage* physicalpage;
+PhysicalPage::mem_list *PhysicalPage::mem_list_root = __boot_loader_end;
 
-PhysicalPage::PhysicalPage():
-mem_list_root{__boot_loader_end}{
+PhysicalPage::PhysicalPage(){
     mem_list_root[0] = {
         .mem = {},
         .next = nullptr,
         .exist = 255, .r1 = 0, 
         .r2 = 0, .r3 = 0,
     };
-    struct {
-        u32 h = 0;
-        u32 l = 0;
-    } total_page_num;
+    u64 total_byte_num{};
 
     for (unsigned i = 0;i < boot_infomation->mmap_size;i++)
     if(mmap_struc_base[i].type == 1) {
-        if (mmap_struc_base[i].base_low < 0x100000 && mmap_struc_base[i].base_high == 0) {
-            u32 top_low = mmap_struc_base[i].len_low + mmap_struc_base[i].base_low, top_high = 0;
-            if (top_low < mmap_struc_base[i].len_low || top_low < mmap_struc_base[i].base_low) {
-                top_high++;
-            }
-            top_high += mmap_struc_base[i].len_high + mmap_struc_base[i].base_high;
-            if (top_high < 0x100000) continue;
+        u64 base{mmap_struc_base[i].base_high, mmap_struc_base[i].base_low};
+        u64 len{mmap_struc_base[i].len_high, mmap_struc_base[i].len_low};
+        if (base < 0x100000) {
+            u64 top = base + len;
+            if (top < 0x100000) continue;
 
             mem_list_root[i].next = &mem_list_root[i+1];
             mem_list_root[i+1] = {
                 .mem = {
-                    .address_high = 0,
-                    .address_low = 0x100000,
-                    .len_high = (mmap_struc_base[i].len_high),
-                    .len_low = ((mmap_struc_base[i].len_low - 0x100000) + mmap_struc_base[i].base_low),
+                    .address{0x100000},
+                    .len = top - 0x100000,
                 },
                 .next = nullptr,
                 .exist = 1,
@@ -42,34 +35,22 @@ mem_list_root{__boot_loader_end}{
         else {
             mem_list_root[i].next = &mem_list_root[i+1];
             mem_list_root[i+1] = {
-                .mem = {
-                    .address_high = mmap_struc_base[i].base_high,
-                    .address_low = mmap_struc_base[i].base_low,
-                    .len_high = (mmap_struc_base[i].len_high),
-                    .len_low = (mmap_struc_base[i].len_low),
-                },
+                .mem = {base, len},
                 .next = nullptr,
                 .exist = 1,
                 .r1 = 0, .r2 = 0, .r3 = 0,
             };
         }
 
-        auto re = total_page_num.l + mem_list_root[i].mem.len_low;
-        if (re < total_page_num.l || re < mem_list_root[i].mem.len_low) {
-            total_page_num.h++;
-        }
-        total_page_num.l = re;
-        total_page_num.h += mem_list_root[i].mem.len_high;
+        auto re = total_byte_num + mem_list_root[i].mem.len;
     }
 
     /**
      * for root node, address come to total bytes
      * len for total free bytes
      */
-    mem_list_root[0].mem.len_high = total_page_num.h;
-    mem_list_root[0].mem.len_low = total_page_num.l;
-    mem_list_root[0].mem.address_high = total_page_num.h;
-    mem_list_root[0].mem.address_low = total_page_num.l;
+    mem_list_root[0].mem.len = total_byte_num; // all free
+    mem_list_root[0].mem.address = total_byte_num;
     physicalpage = this;
 }
 PhysicalPage::~PhysicalPage() {}
@@ -77,22 +58,47 @@ PhysicalPage::address_generator PhysicalPage::aloc(size_t page_nums, bool need_c
     return address_generator{page_nums, need_continuous, this};
 }
 unsigned PhysicalPage::dloc(address_package addrpkg) {
-    mem_list *new_node = new (findspace()) mem_list{
+    auto s = findspace();
+    if (!s) {
+        neaten();
+        s = findspace();
+        if (!s) return -1;
+    }
+    mem_list *new_node = new (s) mem_list{
         .mem = addrpkg,
         .next = mem_list_root[0].next,
         .exist = 1,
         .r1 = 0, .r2 = 0, .r3 = 0,
     };
     mem_list_root[0].next = new_node;
+    return 0;
 }
 PhysicalPage::mem_list *PhysicalPage::findspace() {
-    for (unsigned i = 0;reinterpret_cast<u32>(mem_list_root + i) < (0x9FFF0 - 4096);i++) {
-        if (mem_list_root->exist == 0) return mem_list_root+i;
+    for (auto memnode : *this) {
+        if (memnode->exist == 0) return memnode;
     }
     return nullptr;
 }
-
-//======
+unsigned PhysicalPage::neaten() {
+    ;
+}
+PhysicalPage::Iterator PhysicalPage::begin() {
+    return Iterator{};
+}
+PhysicalPage::Iterator PhysicalPage::end() {
+    return Iterator{};
+}
+PhysicalPage::mem_list *PhysicalPage::Iterator::operator*() {
+    return ::PhysicalPage::mem_list_root+count;
+}
+bool PhysicalPage::Iterator::operator!=(PhysicalPage::Iterator &) { return !done; }
+PhysicalPage::Iterator &PhysicalPage::Iterator::operator++() {
+    if (count * sizeof(mem_list) >= 0x9fff0 - StackSize - (u32)::PhysicalPage::mem_list_root) {
+        done = true;
+    } else {
+        count ++;
+    }
+}
 
 PhysicalPage::address_generator::address_generator(size_t pn, bool nc, PhysicalPage* mm):
 pageneedednums{pn}, need_continuous{nc}, memmgrptr{mm}{
@@ -108,22 +114,30 @@ PhysicalPage::address_generator::iterator PhysicalPage::address_generator::end()
     return {nullptr};
 }
 
-//======
-
 PhysicalPage::address_generator::iterator::iterator(PhysicalPage::address_generator *ptr):
 done{false}, count{1}, conditions{ptr}{
     if (
-        conditions->memmgrptr->mem_list_root[0].mem.len_high || // 64 always larger then 32
-        conditions->memmgrptr->mem_list_root[0].mem.len_low / 4096 > conditions->pageneedednums
+        ::PhysicalPage::mem_list_root[0].mem.len / 4096 > conditions->pageneedednums
     ) {
         no_mem = true;
         done = true;
     }
 }
 address_package PhysicalPage::address_generator::iterator::operator*() {
-    if (no_mem) return {.address_high = (u32)-1, .address_low = (u32)-1};
+    if (no_mem) return {.address = -1};
     if (conditions->need_continuous) {
-        ;
+        for (auto mem : *conditions->memmgrptr) {
+            if (mem->exist) {
+                if (
+                    auto p = mem->mem.address/4096;
+                    p >= conditions->pageneedednums
+                ) {
+                    auto r = p - conditions->pageneedednums;
+                    if (r > p) {}
+                    mem->mem.address = r*4096;
+                }
+            }
+        }
     }
     else {
         ;
@@ -135,14 +149,15 @@ bool PhysicalPage::address_generator::iterator::operator!=(PhysicalPage::address
 PhysicalPage::address_generator::iterator &PhysicalPage::address_generator::iterator::operator++() {
     if (
         conditions->pageneedednums && // need mem
-        conditions->memmgrptr->mem_list_root[count].next &&
-        conditions->memmgrptr->mem_list_root[count].next->exist == 1 // have mem
+        ::PhysicalPage::mem_list_root[count].next &&
+        ::PhysicalPage::mem_list_root[count].next->exist == 1 // have mem
     ) { count++; }
     else { done = true; }
     return *this;
 }
 
 //======
+
 KernelHeapFormat::KernelHeapFormat(void *page_base): sb{nullptr}{
     if (page_base && static_cast<SuperBlock *>(page_base)->magic == SuperBlockMagic) {
         sb = static_cast<SuperBlock *>(page_base);
@@ -156,11 +171,11 @@ void KernelHeapFormat::format(address_package addrpkg) {
     };
     #pragma pack(pop)
 
-    head *hptr = new (reinterpret_cast<void *>(addrpkg.address_low)) head {};
+    head *hptr = new (reinterpret_cast<void *>(addrpkg.address.low)) head {};
     hptr->sb.magic = SuperBlockMagic;
     hptr->ph.magic = PageHeadMagic;
-    hptr->sb.total_pages = addrpkg.len_low;
-    hptr->ph.page_count = addrpkg.len_low;
+    hptr->sb.total_pages = addrpkg.len.low;
+    hptr->ph.page_count = addrpkg.len.low;
     hptr->sb.page_head = &(hptr->ph);
 }
 void KernelHeapFormat::include(address_package addrpkg) {
@@ -208,8 +223,7 @@ void *MemoryManager::nopage::alloc(size_t size) {
     auto zone_start = sb->free_zones[level];
     if (zone_start == nullptr) {
         // need to init subzone level
-    }
-    while (zone_start->free_count == 0) {
+    } else while (zone_start->free_count == 0) {
         if (zone_start->next == nullptr) {
             // need to new subzone
             break;

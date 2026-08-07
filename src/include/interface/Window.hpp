@@ -1,5 +1,5 @@
-#ifndef ___WinHandle
-#define ___WinHandle
+#ifndef __include_interface_Window_hpp
+#define __include_interface_Window_hpp
 
 #include <global/WIN.hpp>
 

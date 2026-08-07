@@ -7,6 +7,7 @@
 #define PageHeadMagic 'RPHM'
 #define ObjectHeadGuard 'HG'
 #define ObjectTailGuard 'TG'
+#define StackSize 4096
 
 #pragma pack(push, 1)
 struct mmap_struc {
