@@ -2,7 +2,7 @@
 #define __include_interface_WMgr_hpp
 
 #include <global/type.hpp>
-class WinHanle;
+class WinHandle;
 
 class WinMgr{
 private:

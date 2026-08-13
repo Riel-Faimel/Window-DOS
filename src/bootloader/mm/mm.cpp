@@ -1,164 +1,13 @@
 #include "_mm.hpp"
 
 MemoryManager::allocable *allocator;
-PhysicalPage* physicalpage;
-PhysicalPage::mem_list *PhysicalPage::mem_list_root = __boot_loader_end;
-
-PhysicalPage::PhysicalPage(){
-    mem_list_root[0] = {
-        .mem = {},
-        .next = nullptr,
-        .exist = 255, .r1 = 0, 
-        .r2 = 0, .r3 = 0,
-    };
-    u64 total_byte_num{};
-
-    for (unsigned i = 0;i < boot_infomation->mmap_size;i++)
-    if(mmap_struc_base[i].type == 1) {
-        u64 base{mmap_struc_base[i].base_high, mmap_struc_base[i].base_low};
-        u64 len{mmap_struc_base[i].len_high, mmap_struc_base[i].len_low};
-        if (base < 0x100000) {
-            u64 top = base + len;
-            if (top < 0x100000) continue;
-
-            mem_list_root[i].next = &mem_list_root[i+1];
-            mem_list_root[i+1] = {
-                .mem = {
-                    .address{0x100000},
-                    .len = top - 0x100000,
-                },
-                .next = nullptr,
-                .exist = 1,
-                .r1 = 0, .r2 = 0, .r3 = 0,
-            };
-        } 
-        else {
-            mem_list_root[i].next = &mem_list_root[i+1];
-            mem_list_root[i+1] = {
-                .mem = {base, len},
-                .next = nullptr,
-                .exist = 1,
-                .r1 = 0, .r2 = 0, .r3 = 0,
-            };
-        }
-
-        auto re = total_byte_num + mem_list_root[i].mem.len;
-    }
-
-    /**
-     * for root node, address come to total bytes
-     * len for total free bytes
-     */
-    mem_list_root[0].mem.len = total_byte_num; // all free
-    mem_list_root[0].mem.address = total_byte_num;
-    physicalpage = this;
-}
-PhysicalPage::~PhysicalPage() {}
-PhysicalPage::address_generator PhysicalPage::aloc(size_t page_nums, bool need_continuous) {
-    return address_generator{page_nums, need_continuous, this};
-}
-unsigned PhysicalPage::dloc(address_package addrpkg) {
-    auto s = findspace();
-    if (!s) {
-        neaten();
-        s = findspace();
-        if (!s) return -1;
-    }
-    mem_list *new_node = new (s) mem_list{
-        .mem = addrpkg,
-        .next = mem_list_root[0].next,
-        .exist = 1,
-        .r1 = 0, .r2 = 0, .r3 = 0,
-    };
-    mem_list_root[0].next = new_node;
-    return 0;
-}
-PhysicalPage::mem_list *PhysicalPage::findspace() {
-    for (auto memnode : *this) {
-        if (memnode->exist == 0) return memnode;
-    }
-    return nullptr;
-}
-unsigned PhysicalPage::neaten() {
-    ;
-}
-PhysicalPage::Iterator PhysicalPage::begin() {
-    return Iterator{};
-}
-PhysicalPage::Iterator PhysicalPage::end() {
-    return Iterator{};
-}
-PhysicalPage::mem_list *PhysicalPage::Iterator::operator*() {
-    return ::PhysicalPage::mem_list_root+count;
-}
-bool PhysicalPage::Iterator::operator!=(PhysicalPage::Iterator &) { return !done; }
-PhysicalPage::Iterator &PhysicalPage::Iterator::operator++() {
-    if (count * sizeof(mem_list) >= 0x9fff0 - StackSize - (u32)::PhysicalPage::mem_list_root) {
-        done = true;
-    } else {
-        count ++;
-    }
-}
-
-PhysicalPage::address_generator::address_generator(size_t pn, bool nc, PhysicalPage* mm):
-pageneedednums{pn}, need_continuous{nc}, memmgrptr{mm}{
-    // stop yield
-}
-PhysicalPage::address_generator::~address_generator() {
-    // resume yield
-}
-PhysicalPage::address_generator::iterator PhysicalPage::address_generator::begin() {
-    return {this};
-}
-PhysicalPage::address_generator::iterator PhysicalPage::address_generator::end() const {
-    return {nullptr};
-}
-
-PhysicalPage::address_generator::iterator::iterator(PhysicalPage::address_generator *ptr):
-done{false}, count{1}, conditions{ptr}{
-    if (
-        ::PhysicalPage::mem_list_root[0].mem.len / 4096 > conditions->pageneedednums
-    ) {
-        no_mem = true;
-        done = true;
-    }
-}
-address_package PhysicalPage::address_generator::iterator::operator*() {
-    if (no_mem) return {.address = -1};
-    if (conditions->need_continuous) {
-        for (auto mem : *conditions->memmgrptr) {
-            if (mem->exist) {
-                if (
-                    auto p = mem->mem.address/4096;
-                    p >= conditions->pageneedednums
-                ) {
-                    auto r = p - conditions->pageneedednums;
-                    if (r > p) {}
-                    mem->mem.address = r*4096;
-                }
-            }
-        }
-    }
-    else {
-        ;
-    }
-}
-bool PhysicalPage::address_generator::iterator::operator!=(PhysicalPage::address_generator::iterator &){
-    return !done;
-}
-PhysicalPage::address_generator::iterator &PhysicalPage::address_generator::iterator::operator++() {
-    if (
-        conditions->pageneedednums && // need mem
-        ::PhysicalPage::mem_list_root[count].next &&
-        ::PhysicalPage::mem_list_root[count].next->exist == 1 // have mem
-    ) { count++; }
-    else { done = true; }
-    return *this;
-}
-
-//======
 
 KernelHeapFormat::KernelHeapFormat(void *page_base): sb{nullptr}{
+    if (page_base == nullptr) 
+    for (auto pkg : physicalpage->aloc(4096, true)) {
+        //only one time
+        format(pkg);
+    }
     if (page_base && static_cast<SuperBlock *>(page_base)->magic == SuperBlockMagic) {
         sb = static_cast<SuperBlock *>(page_base);
     }
@@ -171,16 +20,20 @@ void KernelHeapFormat::format(address_package addrpkg) {
     };
     #pragma pack(pop)
 
-    head *hptr = new (reinterpret_cast<void *>(addrpkg.address.low)) head {};
-    hptr->sb.magic = SuperBlockMagic;
-    hptr->ph.magic = PageHeadMagic;
-    hptr->sb.total_pages = addrpkg.len.low;
-    hptr->ph.page_count = addrpkg.len.low;
-    hptr->sb.page_head = &(hptr->ph);
+    sb = (SuperBlock *)new (reinterpret_cast<void *>(addrpkg.address.low)) head {
+        .sb = { .magic = SuperBlockMagic, .total_pages = addrpkg.len.low },
+        .ph = { .magic = PageHeadMagic, .page_end = (void *)((addrpkg.address+addrpkg.len).low) }
+    };
+    sb->page_head = (PageHead *)(sb+1);
 }
 void KernelHeapFormat::include(address_package addrpkg) {
-    ;
+    PageHead *page = new (reinterpret_cast<void *>(addrpkg.address.low)) PageHead {
+        .magic = PageHeadMagic, .next = sb->page_head,
+        .page_end = (void *)((addrpkg.address+addrpkg.len).low)
+    };
+    sb->page_head = page;
 }
+/*
 KernelHeapFormat::ObjHeader *KernelHeapFormat::findspace(KernelHeapFormat::SubZone *sz) {
     if (sz->free_count) return nullptr;
     for (unsigned i = 0;i < sz->block_count;i++) {
@@ -191,7 +44,8 @@ KernelHeapFormat::ObjHeader *KernelHeapFormat::findspace(KernelHeapFormat::SubZo
         }
     }
 }
-u32 KernelHeapFormat::size_to_level(u32 size) {
+*/
+int KernelHeapFormat::size_to_level(u32 size) {
     u32 label = 0;
     for (auto l : size_classes) {
         if (l > size) return label;
@@ -199,46 +53,76 @@ u32 KernelHeapFormat::size_to_level(u32 size) {
     }
     return (u32)-1;
 }
-
-MemoryManager::allocable::allocable() {
-    allocator = this;
+KernelHeapFormat::PageHead *KernelHeapFormat::search_page(KernelHeapFormat::ObjHeader *obj) {
+    for (auto page : rtl::list_tranveser{sb->page_head}) {
+        ;
+    }
 }
+KernelHeapFormat::SubZone *KernelHeapFormat::search_zone(KernelHeapFormat::ObjHeader *obj, KernelHeapFormat::PageHead *page) {
+    //for (auto zone : rtl::list_tranveser(reinterpret_cast<SubZone *>(page+1)));
+}
+KernelHeapFormat::SubZone *KernelHeapFormat::createzone(
+    KernelHeapFormat::PageHead *page, u32 level, u32 block_count
+) {
+    ;
+}
+void KernelHeapFormat::deletezone(KernelHeapFormat::SubZone *zone) {
+    ;
+}
+
+
+inline MemoryManager::allocable::allocable() { allocator = this; }
 
 MemoryManager::nopage::nopage(void* page_base):
-KernelHeapFormat{page_base} {
-    if (page_base == nullptr) {
-        for (auto pkg : physicalpage->aloc(4096, true)) {
-            //only one time
-            format(pkg);
-        }
-    }
-}
+KernelHeapFormat{page_base} {}
 void *MemoryManager::nopage::alloc(size_t size) {
-    KernelHeapFormat::ObjHeader *ptr;
+    KernelHeapFormat::ObjHeader *box = nullptr;
     auto level = size_to_level(size);
-    if (level == (u32)-1) {
+    if (level == -1) {
         // alloc as page
+        unsigned need_page = (size + sizeof(ObjHeader) - 1)/4096 + 1;
+        for(auto addrpkg : physicalpage->aloc(need_page, true))
+        box = (ObjHeader *)addrpkg.address.low;
+
+        if(box == (void *)-1) return nullptr;
+        box->next = (ObjHeader *)need_page;
+        box->head_guard = ObjectSingalGuard;
+        return box+1;
     }
 
-    auto zone_start = sb->free_zones[level];
-    if (zone_start == nullptr) {
-        // need to init subzone level
-    } else while (zone_start->free_count == 0) {
-        if (zone_start->next == nullptr) {
-            // need to new subzone
-            break;
-        }
-        zone_start = zone_start->next;
+    auto &objzone = sb->free_zones[level];
+    //cout << "litte aloc" << sb << ", " << objzone.obj_start << '\n';
+    if (objzone.obj_start == nullptr) {
+        // need to new subzone
+        createzone(nullptr, level, 0);
     }
 
-    ObjHeader *box = findspace(zone_start);
+    box = objzone.obj_start;
+    objzone.free_count--;
+    objzone.obj_start = box->next;
+    box->next = (ObjHeader *)level;
+
     // set head and guard
-    new (box) ObjHeader{.zone = zone_start, .head_guard = ObjectHeadGuard};
-    *reinterpret_cast<u16 *>(reinterpret_cast<u8 *>(box + 1) + size_classes[level]) = ObjectTailGuard;
+    new (box) ObjHeader{.next = nullptr, .head_guard = ObjectHeadGuard};
+    *reinterpret_cast<u16 *>(
+        reinterpret_cast<u8 *>(box + 1) + size_classes[level]
+    ) = ObjectTailGuard;
 
     return box+1;
 }
-void MemoryManager::nopage::dlloc(void *, size_t) {}
+void MemoryManager::nopage::dlloc(void *ptr, size_t) {
+    auto objhead = static_cast<ObjHeader *>(ptr)-1;
+    if (objhead->head_guard == ObjectSingalGuard) {
+        objhead->head_guard = 0;
+        physicalpage->dloc({(u32)objhead, (u32)objhead->next});
+    } else if (objhead->head_guard == ObjectHeadGuard) {
+        objhead->head_guard = 0;
+        auto &zone = sb->free_zones[(u32)objhead->next];
+        objhead->next = zone.obj_start;
+        zone.obj_start = objhead;
+        zone.free_count++;
+    }
+}
 
 MemoryManager::inpage::inpage(void* page_base):
 KernelHeapFormat{page_base} {

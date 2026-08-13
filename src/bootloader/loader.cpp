@@ -19,12 +19,14 @@ void LoaderMain(){
     MemoryManager mm{};
 
     //===INFO===
-    screen->print("============\nWindow-DOS v0.1\n============\r\nFROM: Riel Faimel\r\n\r\n");
-    screen->print("[INFO] boot device ID: ");
-    print_hex(boot_infomation->boot_device);print_char('\n');
+    cout << "============\n";
+    cout << "Window-DOS v0.1\n";
+    cout << "============\r\n";
+    cout << "FROM: Riel Faimel\r\n\r\n";
+    cout << "[INFO] boot device ID: " << boot_infomation->boot_device << '\n';
 
     idt.set_PIC();
-    screen->print("[INFO] PIC set done\n");
+    cout << "[INFO] PIC set done\n";
 
     asm volatile ("sti");
 

@@ -1,0 +1,24 @@
+#ifndef __include_TL_generator
+#define __include_TL_generator
+
+namespace rtl{
+    
+template<typename Node>
+struct list_tranveser {
+    Node *first_node;
+    struct Iterator {
+        Node *thisptr;
+
+        inline Node &operator*() const noexcept { return *thisptr; }
+        inline bool operator!= (const Iterator &other) const noexcept 
+        { return thisptr != other.thisptr; }
+        inline Iterator &operator++ () { thisptr = thisptr->next_node(); }
+    };
+
+    constexpr Iterator begin() { return {first_node}; }
+    constexpr Iterator end() const { return {nullptr}; }
+};
+
+} // namespace rtl
+
+#endif

@@ -17,7 +17,7 @@ _start:
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov esp, 0x9FFF0
+    mov esp, 0x9FC00
 
     mov edi, __bss_start
     mov ecx, __bss_end

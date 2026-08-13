@@ -59,3 +59,5 @@ void print_char(char ch){
     static void (VGA_text_mode::*print_func)(char) = &VGA_text_mode::_prt;
     (screen->*print_func)(ch);
 }
+
+screen_output cout;

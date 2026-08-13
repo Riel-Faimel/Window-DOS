@@ -1,8 +1,6 @@
 #ifndef _GLOBAL_TYPE_HPP
 #define _GLOBAL_TYPE_HPP
 
-#include "bits/type.hpp"
-
 #ifdef _BITS_32
 #ifdef _BITS_64
 #error "defined 32 and 64 bits for the same time!"
@@ -37,6 +35,8 @@ struct u64 {
     constexpr u64(u32 val) : high(0), low(val) {}
     constexpr u64(u32 h, u32 l) : high(h), low(l) {}
 
+    constexpr operator u32 () { return low; }
+
     constexpr u64 operator+(const u64& other) const {
         u64 result;
         result.low = low + other.low;
@@ -65,15 +65,59 @@ struct u64 {
         *this = *this - other;
         return *this;
     }
-
-    constexpr auto operator <=> (const u64& other) {
-        if (high != other.high) {
-            return high <=> other.high;
-        }
-        return low <=> other.low;
+    
+    constexpr bool operator==(const u64& other) const {
+        return high == other.high && low == other.low;
     }
-    constexpr auto operator <=> (const u32& other) {
-        return high <=> 0 && low <=> other;
+    constexpr bool operator!=(const u64& other) const {
+        return high != other.high || low != other.low;
+    }
+    constexpr bool operator<(const u64& other) const {
+        if (high != other.high) {
+            return high < other.high;
+        }
+        return low < other.low;
+    }
+    constexpr bool operator>(const u64& other) const {
+        if (high != other.high) {
+            return high > other.high;
+        }
+        return low > other.low;
+    }
+    constexpr bool operator<=(const u64& other) const {
+        if (high != other.high) {
+            return high < other.high;
+        }
+        return low <= other.low;
+    }
+    constexpr bool operator>=(const u64& other) const {
+        if (high != other.high) {
+            return high > other.high;
+        }
+        return low >= other.low;
+    }
+
+    constexpr bool operator==(const u32& other) const {
+        return high == 0 && low == other;
+    }
+    constexpr bool operator!=(const u32& other) const {
+        return high != 0 || low != other;
+    }
+    constexpr bool operator<(const u32& other) const {
+        if (high != 0) { return false; }
+        return low < other;
+    }
+    constexpr bool operator>(const u32& other) const {
+        if (high != 0) { return high > 0; }
+        return low > other;
+    }
+    constexpr bool operator<=(const u32& other) const {
+        if (high != 0) { return false; }
+        return low <= other;
+    }
+    constexpr bool operator>=(const u32& other) const {
+        if (high != 0) { return high > 0; }
+        return low >= other;
     }
 
     constexpr u64 operator|(const u64& other) const { return u64(high | other.high, low | other.low); }
