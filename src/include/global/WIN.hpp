@@ -12,9 +12,9 @@ public:
     unsigned long long flag;
     void *extra;
     unsigned long long size;
-    inline WinHandle():handle{0}, flag{0}, extra{nullptr}, size{0}{};
+    WinHandle():handle{0}, flag{0}, extra{nullptr}, size{0}{};
     WinHandle(WinHandle*);
-    inline ~WinHandle(){};
+    ~WinHandle(){};
 };
 #pragma pack(pop)
 

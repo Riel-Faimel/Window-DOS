@@ -2,26 +2,6 @@
 
 import lib32;
 
-/*
-void qpl_hex(unsigned val){
-    const char *hex_digits = "0123456789ABCDEF";
-    char hex_str[12];
-    hex_str[0] = '0';
-    hex_str[1] = 'x';
-    hex_str[2] = hex_digits[(val >> 28) & 0x0F];
-    hex_str[3] = hex_digits[(val >> 24) & 0x0F];
-    hex_str[4] = hex_digits[(val >> 20) & 0x0F];
-    hex_str[5] = hex_digits[(val >> 16) & 0x0F];
-    hex_str[6] = hex_digits[(val >> 12) & 0x0F];
-    hex_str[7] = hex_digits[(val >> 8) & 0x0F];
-    hex_str[8] = hex_digits[(val >> 4) & 0x0F];
-    hex_str[9] = hex_digits[val & 0x0F];
-    hex_str[10]= '\n';
-    hex_str[11]= '\0';
-    qps(hex_str);
-}
-*/
-
 IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
     struct {
         unsigned short _1;
@@ -65,95 +45,44 @@ bool IDT::had_handler(unsigned i) const{
 unsigned long long _time_count = 0;
 
 extern "C" void DE_handler_c(){
-    screen->print("#DE: Div error fault!\n");
-    qps("#UD: Unknown fault!\n");
-    while (true){
-        asm volatile ("hlt");
-    };
+    kprint("#DE: Div error fault!\n");
+    while (true){ asm volatile ("hlt"); }
 }
 extern "C" void OF_handler_c(){
-    screen->print("#OF: Overflaw fault!\n");
-    qps("#OF: Overflaw fault!\n");
-    while (true){
-        asm volatile ("hlt");
-    };
+    kprint("#OF: Overflaw fault!\n");
+    while (true){ asm volatile ("hlt"); }
 }
 extern "C" void __attribute__((optimize("O0")))UD_handler_c(_program_status *frame){
-    screen->print("\n#UD: Undefined Opcode fault!\n");
-    qps("#UD: Undefined Opcode fault!\n");
+    kprint("#UD: Undefined Opcode fault!\n");
     print_program_status(frame);
     catch_program();
 }
 extern "C" void NM_handler_c(){
-    screen->print("\r\n#NM fault!\r\n");
-    qps("#NM fault!\r\n");
+    kprint("#NM fault!\n");
     catch_program();
 }
 extern "C" void DF_handler_c(){
-    screen->print("\r\n#DF: Double fault!\r\n");
-    qps("#DF: Double fault!\r\n");
-    while (true){
-        asm volatile ("hlt");
-    };
+    kprint("#DF: Double fault!\n");
+    while (true){ asm volatile ("hlt"); }
 }
-extern "C" void __attribute__((optimize("O0")))GP_handler_c(_program_status * /*frame*/){
-    screen->print("\r\n#GP: General protect fault!\r\n");
-    qps("#GP: General protect fault!\n");
+extern "C" void __attribute__((optimize("O0")))GP_handler_c(_program_status * frame){
+    kprint("#GP: General protect fault!\n");
     //print_program_status(frame);
     catch_program();
 }
 extern "C" void __attribute__((optimize("O0")))basic_time_handler_c(){
-    //qps("time cut\n");
+    cout << "cut ";
     _time_count++;
 };
 
 void print_program_status(_program_status *frame){
-    screen->print("\r\n=== EXCEPTION ===\r\n");
-    
-    // 1. 异常发生位置
-    screen->print("EIP: "); print_hex(frame->eip);
-    screen->print("  CS: "); print_hex(frame->cs);
-    screen->print("\r\n");
+    cout << "=== EXCEPTION ===\n" << "EIP: " << frame->eip
+    << ", CS: " << frame->cs << '\n';
 
-    // 4. 附近指令 (最关键的！)
-    screen->print("Code at EIP:\r\n");
+    cout << "Code at EIP:\n";
     unsigned char *code = (unsigned char *)frame->eip;
     for(int i = 0; i < 16; i++) {
-        print_hex(code[i]);
-        screen->print(" ");
+        cout << code[i] << " ";
     }
-    screen->print("\n");
-    
-    // 5. 栈回溯 (可选)
-    /*
-    
-    // 2. 栈状态
-    screen->print("ESP: "); print_hex(frame->esp);
-    screen->print("  SS: "); print_hex(frame->ss);
-    screen->print("\n");
-    screen->print("Stack trace:\n");
-    unsigned *stack = (unsigned *)frame->esp;
-    for(int i = 0; i < 8; i++) {
-        print_hex(stack[i]);
-        screen->print(" ");
-    }
-    
-    // 7. 段寄存器
-    unsigned short ds, es;
-    asm volatile("mov %%ds, %0" : "=r"(ds));
-    asm volatile("mov %%es, %0" : "=r"(es));
-    
-    screen->print("DS: "); print_hex(ds);
-    screen->print(" ES: "); print_hex(es);
-    screen->print("\n");
-    screen->print("\n");*/
+    cout << '\n';
 }
-/*
-void __attribute__((optimize("O0")))IDT::idtt() volatile {
-    screen->print("idt object  idt table address :\r\n");
-    print_hex((unsigned)this);
-    screen->print("\r\n");
-    print_hex((unsigned )idt_base);
-    screen->print("\r\n");
-}
-*/

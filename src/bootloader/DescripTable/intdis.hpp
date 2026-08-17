@@ -1,5 +1,5 @@
-#ifndef __bootloader_DescripTable_apic_and_intdis_hpp
-#define __bootloader_DescripTable_apic_and_intdis_hpp
+#ifndef __bootloader_DescripTable_intdis_hpp
+#define __bootloader_DescripTable_intdis_hpp
 
 class IDT;
 
@@ -13,13 +13,13 @@ enum class IRQ : unsigned char {
     ATA_Slave = 14,
 };
 
-class intMgr {
+class InterruptDistributor {
 public:
-    intMgr();
+    InterruptDistributor();
     void reg_irq(void (*handler)(), IRQ irq_num, int cpuid = 0);
     void reg_idt(IDT idt);
 };
 
-extern intMgr interrupt_distributor;
+extern InterruptDistributor interrupt_distributor;
 
 #endif

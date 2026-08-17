@@ -6,8 +6,8 @@ namespace {
 class atomic_chg {
     unsigned long long val;
 public:
-    inline atomic_chg(unsigned long long v = 0): val{v}{}
-    inline unsigned long long cmpxchg(unsigned long long cmp, unsigned long long nval) {
+    atomic_chg(unsigned long long v = 0): val{v}{}
+    unsigned long long cmpxchg(unsigned long long cmp, unsigned long long nval) {
         unsigned long long re;
         asm volatile (
             "lock cmpxchg8b %1"
@@ -24,8 +24,8 @@ public:
 class atomic_chg {
     unsigned long long val;
 public:
-    inline atomic_chg(unsigned long long v = 0): val{v}{}
-    inline unsigned long long cmpxchg(unsigned long long cmp, unsigned long long nval) {
+     atomic_chg(unsigned long long v = 0): val{v}{}
+     unsigned long long cmpxchg(unsigned long long cmp, unsigned long long nval) {
         unsigned long long re = cmp;
         asm volatile (
             "lock cmpxchgq %2, %1"
@@ -47,34 +47,34 @@ class atomic_base {
 protected:
     atomic_chg locking;
     
-    static inline unsigned long long to_ull(T v) {
+    static unsigned long long to_ull(T v) {
         unsigned long long result = 0;
         union { T t; unsigned long long u; } converter;
         converter.t = v;
         return converter.u;
     }
     
-    static inline T from_ull(unsigned long long v) {
+    static T from_ull(unsigned long long v) {
         union { unsigned long long u; T t; } converter;
         converter.u = v;
         return converter.t;
     }
     
 public:
-    inline atomic_base(T v = T{}) : locking(to_ull(v)) {}
+    atomic_base(T v = T{}) : locking(to_ull(v)) {}
     
-    inline T load() {
+    T load() {
         return from_ull(locking.cmpxchg(0, 0));
     }
     
-    inline bool try_store(T v) {
+    bool try_store(T v) {
         unsigned long long old = locking.cmpxchg(0, 0);
         unsigned long long expected = old;
         unsigned long long desired = to_ull(v);
         return locking.cmpxchg(expected, desired) == expected;
     }
     
-    inline bool try_exchange(T v, T* old_value) {
+    bool try_exchange(T v, T* old_value) {
         unsigned long long old = locking.cmpxchg(0, 0);
         unsigned long long expected = old;
         unsigned long long desired = to_ull(v);
@@ -86,7 +86,7 @@ public:
         return false;
     }
     
-    inline bool try_compare_exchange(T& expected, T desired) {
+     bool try_compare_exchange(T& expected, T desired) {
         unsigned long long exp = to_ull(expected);
         unsigned long long des = to_ull(desired);
         unsigned long long old = locking.cmpxchg(exp, des);
@@ -103,13 +103,13 @@ class atomic<bool> : public atomic_base<bool> {
     using atomic_base<bool>::atomic_base;
     
 public:
-    inline atomic(bool v = false) : atomic_base<bool>(v) {}
+     atomic(bool v = false) : atomic_base<bool>(v) {}
     
-    inline bool try_lock() {
+     bool try_lock() {
         return locking.cmpxchg(0, 1) == 0;
     }
     
-    inline bool unlock() {
+     bool unlock() {
         return locking.cmpxchg(1, 0) == 1;
     }
 };
@@ -119,9 +119,9 @@ class atomic<unsigned char> : public atomic_base<unsigned char> {
     using atomic_base<unsigned char>::atomic_base;
     
 public:
-    inline atomic(unsigned char ch = 0) : atomic_base<unsigned char>(ch) {}
+     atomic(unsigned char ch = 0) : atomic_base<unsigned char>(ch) {}
     
-    inline bool try_chg(unsigned char new_val, unsigned char* old_val) {
+     bool try_chg(unsigned char new_val, unsigned char* old_val) {
         return try_exchange(new_val, old_val);
     }
 };
@@ -131,9 +131,9 @@ class atomic<unsigned long long> : public atomic_base<unsigned long long> {
     using atomic_base<unsigned long long>::atomic_base;
     
 public:
-    inline atomic(unsigned long long v = 0) : atomic_base<unsigned long long>(v) {}
+     atomic(unsigned long long v = 0) : atomic_base<unsigned long long>(v) {}
     
-    inline bool try_add(unsigned long long arg, unsigned long long* old) {
+     bool try_add(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current + arg;
@@ -145,11 +145,11 @@ public:
         return false;
     }
     
-    inline bool try_sub(unsigned long long arg, unsigned long long* old) {
+     bool try_sub(unsigned long long arg, unsigned long long* old) {
         return try_add(-arg, old);
     }
     
-    inline bool try_and(unsigned long long arg, unsigned long long* old) {
+     bool try_and(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current & arg;
@@ -161,7 +161,7 @@ public:
         return false;
     }
     
-    inline bool try_or(unsigned long long arg, unsigned long long* old) {
+     bool try_or(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current | arg;
@@ -173,7 +173,7 @@ public:
         return false;
     }
     
-    inline bool try_xor(unsigned long long arg, unsigned long long* old) {
+     bool try_xor(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current ^ arg;
@@ -192,31 +192,31 @@ class atomic {
     atomic_chg lock;
     
 public:
-    inline atomic(T v = T{}) : data(v), lock(0) {}
+     atomic(T v = T{}) : data(v), lock(0) {}
     
-    inline bool try_lock() {
+     bool try_lock() {
         return lock.cmpxchg(0, 1) == 0;
     }
     
-    inline bool try_unlock() {
+     bool try_unlock() {
         return lock.cmpxchg(1, 0) == 1;
     }
     
-    inline bool try_load(T& result) {
+     bool try_load(T& result) {
         if (!try_lock()) return false;
         result = data;
         try_unlock();
         return true;
     }
     
-    inline bool try_store(T v) {
+     bool try_store(T v) {
         if (!try_lock()) return false;
         data = v;
         try_unlock();
         return true;
     }
     
-    inline bool try_exchange(T v, T& old) {
+     bool try_exchange(T v, T& old) {
         if (!try_lock()) return false;
         old = data;
         data = v;
@@ -224,7 +224,7 @@ public:
         return true;
     }
     
-    inline bool try_compare_exchange(T& expected, T desired) {
+     bool try_compare_exchange(T& expected, T desired) {
         if (!try_lock()) return false;
         if (data == expected) {
             data = desired;

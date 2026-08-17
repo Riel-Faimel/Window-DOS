@@ -220,7 +220,7 @@ lock(c), info_{}, exist{true}{
     io_wait();
     auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status == 0xFF){
-        if(registry.do_IDE_controller_initialization_print_info)screen->print("[ERROR] No disk found\n");
+        if(registry.do_IDE_controller_initialization_print_info)kprint("[ERROR] No disk found\n");
         exist = false;
         return;
     }
@@ -333,14 +333,14 @@ lock(c), info_{}, exist{true}{
     while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
         i++;
         if(i > 0x10000){
-            if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] time out\n");
+            if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] time out\n");
             exist = false;
             return; //time out
         }
     }; 
     status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x01) {
-        if(registry.do_IDE_controller_initialization_print_info)screen->print("[ERROR] IDENTIFY command failed\n");
+        if(registry.do_IDE_controller_initialization_print_info)kprint("[ERROR] IDENTIFY command failed\n");
         exist = false;
         return;
     }
@@ -370,11 +370,11 @@ lock(c), info_{}, exist{true}{
     ) { //兼容CF卡的小玩意
 		/* CPRM may make this media unusable */
 		if (id[static_cast<u32>(ATA::ID_CFA_KEY_MGMT)] & 1)
-        if(registry.do_IDE_controller_initialization_print_info)screen->print("supports DRM functions and may not be fully accessable.\n");
+        if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
 	} else {
 		/* Warn the user if the device has TPM extensions */
 		if (identify_info.cmd_set2 & 0b0001)
-        if(registry.do_IDE_controller_initialization_print_info)screen->print("supports DRM functions and may not be fully accessable.\n");
+        if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
 	}
 
 	info_.total_sectors = identify_info.LBA28_sectors;
@@ -394,12 +394,12 @@ lock(c), info_{}, exist{true}{
         info_.LBA_support = 1;
 		if (identify_info.cmd_set2 & (1 << 10)) {
 			info_.LBA_support = 2;
-            if(registry.do_IDE_controller_initialization_print_info)screen->print("supports LBA48\n");
+            if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA48\n");
 		}else 
-        if(registry.do_IDE_controller_initialization_print_info)screen->print("supports LBA\n");
+        if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA\n");
 	} else {
 		/* CHS */
-        if(registry.do_IDE_controller_initialization_print_info)screen->print("does not support LBA, using CHS\n");
+        if(registry.do_IDE_controller_initialization_print_info)kprint("does not support LBA, using CHS\n");
         LBA_mode = 0;
 
 		/* Default translation */
@@ -457,7 +457,7 @@ void IDE_DISK::check(){
     if(status & 0x08) kprint("-- Device Error --\n");
     
     if(!(status & 0x80) && !(status & 0x08) && !(status & 0x10)) {
-        screen->print("-- Device idle --\n");
+        kprint("-- Device idle --\n");
     }
     
     print_hex(status);

@@ -24,6 +24,4 @@ private:
 //debug
     void pt(const char *str, unsigned offset = 0);
 };
-
-extern VGA_text_mode *screen;
 #endif

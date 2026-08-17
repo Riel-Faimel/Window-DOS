@@ -13,9 +13,9 @@ inline void PCI_space::probe(){
         }
     }
     if(!print_info){
-        screen->print("[INFO] PCI device probe done: ");
+        kprint("[INFO] PCI device probe done: ");
         print_hex(static_cast<u16>(config.get_size()));
-        screen->print(" devices found\r\n");
+        kprint(" devices found\r\n");
     }
 }
 
@@ -57,13 +57,13 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
     config.append(cfg);
 
     if(print_info){
-        screen->print("[INFO] VEN:DEV  REV  CLS\r\n");
+        kprint("[INFO] VEN:DEV  REV  CLS\r\n");
         print_hex(cfg.vender_ID);
-        screen->print(":");
+        kprint(":");
         print_hex(cfg.Device_ID);
-        screen->print("  ");
+        kprint("  ");
         print_hex(cfg.Revision_ID);
-        screen->print("  ");
+        kprint("  ");
         print_hex(static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]));
     }
     if(cfg.Header_type & 0x80){
@@ -93,20 +93,20 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
             }
             config.append(cfg);
             if(print_info){
-                screen->print("\r\n[MULTIFUNC] VEN:DEV  REV  CLS\r\n");
+                kprint("\r\n[MULTIFUNC] VEN:DEV  REV  CLS\r\n");
                 print_hex(cfg.vender_ID);
-                screen->print(":");
+                kprint(":");
                 print_hex(cfg.Device_ID);
-                screen->print("  ");
+                kprint("  ");
                 print_hex(cfg.Revision_ID);
-                screen->print("  ");
+                kprint("  ");
                 print_hex(static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]));
-                screen->print("\r\n");
+                kprint("\r\n");
             }
         }
     }
     if(print_info){
-        screen->print("\r\n");
+        kprint("\r\n");
     }
 }
 
@@ -118,14 +118,14 @@ void PCI_space::set_driver(){
             case 0x00: //SCSI
                 break;
             case 0x01: //IDE
-                //screen->print("IDE controller\r\n");
+                //kprint("IDE controller\r\n");
                 init_IDE_controller(&device);
                 break;
             case 0x02: //floppy
-                screen->print("floppy controller\r\n");
+                kprint("floppy controller\r\n");
                 break;
             case 0x06: //STAT
-                screen->print("SATA controller\r\n");
+                kprint("SATA controller\r\n");
                 break;
             case 0x08: //NVMe
                 break;
@@ -136,32 +136,32 @@ void PCI_space::set_driver(){
         case 0x02: //network controller
             switch (device.Class_code[1]){
             case 0x00:
-                //screen->print("internet controller\r\n");
+                //kprint("internet controller\r\n");
                 break;
             default:
                 break;
             }
             break;
         case 0x03:
-            //screen->print("display controller\r\n");
+            //kprint("display controller\r\n");
             break;
         case 0x06:
         /*
             switch (device.Class_code[1]){
             case 0x00: //host bridge
-                screen->print("Host bridge\n");
+                kprint("Host bridge\n");
                 break;
             case 0x01:
-                screen->print("ISA bridge\n");
+                kprint("ISA bridge\n");
                 break;
             case 0x02:
-                screen->print("EISA bridge\n");
+                kprint("EISA bridge\n");
                 break;
             case 0x03:
-                screen->print("MicroChannal bridge\n");
+                kprint("MicroChannal bridge\n");
                 break;
             case 0x04:
-                screen->print("PCI bridge\n");
+                kprint("PCI bridge\n");
                 break;
             default:
                 print_hex(static_cast<u16>(device.Class_code[1]<<8 | device.Class_code[0]));

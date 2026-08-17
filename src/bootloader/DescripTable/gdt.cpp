@@ -7,14 +7,12 @@ import lib32;
 extern "C" void __attribute__((regparm(1)))fresh_gdt(void *gdt_ptr);
 
 void NP_handler(){
-    screen->print("[ERROR] No segment present\n");
-    qps("[ERROR] No segment present\n");
+    kprint("[ERROR] No segment present\n");
     while(1){asm volatile ("hlt");}
 };
 
 void SS_handler(){
-    screen->print("[ERROR] Stack segment fault\n");
-    qps("[ERROR] Stack segment fault\n");
+    kprint("[ERROR] Stack segment fault\n");
     while(1){asm volatile ("hlt");}
 };
 
@@ -36,7 +34,7 @@ entries(entries_init), limit(limit_init) {
     gdt_ptr.base = reinterpret_cast<u32>(entries);
 
     /*
-    screen->print("GDT in: ");
+    kprint("GDT in: ");
     print_hex(reinterpret_cast<unsigned>(entries));
     print_char('\n');
     //*/

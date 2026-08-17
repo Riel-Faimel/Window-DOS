@@ -1,6 +1,6 @@
 #include "_intdis.hpp"
 
-intMgr interrupt_distributor;
+InterruptDistributor interrupt_distributor;
 
 __attribute__((naked)) void set_PIC() {
     asm volatile (
@@ -36,14 +36,14 @@ __attribute__((naked)) void set_PIC() {
     );
 }
 
-intMgr::intMgr() {
+InterruptDistributor::InterruptDistributor() {
     set_PIC();
 }
 
-void intMgr::reg_irq(void (*handler)(), IRQ irq_num, int cpuid) {
+void InterruptDistributor::reg_irq(void (*handler)(), IRQ irq_num, int cpuid) {
     ;
 }
 
-void intMgr::reg_idt(IDT idt) {
+void InterruptDistributor::reg_idt(IDT idt) {
     ;
 }

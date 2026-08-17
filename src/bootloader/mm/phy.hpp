@@ -18,7 +18,7 @@ struct PhysicalPage {
         u8 r2;
         u8 r3;
 
-        inline mem_list *next_node() { return next; }
+        mem_list *next_node() { return next; }
     };
 #pragma pack(pop)
 
@@ -38,15 +38,15 @@ struct PhysicalPage {
             iterator(address_generator*);
 
             address_package operator* ();
-            inline bool operator!= (iterator&) { return !done; }
-            inline iterator& operator++ () { return *this; }
+            bool operator!= (iterator&) { return !done; }
+            iterator& operator++ () { return *this; }
         };
 
         address_generator(size_t, bool);
         ~address_generator();
 
-        inline iterator begin() { return {this}; }
-        inline iterator end() const { return {nullptr}; }
+        iterator begin() { return {this}; }
+        iterator end() const { return {nullptr}; }
     };
 
     PhysicalPage();

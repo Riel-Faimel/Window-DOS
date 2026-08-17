@@ -1,14 +1,7 @@
 #include "screen_srv.hpp"
 
-VGA_text_mode *screen;
-
-void kprint(char *string){
-    screen->print(string);
-}
-
-void kprint(const char * str) {
-    kprint(const_cast<char *>(str));
-}
+extern "C" { void kprint(char *string){ cout.VGA_screen.print(string); } }
+void kprint(const char * str) { kprint(const_cast<char *>(str)); }
 
 void print_hex(unsigned char val, bool a) {
     const char *hex_digits = "0123456789ABCDEF";
@@ -18,8 +11,8 @@ void print_hex(unsigned char val, bool a) {
     hex_str[2] = hex_digits[(val >> 4) & 0x0F];
     hex_str[3] = hex_digits[val & 0x0F];
     hex_str[4] = '\0';
-    if(a)screen->print(hex_str);
-    else screen->print(hex_str+2);
+    if(a)kprint(hex_str);
+    else kprint(hex_str+2);
 }
 
 void print_hex(unsigned short val, bool a){
@@ -32,8 +25,8 @@ void print_hex(unsigned short val, bool a){
     hex_str[4] = hex_digits[(val >> 4) & 0x0F];
     hex_str[5] = hex_digits[val & 0x0F];
     hex_str[6] = '\0';
-    if(a)screen->print(hex_str);
-    else screen->print(hex_str+2);
+    if(a)kprint(hex_str);
+    else kprint(hex_str+2);
 }
 
 void print_hex(unsigned val, bool a){
@@ -50,13 +43,12 @@ void print_hex(unsigned val, bool a){
     hex_str[8] = hex_digits[(val >> 4) & 0x0F];
     hex_str[9] = hex_digits[val & 0x0F];
     hex_str[10]= '\0';
-    if(a)screen->print(hex_str);
-    else screen->print(hex_str+2);
+    if(a)kprint(hex_str);
+    else kprint(hex_str+2);
 }
 
 void print_char(char ch){
-    static void (VGA_text_mode::*print_func)(char) = &VGA_text_mode::_prt;
-    (screen->*print_func)(ch);
+    cout.VGA_screen._prt(ch);
 }
 
 screen_output cout;

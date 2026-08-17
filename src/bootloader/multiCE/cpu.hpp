@@ -6,11 +6,13 @@
 #include <DescripTable/idt.hpp>
 
 class CPU {
+    MemoryManager mm;// first
     IDT idt;
-    MemoryManager mm;
     GDT gdt;
 public:
-    CPU(volatile descrptor::IDTEntry*, volatile descrptor::Entry*, int);
+    CPU(): mm{}, idt{new descrptor::IDTEntry[256]}, gdt{new descrptor::Entry[256], 256, idt}{}
+    CPU(volatile descrptor::IDTEntry*idtv, volatile descrptor::Entry*gdtv, int gdtc):
+    mm{}, idt{idtv}, gdt{gdtv, gdtc, idt} {}
 };
 
 #endif

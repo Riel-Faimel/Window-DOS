@@ -25,7 +25,7 @@ class String{
         constexpr char operator* () const { return *ptr; }
     };
 public:
-    String();
+    String():data(nullptr), len(0) {}
     String(const char *s) noexcept;
     String(char *s, unsigned n) noexcept;
     String(const String &s) noexcept;
@@ -77,15 +77,10 @@ public:
     String get_word(char);
 
     operator const char *() const;
-    inline Iterator begin() const {
-        return Iterator{data};
-    }
-    inline Iterator end() const {
-        return Iterator{data+len};
-    }
+    Iterator begin() const { return Iterator{data}; }
+    Iterator end() const { return Iterator{data+len}; }
 };
 
-inline String::String():data(nullptr), len(0) {}
 inline String::String(String &&s) noexcept :data(s.data), len(s.len){
     s.data = nullptr;
     s.len = 0;

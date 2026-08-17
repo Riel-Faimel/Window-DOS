@@ -9,10 +9,10 @@ struct list_tranveser {
     struct Iterator {
         Node *thisptr;
 
-        inline Node &operator*() const noexcept { return *thisptr; }
-        inline bool operator!= (const Iterator &other) const noexcept 
+        Node &operator*() const noexcept { return *thisptr; }
+        bool operator!= (const Iterator &other) const noexcept 
         { return thisptr != other.thisptr; }
-        inline Iterator &operator++ () { thisptr = thisptr->next_node();return *this; }
+        Iterator &operator++ () { thisptr = thisptr->next_node();return *this; }
     };
 
     constexpr Iterator begin() { return {first_node}; }

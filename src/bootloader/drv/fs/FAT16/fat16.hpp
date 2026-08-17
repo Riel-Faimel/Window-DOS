@@ -88,7 +88,7 @@ public:
             unsigned short zero = 0;
             unsigned short final_name[2];
 
-            inline bool get_name(String &re) {
+            bool get_name(String &re) {
                 for (auto uch : first_name) {
                     if (uch == 0) return true;
                     re += (char)uch;
@@ -162,8 +162,8 @@ private:
             bool operator!=(const iterator &);
             iterator &operator++();
         };
-        inline iterator begin() { return {*this}; }
-        inline iterator end() { return {*this}; }
+        iterator begin() { return {*this}; }
+        iterator end() { return {*this}; }
     };
     filename_tran tranve_dir(bool &nn) { return {nn}; }
     u8 resolv_dir(DIR *&, unsigned, String);

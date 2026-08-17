@@ -79,11 +79,11 @@ private:
     }
 
 public:
-    inline T &operator[](size_t index){
+    T &operator[](size_t index){
         return ptr[index];
     }
 
-    inline const T &operator[](size_t index) const {
+    const T &operator[](size_t index) const {
         return ptr[index];
     }
 
@@ -122,23 +122,23 @@ public:
         size++;
     }
 
-    inline size_t get_size() const {
+    size_t get_size() const {
         return size;
     }
 
-    inline T *get_ptr(){
+    T *get_ptr(){
         return ptr;
     }
 
-    inline void clean(){
+    void clean(){
         ptr = nullptr;
     }
 
-    constexpr inline Iterator begin(){
+    constexpr Iterator begin(){
         return Iterator{ptr};
     }
 
-    constexpr inline Iterator end(){
+    constexpr Iterator end(){
         return Iterator{ptr + size};
     }
 };
@@ -157,11 +157,11 @@ public:
         son.append(n);
     }
 
-    inline node<T, true> *operator[](size_t i) {
+    node<T, true> *operator[](size_t i) {
         return son[i];
     }
 
-    inline T get_data() const {
+    T get_data() const {
         return data;
     }
 
@@ -185,15 +185,15 @@ public:
         source_node.point(this);
     }
     
-    inline void point(node *n){
+     void point(node *n){
         next = n;
     };
 
-    inline T get_data() const {
+     T get_data() const {
         return data;
     }
 
-    inline operator node*(){
+     operator node*(){
         return next;
     }
 

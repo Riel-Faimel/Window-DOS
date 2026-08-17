@@ -23,7 +23,7 @@ extern "C" {
         for(unsigned i = 0;i < 0x1000;i++){
             if(edx[i] == '$'){
                 edx[i] = '\0';
-                screen->print(edx);
+                kprint(edx);
                 return;
             }
         }
@@ -69,18 +69,18 @@ extern "C" void DOScall_handler_c(
         ".globl __LABEL\n"
         "__LABEL:\n"
     );
-    screen->print("call ");print_hex(syscall_number);
-    screen->print(" :\n");
+    kprint("call ");print_hex(syscall_number);
+    kprint(" :\n");
     print_hex(ebx_val);
-    screen->print("\n");
+    kprint("\n");
     print_hex(ecx_val);
-    screen->print("\n");
+    kprint("\n");
     print_hex(edx_val);
-    screen->print("\n");
+    kprint("\n");
     print_hex(esi_val);
-    screen->print("\n");
+    kprint("\n");
     print_hex(edi_val);
-    screen->print("\n");
+    kprint("\n");
     */
     switch(syscall_number) {
         case 0x00:  // 程序终止

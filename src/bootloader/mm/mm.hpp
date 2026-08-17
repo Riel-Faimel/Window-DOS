@@ -44,21 +44,21 @@ protected:
         void *page_end = 0;
 
         PageHead(void *endaddr);
-        inline PageHead *next_node() { return next; }
+        PageHead *next_node() { return next; }
         u32 get_free_size();
 
         struct tran {
             SubZone *base;
-            inline tran(PageHead *p): base{(SubZone *)(p+1)}{}
-            inline tran(SubZone *sz): base{sz}{}
+            tran(PageHead *p): base{(SubZone *)(p+1)}{}
+            tran(SubZone *sz): base{sz}{}
 
             struct iterator {
                 SubZone *ptr;
                 u8 done = 2;
 
-                inline iterator(SubZone *p): ptr{p}{}
-                inline SubZone &operator*() { return *ptr; }
-                inline bool operator!= (const iterator &) { 
+                iterator(SubZone *p): ptr{p}{}
+                SubZone &operator*() { return *ptr; }
+                bool operator!= (const iterator &) { 
                     if (done == 1) {
                         done--;
                         return true;
@@ -67,8 +67,8 @@ protected:
                 }
                 iterator &operator++();
             };
-            inline iterator begin() { return {base}; }
-            inline iterator end() { return {nullptr}; }
+            iterator begin() { return {base}; }
+            iterator end() { return {nullptr}; }
         };
         tran subzone_tranveser() { return {this}; }
         tran subzone_tranveser(SubZone *ptr) { return {ptr}; }
