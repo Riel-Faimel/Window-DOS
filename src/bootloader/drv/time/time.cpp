@@ -14,7 +14,7 @@ Time::Time(/* args */):
 Hz(18){
     self = this;
     if(!idt.had_handler(32)){
-        IDT::IDT_item item;
+        descrptor::IDTEntry item;
         item.addr_low = reinterpret_cast<unsigned>(&time_handler) & 0xFFFF;
         item.addr_high = (reinterpret_cast<unsigned>(&time_handler) >> 16) & 0xFFFF;
         idt.regist(&time_handler, static_cast<unsigned>(IDNT::time));
@@ -45,6 +45,4 @@ extern "C" void _sleep(unsigned time){
     while(_time_count - count < time * 18 / 1000){
         asm volatile ("hlt");
     }
-    print_hex((unsigned)_time_count);
-    screen->print("^^^^^^^^");
 };

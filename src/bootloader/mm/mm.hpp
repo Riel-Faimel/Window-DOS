@@ -18,10 +18,16 @@ protected:
      */
 
     struct SubZone {
-        void *start = nullptr;
         void *end = nullptr;
-        u32 obj_count = 0;
-        u32 free_count = 0;
+        u16 objsize = 0;
+        enum class Type : u16 {
+            nul,
+            end,
+            inl,
+        } type = Type::end;
+
+        bool is_end_dc();
+        bool is_free_dc();
     };
 
     struct ObjZone {
@@ -36,10 +42,38 @@ protected:
         PageHead* prev = nullptr;
         PageHead* next = nullptr;
         void *page_end = 0;
-        u16 zone_count = 0;
-        //SubZone zones[];
 
+        PageHead(void *endaddr);
         inline PageHead *next_node() { return next; }
+        u32 get_free_size();
+
+        struct tran {
+            SubZone *base;
+            inline tran(PageHead *p): base{(SubZone *)(p+1)}{}
+            inline tran(SubZone *sz): base{sz}{}
+
+            struct iterator {
+                SubZone *ptr;
+                u8 done = 2;
+
+                inline iterator(SubZone *p): ptr{p}{}
+                inline SubZone &operator*() { return *ptr; }
+                inline bool operator!= (const iterator &) { 
+                    if (done == 1) {
+                        done--;
+                        return true;
+                    };
+                    return done; 
+                }
+                iterator &operator++();
+            };
+            inline iterator begin() { return {base}; }
+            inline iterator end() { return {nullptr}; }
+        };
+        tran subzone_tranveser() { return {this}; }
+        tran subzone_tranveser(SubZone *ptr) { return {ptr}; }
+
+        void create_subzone(SubZone *free_sz, size_t size);
     };
 
     struct SuperBlock {
@@ -50,7 +84,7 @@ protected:
     };
 #pragma pack(pop)
 
-    SuperBlock* sb;
+    SuperBlock* sb = nullptr;
 
     /**
      * format: input one L_Page, format as 
@@ -61,20 +95,20 @@ protected:
      * regist into super block(need formated)
      */
     void format(address_package);
-    void include(address_package);
+    PageHead *include(address_package);
 
     static int size_to_level(u32 size);
 
-    // 子区管理
-    SubZone* createzone(PageHead* page, u32 level, u32 block_count);
+    SubZone* createzone(u32 level);
     void deletezone(SubZone* zone);
+    void format_subzone(SubZone *, u32);
 
     // Object box manage
     void deleteobj(ObjHeader *);
 
     // search
-    PageHead *search_page(ObjHeader *);
-    SubZone *search_zone(ObjHeader *, PageHead *);
+    PageHead *search_page(void *);
+    SubZone *search_zone(void *, PageHead *);
 
     KernelHeapFormat(void* page_base);
 };
@@ -107,8 +141,6 @@ private:
         void *alloc(size_t);
         void dlloc(void *, size_t);
     };
-
-    PhysicalPage phypage;
 
     union {
         nopage _rn;

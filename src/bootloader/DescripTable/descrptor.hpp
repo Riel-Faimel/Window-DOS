@@ -1,5 +1,5 @@
-#ifndef __bootloader_DescrpTable_descrptor_hpp
-#define __bootloader_DescrpTable_descrptor_hpp
+#ifndef __bootloader_DescripTable_descrptor_hpp
+#define __bootloader_DescripTable_descrptor_hpp
 
 #include <global/type.hpp>
 

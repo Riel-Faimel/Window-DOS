@@ -2,6 +2,7 @@
 
 import lib32;
 
+/*
 void qpl_hex(unsigned val){
     const char *hex_digits = "0123456789ABCDEF";
     char hex_str[12];
@@ -19,6 +20,7 @@ void qpl_hex(unsigned val){
     hex_str[11]= '\0';
     qps(hex_str);
 }
+*/
 
 IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
     struct {
@@ -44,10 +46,10 @@ IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
     regist(&NM_handler, static_cast<unsigned>(IDNT::_NM)); //设备不可用
     regist(&DF_handler, static_cast<unsigned>(IDNT::_DF)); //双重错误
     regist(&GP_handler, static_cast<unsigned>(IDNT::_GP)); //通用保护错误
-    regist(&basic_time_handler, static_cast<unsigned>(IDNT::time)); //基本时钟中断
+    regist(&basic_time_handler, 48); //基本时钟中断
 };
 
-void IDT::regist(void (*handler)(void), unsigned int internum, unsigned char type, unsigned short sec) volatile{
+void IDT::regist(void (*handler)(void), unsigned internum, unsigned char type, unsigned short sec) volatile{
     idt_base[internum].addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF);
     idt_base[internum].selector = sec;
     idt_base[internum].type_attr = type;
@@ -58,40 +60,6 @@ void IDT::regist(void (*handler)(void), unsigned int internum, unsigned char typ
 bool IDT::had_handler(unsigned i) const{
     if(idt_base[i].type_attr)return true;
     else return false;
-}
-
-__attribute__((naked)) void IDT::set_PIC() volatile {
-    asm volatile (
-        "movb $0x11, %%al\n"
-        "outb %%al, %0\n"
-        "movb $0x11, %%al\n"
-        "outb %%al, %1\n"
-        "call io_wait\n"
-        
-        "movb $0x30, %%al\n"
-        "outb %%al, %2\n"
-        "movb $0x38, %%al\n"
-        "outb %%al, %3\n"
-        "call io_wait\n"
-        
-        "movb $0x04, %%al\n"
-        "outb %%al, %2\n"
-        "movb $0x02, %%al\n"
-        "outb %%al, %3\n"
-        "call io_wait\n"
-        
-        "movb $0x01, %%al\n"
-        "outb %%al, %2\n"
-        "movb $0x01, %%al\n"
-        "outb %%al, %3\n"
-        "call io_wait\n"
-
-        "ret\n"
-        :
-        : "N" (PIC1_CMD), "N" (PIC2_CMD),
-          "N" (PIC1_DATA), "N" (PIC2_DATA)
-        : "al", "memory"
-    );
 }
 
 unsigned long long _time_count = 0;

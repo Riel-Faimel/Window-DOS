@@ -1,7 +1,8 @@
 #include "_phy.hpp"
 
-PhysicalPage* physicalpage;
+PhysicalPage physicalpage;
 PhysicalPage::mem_list *__window_dos_loader_struct_0x1::start = (PhysicalPage::mem_list *)0x27000;
+atomic<bool> physical_memory_lock{};
 
 PhysicalPage::PhysicalPage(){
     mem_list_root[0] = {
@@ -44,10 +45,10 @@ PhysicalPage::PhysicalPage(){
      */
     mem_list_root[0].mem.len = total_byte_num; // all free
     mem_list_root[0].mem.address = total_byte_num;
-    physicalpage = this;
 }
 PhysicalPage::~PhysicalPage() {}
 PhysicalPage::address_generator PhysicalPage::aloc(size_t page_nums, bool need_continuous) {
+    if (!physical_memory_lock.try_lock());
     return address_generator{page_nums, need_continuous};
 }
 unsigned PhysicalPage::dloc(address_package addrpkg) {
@@ -92,6 +93,7 @@ pageneedednums{pn}, need_continuous{nc}{
 }
 PhysicalPage::address_generator::~address_generator() {
     // resume yield
+    physical_memory_lock.unlock();
 }
 
 PhysicalPage::address_generator::iterator::iterator(PhysicalPage::address_generator *ptr):
@@ -103,7 +105,7 @@ address_package PhysicalPage::address_generator::iterator::operator*() {
     u64 alloc_addr, alloc_page;
     if (no_mem) {
         done = true;
-        return { .address = -1, .len = 0, };
+        return { .address = 0, .len = 0, };
     }
     if (conditions->need_continuous) {
 
@@ -119,11 +121,10 @@ for(char i = 0;i < 2;i++){
             node.mem.len -= alloc_page * 4096;
             
             done = true;
-    //cout << "addr = " << alloc_addr << ", len = " << alloc_page.low << '\n';
             return { .address = alloc_addr, .len = alloc_page, };
         }
     }
-    physicalpage->neaten();
+    physicalpage.neaten();
 }
     } else {
 
@@ -146,8 +147,6 @@ if (node_pagenum > conditions->pageneedednums) {
     alloc_page = node_pagenum;
 }
     }
-    cout << "addr = " << alloc_addr.high << alloc_addr.low \
-    << ", len = " << alloc_page.low << '\n';
     return { .address = alloc_addr, .len = alloc_page, };
 }
 

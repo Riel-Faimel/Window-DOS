@@ -1,6 +1,6 @@
 #ifndef __bootloader_drv_disk_IDE_ide_hpp
 #define __bootloader_drv_disk_IDE_ide_hpp
-#include <DescrpTable/idt.hpp> 
+#include <DescripTable/intdis.hpp> 
 #include <interface/dev_cls/logicaldisk.hpp>
 #include "ide_.hpp"
 
@@ -18,7 +18,7 @@ public:
     IDE_DISK();
     IDE_DISK(IDE_DISK &) = delete;
     IDE_DISK(IDE_DISK &&);
-    IDE_DISK(Device dev, IDT &idt, IDE_Channal *);
+    IDE_DISK(Device dev, IDE_Channal *);
     ~IDE_DISK() = default;
 
     IDE_DISK& operator=(IDE_DISK&&);

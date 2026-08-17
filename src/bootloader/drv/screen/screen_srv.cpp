@@ -1,5 +1,4 @@
 #include "screen_srv.hpp"
-#include "interface.hpp"
 
 VGA_text_mode *screen;
 

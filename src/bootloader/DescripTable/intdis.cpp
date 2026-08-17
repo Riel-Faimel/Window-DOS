@@ -1,0 +1,49 @@
+#include "_intdis.hpp"
+
+intMgr interrupt_distributor;
+
+__attribute__((naked)) void set_PIC() {
+    asm volatile (
+        "movb $0x11, %%al\n"
+        "outb %%al, %0\n"
+        "movb $0x11, %%al\n"
+        "outb %%al, %1\n"
+        "call io_wait\n"
+        
+        "movb $0x30, %%al\n"
+        "outb %%al, %2\n"
+        "movb $0x38, %%al\n"
+        "outb %%al, %3\n"
+        "call io_wait\n"
+        
+        "movb $0x04, %%al\n"
+        "outb %%al, %2\n"
+        "movb $0x02, %%al\n"
+        "outb %%al, %3\n"
+        "call io_wait\n"
+        
+        "movb $0x01, %%al\n"
+        "outb %%al, %2\n"
+        "movb $0x01, %%al\n"
+        "outb %%al, %3\n"
+        "call io_wait\n"
+
+        "ret\n"
+        :
+        : "N" (PIC1_CMD), "N" (PIC2_CMD),
+          "N" (PIC1_DATA), "N" (PIC2_DATA)
+        : "al", "memory"
+    );
+}
+
+intMgr::intMgr() {
+    set_PIC();
+}
+
+void intMgr::reg_irq(void (*handler)(), IRQ irq_num, int cpuid) {
+    ;
+}
+
+void intMgr::reg_idt(IDT idt) {
+    ;
+}

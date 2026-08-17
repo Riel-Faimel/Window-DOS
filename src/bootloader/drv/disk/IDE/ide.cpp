@@ -1,5 +1,5 @@
 #include "_ide.hpp"
-#include <DescrpTable/IDNT.hpp>
+#include <DescripTable/IDNT.hpp>
 inline bool is_power_of_2(u32 n){
     return (n != 0) && ((n & (n - 1)) == 0);
 }
@@ -7,25 +7,25 @@ extern "C" void when_PATA_Master_cut_handler();
 extern "C" void when_PATA_Slave_cut_handler();
 //constexpr u16 ctl = 0x206;
 
-IDE_Channal::IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan_, IDT& idt):
+IDE_Channal::IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan_):
 chan(chan_){
     switch (chan_) {
     case Channal::Master_Channel:
-        idt.regist(&when_PATA_Master_cut_handler, static_cast<unsigned >(IDNT::ATA_Master));
+        interrupt_distributor.reg_irq(&when_PATA_Master_cut_handler, IRQ::ATA_Master);
         break;
     case Channal::Slave_Channel:
-        idt.regist(&when_PATA_Slave_cut_handler, static_cast<unsigned >(IDNT::ATA_Slave));
+        interrupt_distributor.reg_irq(&when_PATA_Slave_cut_handler, IRQ::ATA_Slave);
         break;
     default:
         return;
     }
 
-    IDE_DISK&& mm = IDE_DISK{IDE_DISK::Device::Master_Device, idt, this};
+    IDE_DISK&& mm = IDE_DISK{IDE_DISK::Device::Master_Device, this};
     if(mm.exist)master = rtl::move(mm);
-    else if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] Master disk not found\r\n");
-    IDE_DISK&& ms = IDE_DISK{IDE_DISK::Device::Slave_Device, idt, this};
+    else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Master disk not found\r\n";
+    IDE_DISK&& ms = IDE_DISK{IDE_DISK::Device::Slave_Device, this};
     if(ms.exist)slave = rtl::move(ms);
-    else if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] Slave disk not found\r\n");
+    else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Slave disk not found\r\n";
 }
 
 void IDE_Channal::get_ctlpkg(ctlpkg &cp){
@@ -80,7 +80,7 @@ void IDE_Channal::effect_ctlpkg(IDE_Channal::ctlpkg &cp){
 
 unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info){
     /*
-    print_char('<');print_hex(LBA);print_char(',');print_hex(count);print_char('>');
+    cout << '<' << LBA << ',' << count << '>';
     //*/
     if(info->LBA_support) return read_PIO_LBA(buf, LBA, count, info->device);
     else return read_PIO_CHS(buf, LBA, count, info->device);
@@ -94,7 +94,7 @@ unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned c
             i++;
             if(i > 0x10000){
                 if(registry.do_IDE_controller_initialization_print_info)
-                screen->print("[NOTICE] time out\n");
+                cout << "[NOTICE] time out\n";
                 return -1; //time out
             }
         };    
@@ -123,7 +123,7 @@ unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned c
             i++;
             if(i > 10000){
                 if(registry.do_IDE_controller_initialization_print_info)
-                kprint("[NOTICE] Time out\n");
+                cout << "[NOTICE] Time out\n";
                 return -1;
             }
         };
@@ -214,7 +214,7 @@ lock(disk_.lock), info_(disk_.info_), exist(disk_.exist){
     disk_.exist = false;
 }
 
-IDE_DISK::IDE_DISK(Device dev, IDT &/*idt*/, IDE_Channal *c):
+IDE_DISK::IDE_DISK(Device dev, IDE_Channal *c):
 lock(c), info_{}, exist{true}{
     outb(static_cast<u8>(dev), static_cast<u16>(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE)));
     io_wait();
@@ -320,7 +320,7 @@ lock(c), info_{}, exist{true}{
     while(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x80){
         i++;
         if(i > 0x10000){
-            if(registry.do_IDE_controller_initialization_print_info)screen->print("[NOTICE] time out\n");
+            if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] time out\n";
             exist = false;
             return; //time out
         }
@@ -338,7 +338,6 @@ lock(c), info_{}, exist{true}{
             return; //time out
         }
     }; 
-    // 在读取数据之前应该检查 ERR 位
     status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x01) {
         if(registry.do_IDE_controller_initialization_print_info)screen->print("[ERROR] IDENTIFY command failed\n");
@@ -419,9 +418,9 @@ lock(c), info_{}, exist{true}{
 };
 
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
-    /*
-    print_char('{');print_hex((unsigned)(&lock));print_char('}');
-    print_char('<');print_hex(LBA);kprint(", ");print_hex(sectors_read);print_char('>');
+    //*
+    cout << '{' << (unsigned)(&lock) << '}';
+    cout << '<' << LBA << ", " << sectors_read << '>';
     //*/
     if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
     else while(1);//return -1;
@@ -447,7 +446,7 @@ void IDE_DISK::check(){
     auto status = inb(static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_STATUS));
     
     if(status == 0xFF) {
-        screen->print("-- No Device --\n");
+        kprint("-- No Device --\n");
         return;
     }
     
@@ -457,12 +456,10 @@ void IDE_DISK::check(){
     if(status & 0x10) kprint("-- Data Request Ready --\n");
     if(status & 0x08) kprint("-- Device Error --\n");
     
-    // 空闲状态：不忙、无错误、无数据请求
     if(!(status & 0x80) && !(status & 0x08) && !(status & 0x10)) {
         screen->print("-- Device idle --\n");
     }
     
-    // 打印完整状态值（调试用）
     print_hex(status);
 }
 
@@ -475,8 +472,8 @@ void IDE_DISK::check(){
 void init_IDE_controller(void *){
     IDE_DISK *re = new IDE_DISK[4];
     new IDE_Channal[2]{
-        {re[0], re[1], IDE_Channal::Channal::Master_Channel, idt}, 
-        {re[2], re[3], IDE_Channal::Channal::Slave_Channel, idt}, 
+        {re[0], re[1], IDE_Channal::Channal::Master_Channel}, 
+        {re[2], re[3], IDE_Channal::Channal::Slave_Channel}, 
     };
     u8 exist_disk = 0;
     u8 j = 0;

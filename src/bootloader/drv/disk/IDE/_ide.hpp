@@ -10,7 +10,7 @@ public:
         Master_Channel = 0x1F0,
         Slave_Channel = 0x170
     };
-    IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan, IDT& idt); //use strange
+    IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan); //use strange
 
 private:
     Channal chan;

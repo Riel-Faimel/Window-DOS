@@ -1,4 +1,3 @@
-#include <drv/screen/vbe.hpp>
 #include <drv/screen/vga.hpp>
 #include <drv/screen/screen_srv.hpp>
 #include <drv/disk/IDE/ide.hpp>

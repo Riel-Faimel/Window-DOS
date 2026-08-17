@@ -1,39 +1,22 @@
 #include "loader.hpp"
 
-volatile descrptor::IDTEntry _IDT[256];
-volatile descrptor::Entry _gdt_space[8192];
-IDT idt(_IDT);
+volatile descrptor::IDTEntry _idt_space[256];
+volatile descrptor::Entry _gdt_space[256];
 registry_editor reg_edit;
 
 __attribute__((optimize("O0")))
 void LoaderMain(){
-    /**
-     * TODO: (Done)
-     * take care of the address, if it write the code section?
-     * 
-     * TODO:
-     * take care if this allloccater full
-     */
-    GDT gdt{_gdt_space, 8192, idt};
-    VGA_text_mode VGA_screen;
-    MemoryManager mm{};
+    CPU cpu0{_idt_space, _gdt_space, 256};
 
     //===INFO===
     cout << "============\n";
     cout << "Window-DOS v0.1\n";
-    cout << "============\r\n";
-    cout << "FROM: Riel Faimel\r\n\r\n";
+    cout << "============\n";
+    cout << "FROM: Riel Faimel\n\n";
     cout << "[INFO] boot device ID: " << boot_infomation->boot_device << '\n';
-
-    idt.set_PIC();
-    cout << "[INFO] PIC set done\n";
 
     asm volatile ("sti");
 
-    struct m {u32 v[13];};
-    m *a = new m;
-    print_hex((u32)a);
-    while(1);
     StorageSubSystem sss{};
     PeripheralDeviceSpace pds{};
     pds.probe();
@@ -46,5 +29,5 @@ void LoaderMain(){
      * shouldn't fall through to here
      */
 
-    kprint("Unexcept Exit!\n");
+    cout << "Unexcept Exit!\n";
 }

@@ -57,6 +57,6 @@ struct PhysicalPage {
     unsigned neaten();
 };
 
-
+extern PhysicalPage physicalpage;
 
 #endif

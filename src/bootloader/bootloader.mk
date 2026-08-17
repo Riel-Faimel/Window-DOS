@@ -1,7 +1,7 @@
 include $(MK_DIR)x86.mk
 
 include $(SRC_DIR)bootloader/mm/mm.mk
-include $(SRC_DIR)bootloader/DescrpTable/idt.mk
+include $(SRC_DIR)bootloader/DescripTable/DescripTable.mk
 include $(SRC_DIR)bootloader/drv/drv.mk
 include $(SRC_DIR)bootloader/module/module.mk
 include $(SRC_DIR)bootloader/registry/registry.mk
@@ -23,7 +23,7 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/start/_start.o\
 	$(BUILD_DIR)bootloader/loader.o\
 	$(BUILD_DIR)bootloader/mm.o\
-	$(BUILD_DIR)bootloader/DescrpTable.o\
+	$(BUILD_DIR)bootloader/DescripTable.o\
 	$(BUILD_DIR)bootloader/drv.o\
 	$(BUILD_DIR)bootloader/module.o\
 	$(BUILD_DIR)bootloader/registry.o\

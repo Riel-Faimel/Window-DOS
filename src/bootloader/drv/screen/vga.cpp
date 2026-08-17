@@ -4,6 +4,7 @@
 import lib32;
 
 // === VGA text mode ===
+VGA_text_mode VGA_screen;
 
 #define LINE_SIZE 80
 #define LINE_NUM 25

@@ -34,4 +34,5 @@ ENDSTRUC
 ;eax: from
 ;edx: to
 _ScsSwitch:
-    
+    hlt
+    jmp _ScsSwitch

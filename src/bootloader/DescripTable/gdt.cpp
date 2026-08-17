@@ -1,5 +1,5 @@
 #include "gdt.hpp"
-#include <DescrpTable/IDNT.hpp>
+#include <DescripTable/IDNT.hpp>
 #include <drv/screen/screen_srv.hpp>
 
 import lib32;

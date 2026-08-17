@@ -87,6 +87,22 @@ public:
             unsigned short next_name[6];
             unsigned short zero = 0;
             unsigned short final_name[2];
+
+            inline bool get_name(String &re) {
+                for (auto uch : first_name) {
+                    if (uch == 0) return true;
+                    re += (char)uch;
+                }
+                for (auto uch : next_name) {
+                    if (uch == 0) return true;
+                    re += (char)uch;
+                }
+                for (auto uch : final_name) {
+                    if (uch == 0) return true;
+                    re += (char)uch;
+                }
+                return false;
+            }
         } LFN;
     };
 #pragma pack(pop)
@@ -137,9 +153,23 @@ public:
     void set_filesystem_name(char *name);
 
 private:
+    struct filename_tran {
+        bool &nn;
+        struct iterator {
+            filename_tran &fntr;
+            String name{};
+            String operator*();
+            bool operator!=(const iterator &);
+            iterator &operator++();
+        };
+        inline iterator begin() { return {*this}; }
+        inline iterator end() { return {*this}; }
+    };
+    filename_tran tranve_dir(bool &nn) { return {nn}; }
     u8 resolv_dir(DIR *&, unsigned, String);
     unsigned fat_map(unsigned) const;
     unsigned clu2sec_map(unsigned)const;
+    String get_long_filename(DIR *);
 };
 
 #endif

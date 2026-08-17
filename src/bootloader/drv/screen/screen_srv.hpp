@@ -1,6 +1,7 @@
 #ifndef __bootloader_drv_screen_screen_srv_hpp
 #define __bootloader_drv_screen_screen_srv_hpp
 
+#include <global/type.hpp>
 #include "vga.hpp"
 void kprint(char *);
 void kprint(const char *str);

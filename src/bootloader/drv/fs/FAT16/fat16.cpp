@@ -210,28 +210,16 @@ u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
         // delete file
         if ((u8)(item.name[0]) == 0xE5) continue;
 
-        String itemname;
-        if (item.attribute & long_filename) {
+        String itemname{};
+        if (item.attribute == long_filename) {
             auto re = &dir[i];
             for (;i < num;i++) {
-                auto long_item = dir[i].LFN;
-                for (auto uch : long_item.final_name) {
-                    if (uch == 0) goto done;
-                    itemname += (u8)uch;
-                }
-                for (auto uch : long_item.next_name) {
-                    if (uch == 0) goto done;
-                    itemname += (u8)uch;
-                }
-                for (auto uch : long_item.final_name) {
-                    if (uch == 0) goto done;
-                    itemname += (u8)uch;
-                }
+                if (dir[i].LFN.get_name(itemname)) goto done;
             };// handle long filename
             // read whole dir buf but not done
             return 0;
         done:
-            print_char('<');kprint(itemname);print_char('>');
+            cout << '<' << itemname << '>';
             if (itemname != dirname) continue;
 
             dir = re;
@@ -240,7 +228,7 @@ u8 FAT16::resolv_dir(DIR *&dir, unsigned num, String dirname) {
             itemname = String{item.name, 8}.trim();
             auto extname = String{item.ext, 3}.trim();
             if (extname != String{}) itemname = itemname + '.' + extname;
-            //print_char('<');kprint(itemname);print_char('>');
+            cout << '<' << itemname << '>';
             if (dirname != itemname) continue;
 
             dir = &dir[i];
