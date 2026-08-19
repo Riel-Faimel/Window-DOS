@@ -1,6 +1,6 @@
 #include "_multiCE.hpp"
 
-extern "C" { multiCE* Multi_Channel_executor; }
+extern "C" { multiCE Multi_Channel_executor; }
 
 #pragma pack(push, 1)
 struct _RZCTX {
@@ -17,40 +17,15 @@ struct _RZCTX {
 };
 #pragma pack(pop)
 
-__attribute__((naked))
-void keep_context() {
-    /**
-     * int handler.
-     * |------------------------------------->
-     * CS EIP, EAX ECX EDX EBX ESP EBP ESI EDI
-     */
-    asm volatile (
-        "pusha\n"
-        "mov Multi_Channel_executor, %%eax\n"
-        "mov %%esp, %%edx\n"
-        "sub %0, %%edx\n"
-        "jmp _RZmultiCE_yield\n"
-        : 
-        : "i"(sizeof(_RZCTX))
-        : 
-    );
-}
+multiCE::multiCE() {}
 
-multiCE::multiCE() {
-    scheduler = new cs;
-    scheduler->init(nullptr, 0);
-    Multi_Channel_executor = this;
-}
+void multiCE::cut(size_t cpuid, size_t tid, size_t intnum) {}
 
-void multiCE::cut(size_t tid, size_t num) {
-    scheduler->cut(tid, num);
-}
-
-void multiCE::run(void (*func)(size_t, void *), size_t argc, void *argv) {
-    scheduler->run(func, argc, argv);
-}
-
-__attribute__((regparm(2)))
-void multiCE::yield(_RZCTX *ctx_ptr) {
-    (scheduler->*switch_ptr)(-2);
+void multiCE::run(void *func, size_t argc, void *argv, u8 ring) {
+    for (auto &cpu : rtl::list_tranveser{cpu_list_root}) {
+        if (true) {
+            cpu.scheduler.run(func, argc, argv, ring);
+            return;
+        }
+    }
 }

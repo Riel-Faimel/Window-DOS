@@ -1,38 +1,42 @@
 [bits 32]
-global _ScsSwitch
+global _ScsSwitch, _Syield, _Ssche
+extern soff, sche_c
 
-STRUC TCB
-    .thread_ID resd 1
+keep_context:
+    push esp
+    push eax
+    mov eax, esp
+    mov esp, [fs:0]
+    add esp, [soff]
+    mov esp, [esp]
+    add esp, 40
+    pusha
+    add esp, 12
+    mov [esp], eax
+    add esp, 16
+    mov eax, [eax]
+    push eax
+    sub esp, 20
+    mov esp, [esp] ;back
 
-;=== reg ===
-    .xax resd 1
-    .xbx resd 1
-    .xcx resd 1
-    .xdx resd 1
+    pop eax ;eax
+    pop eax ;esp
+    pop eax ;caller code
 
-    .xsi resd 1
-    .xdi resd 1
+    jmp sche_c
 
-    .xss resd 1
-    .xsp resd 1
-    .xbp resd 1
+_Syield:
+    push dword 0
+    jmp keep_context
 
-    .xcs resd 1
-    .xip resd 1
+_Ssche:
+    push dword 1
+    jmp keep_context
 
-    .xds resd 1
-    .xes resd 1
-
-    .cr3 resd 1
-    .xflag resd 1
-;=== other ===
-
-    .state resb 1
-    .time_size resb 4
-ENDSTRUC
-
-;eax: from
-;edx: to
+;eax: tcb ptr
 _ScsSwitch:
-    hlt
-    jmp _ScsSwitch
+    popa ;back
+    sub esp, 20
+    mov esp, [esp]
+    sub esp, 20
+    iretd

@@ -32,6 +32,11 @@ decltype(auto) forward(T &&t) {
     return bits::forward(t);
 };
 
+template<typename T, typename M>
+inline constexpr int member_offset(M T::*ptr) {
+    return reinterpret_cast<int>(&(((T*)0)->*ptr));
+}
+
 }
 
 #endif

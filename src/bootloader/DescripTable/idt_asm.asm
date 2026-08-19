@@ -52,46 +52,16 @@ OF_handler:
     popa
     iretd
 UD_handler:
-    mov dx, 0x3F8
-    mov eax, 'U'
-    out dx, eax
-    mov al, ' '
-    out dx, al
-    mov al, 'e'
-    out dx, al
-    mov al, 'i'
-    out dx, al
-    mov al, 'p'
-    out dx, al
-    mov al, ':'
-    out dx, al
-    pop eax
-    mov ecx, 8           ; 输出 8 个十六进制字符
-
-    call qemucomoutput
-
-    mov al, 10
-    out dx, al
-    mov al, 'i'
-    out dx, al
-    mov al, 'p'
-    out dx, al
-    mov al, ':'
-    out dx, al
-    mov al, ' '
-    out dx, al
     push eax
-    mov ecx, 8
-    call qemucomoutput
-.hang:
-    hlt
-    jmp .hang
-
-    ;mov eax, esp
-    ;sub eax, 12
-    ;call UD_handler_c
-    ;mov al, 0x20
-    ;out 0x20, al
+    mov eax, esp
+    add eax, 4
+    push eax
+    
+    call UD_handler_c
+    pop eax
+    pop eax
+    mov al, 0x20
+    out 0x20, al
     iretd
 
 NM_handler:
@@ -110,43 +80,16 @@ DF_handler:
     popa
     iretd
 
-GP_handler:    
-    mov dx, 0x3F8
-    mov al, 'G'
-    out dx, al
-    
-    mov al, ' '
-    out dx, al
-    mov al, 'E'
-    out dx, al
-    mov al, 'C'
-    out dx, al
-    mov al, ':'
-    out dx, al
+;|frame|eax|errcode|eip|cs|
+GP_handler:
+    push eax
+    mov eax, esp
+    add eax, 4
+    push eax
 
-    pop eax ;error code
-    mov ecx, 8           ; 输出 8 个十六进制字符
-    call qemucomoutput
-
-    mov al, 10
-    out dx, al
-    mov al, 'e'
-    out dx, al
-    mov al, 'i'
-    out dx, al
-    mov al, 'p'
-    out dx, al
-    mov al, ':'
-    out dx, al
-    
-    pop eax ;eip
-    mov ecx, 8           ; 输出 8 个十六进制字符
-    call qemucomoutput
-    mov al, 10
-    out dx, al
-
-    push eax ;push eip
     call GP_handler_c
+    pop eax
+    pop eax
     iretd
 
 basic_time_handler:

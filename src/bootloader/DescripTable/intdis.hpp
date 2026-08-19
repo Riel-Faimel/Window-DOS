@@ -9,8 +9,8 @@ enum class IRQ : unsigned char {
     COM1 = 3,
     COM2 = 4,
     PS_2 = 12,
-    ATA_Master = 13,
-    ATA_Slave = 14,
+    ATA_Master = 14,
+    ATA_Slave = 15,
 };
 
 class InterruptDistributor {

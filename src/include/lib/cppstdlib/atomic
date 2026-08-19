@@ -131,9 +131,9 @@ class atomic<unsigned long long> : public atomic_base<unsigned long long> {
     using atomic_base<unsigned long long>::atomic_base;
     
 public:
-     atomic(unsigned long long v = 0) : atomic_base<unsigned long long>(v) {}
+    atomic(unsigned long long v = 0) : atomic_base<unsigned long long>(v) {}
     
-     bool try_add(unsigned long long arg, unsigned long long* old) {
+    bool try_add(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current + arg;
@@ -145,11 +145,11 @@ public:
         return false;
     }
     
-     bool try_sub(unsigned long long arg, unsigned long long* old) {
+    bool try_sub(unsigned long long arg, unsigned long long* old) {
         return try_add(-arg, old);
     }
     
-     bool try_and(unsigned long long arg, unsigned long long* old) {
+    bool try_and(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current & arg;
@@ -161,7 +161,7 @@ public:
         return false;
     }
     
-     bool try_or(unsigned long long arg, unsigned long long* old) {
+    bool try_or(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current | arg;
@@ -173,7 +173,7 @@ public:
         return false;
     }
     
-     bool try_xor(unsigned long long arg, unsigned long long* old) {
+    bool try_xor(unsigned long long arg, unsigned long long* old) {
         unsigned long long current = locking.cmpxchg(0, 0);
         unsigned long long expected = current;
         unsigned long long desired = current ^ arg;

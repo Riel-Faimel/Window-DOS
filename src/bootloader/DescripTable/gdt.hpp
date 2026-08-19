@@ -25,11 +25,11 @@ public:
     //true for one byte, false for 4KB
     unsigned regist(
         void *Segment_base, u32 Segment_limit, GDTType Type, u8 ring, 
-        bool unit_of_1bit_or_4KB = true, bool is32_or16 = true, 
+        bool is1B_or_4K = true, bool is32_or16 = true, 
         bool is_64_long_mode = false, bool isnot_System_segment = true, bool AVL = false
     ) volatile;
 
-    unsigned create_a_gate(
+    unsigned create_gate(
         void *offset, u16 Segment, GateType type,
         u8 params_count, u8 ring = 0x00
     ) volatile;

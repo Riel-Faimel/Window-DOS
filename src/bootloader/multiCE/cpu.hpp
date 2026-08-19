@@ -4,15 +4,28 @@
 #include <mm/mm.hpp>
 #include <DescripTable/gdt.hpp>
 #include <DescripTable/idt.hpp>
+#include <global/type.hpp>
+#include <TM/tss.hpp>
+#include <multiCE/default/cs.hpp>
+#include <TL/utility>
 
-class CPU {
+#pragma pack(push, 1)
+struct CPU {
+    size_t cpuid = 0;
+    CPU *next = nullptr;
     MemoryManager mm;// first
     IDT idt;
     GDT gdt;
-public:
-    CPU(): mm{}, idt{new descrptor::IDTEntry[256]}, gdt{new descrptor::Entry[256], 256, idt}{}
-    CPU(volatile descrptor::IDTEntry*idtv, volatile descrptor::Entry*gdtv, int gdtc):
-    mm{}, idt{idtv}, gdt{gdtv, gdtc, idt} {}
+    TSM tss; // table
+    DefaultScheduler scheduler; // schedule loop
+
+    CPU();
+    auto next_node(){ return next; }
+
+private:
 };
+#pragma pack(pop)
+
+extern CPU *cpu_list_root;
 
 #endif

@@ -1,5 +1,7 @@
 #include "loader.hpp"
 registry_editor reg_edit;
+extern "C" void when_PATA_Master_cut_handler();
+extern "C" void when_PATA_Slave_cut_handler();
 
 __attribute__((optimize("O0")))
 void LoaderMain(){
@@ -13,7 +15,6 @@ void LoaderMain(){
     cout << "[INFO] boot device ID: " << boot_infomation->boot_device << '\n';
 
     asm volatile ("sti");
-    while(1);
 
     // init work running on CPU0
     StorageSubSystem sss{};
@@ -27,6 +28,7 @@ void LoaderMain(){
     /**
      * shouldn't fall through to here
      */
+    _Syield();
 
     cout << "Unexcept Exit!\n";
 }

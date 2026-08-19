@@ -5,8 +5,6 @@
 #include <multiCE/Multi-Channel_exec.hpp>
 
 class TaskManager {
-    multiCE executor;
-
 public:
     TaskManager();
 

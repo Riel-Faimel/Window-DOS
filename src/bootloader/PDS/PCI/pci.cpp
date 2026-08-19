@@ -13,9 +13,7 @@ inline void PCI_space::probe(){
         }
     }
     if(!print_info){
-        kprint("[INFO] PCI device probe done: ");
-        print_hex(static_cast<u16>(config.get_size()));
-        kprint(" devices found\r\n");
+        cout << "[INFO] PCI device probe done: " << config.get_size() << " devices found\n";
     }
 }
 
@@ -57,14 +55,9 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
     config.append(cfg);
 
     if(print_info){
-        kprint("[INFO] VEN:DEV  REV  CLS\r\n");
-        print_hex(cfg.vender_ID);
-        kprint(":");
-        print_hex(cfg.Device_ID);
-        kprint("  ");
-        print_hex(cfg.Revision_ID);
-        kprint("  ");
-        print_hex(static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]));
+        cout << ("[INFO] VEN:DEV  REV  CLS\n");
+        cout << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' ' 
+        << static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]);
     }
     if(cfg.Header_type & 0x80){
         for(int func_id_ = 1;func_id_ < 8;func_id_++){
@@ -72,7 +65,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
             if (
                 id == 0xffffffff || id == 0x00000000 ||
                 id == 0x0000ffff || id == 0xffff0000
-            ) return ;
+            ) return;
 
             unsigned time_count = 0;
             while (id == 0xffff0001) {
@@ -93,20 +86,13 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
             }
             config.append(cfg);
             if(print_info){
-                kprint("\r\n[MULTIFUNC] VEN:DEV  REV  CLS\r\n");
-                print_hex(cfg.vender_ID);
-                kprint(":");
-                print_hex(cfg.Device_ID);
-                kprint("  ");
-                print_hex(cfg.Revision_ID);
-                kprint("  ");
-                print_hex(static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]));
-                kprint("\r\n");
+                cout << "\n[MULTIFUNC] VEN:DEV  REV  CLS\n" << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' '
+                << static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
             }
         }
     }
     if(print_info){
-        kprint("\r\n");
+        cout << '\n';
     }
 }
 

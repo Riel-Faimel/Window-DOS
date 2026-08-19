@@ -1,56 +1,63 @@
 export module lib32;
+extern "C" { extern void print_hex(unsigned short, bool = false); }
 
 export extern "C" {
-    void __attribute__((regparm(2))) outb(char data, unsigned short port){
+    __attribute__((noinline, regparm(2))) 
+    void outb(char data, unsigned short port){
         asm volatile (
             "outb %0, %1"
             :
-            : "a"(data), "Nd"(port)
+            : "a"(data), "d"(port)
             : "memory"
         );
     };
-    void __attribute__((regparm(2))) outw(unsigned short data, unsigned short port){
+    __attribute__((noinline, regparm(2)))
+    void outw(unsigned short data, unsigned short port){
         asm volatile (
             "outw %0, %1"
             :
-            : "a"(data), "Nd"(port)
+            : "a"(data), "d"(port)
             : "memory"
         );
     };
-    void __attribute__((regparm(2))) outl(unsigned data, unsigned short port){
+    __attribute__((noinline, regparm(2))) 
+    void outl(unsigned data, unsigned short port){
         asm volatile (
             "outl %0, %1"
             :
-            : "a"(data), "Nd"(port)
+            : "a"(data), "d"(port)
             : "memory"
         );
     };
-    unsigned char __attribute__((regparm(1))) inb(unsigned short port){
+    __attribute__((noinline, regparm(1))) 
+    unsigned char inb(unsigned short port){
         unsigned char data;
         asm volatile (
             "inb %1, %0"
             : "=a"(data)
-            : "Nd"(port)
+            : "d"(port)
             : "memory"
         );
         return data;
     };
-    unsigned short __attribute__((regparm(1))) inw(unsigned short port){
+    __attribute__((noinline, regparm(1))) 
+    unsigned short inw(unsigned short port){
         unsigned short data;
         asm volatile (
             "inw %1, %0"
             : "=a"(data)
-            : "Nd"(port)
+            : "d"(port)
             : "memory"
         );
         return data;
     };
-    unsigned __attribute__((regparm(1))) inl(unsigned short port){
+    __attribute__((noinline, regparm(1))) 
+    unsigned inl(unsigned short port){
         unsigned data;
         asm volatile (
             "inl %1, %0"
             : "=a"(data)
-            : "Nd"(port)
+            : "d"(port)
             : "memory"
         );
         return data;

@@ -62,7 +62,7 @@ union Entry{
         u8 AVL : 1;
         u8 is_64_long_mode : 1;
         u8 is32_or16 : 1;
-        u8 unit_of_1bit_or_4KB : 1;
+        u8 is1B_or_4K : 1;
         u8 Base_address_high;
     }Segment_Descript;
 

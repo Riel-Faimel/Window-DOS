@@ -8,33 +8,37 @@
  */
 #pragma pack(push, 1)   
 struct TCB {
-    size_t thread_ID;
+//=== other ===
+    TCB *next;
+    size_t time_size = 1;
 
 //=== reg ===
-    size_t xax = 0;
-    size_t xbx = 0;
-    size_t xcx = 0;
-    size_t xdx = 0;
+    struct {
+        /* stack top */
+        size_t xdi = 0;
+        size_t xsi = 0;
+        size_t xbp = 0;
+        size_t xsp = 0;
+        size_t xbx = 0;
+        size_t xdx = 0;
+        size_t xcx = 0;
+        size_t xax = 0;
+        // stack bottum
+    } context;
 
-    size_t xsi = 0;
-    size_t xdi = 0;
-
-    size_t xss = 0;
-    size_t xsp = 0;
-    size_t xbp = 0;
-
-    size_t xcs = 0;
     size_t xip = 0;
+    size_t xcs = 0x08;
+    size_t xflag = 0b00000000000000000000001000000010;
+    size_t xss = 0x10;
 
-    size_t xds = 0;
-    size_t xes = 0;
+    size_t xds = 0x10;
+    size_t xes = 0x10;
+    size_t xfs = 0x30;
+    size_t xgs = 0x10;
 
     size_t cr3 = 0;
-    size_t xflag = 0;
 
 #ifdef _BITS_64
-    size_t xfs = 0;
-    size_t xgs = 0;
     size_t r8 = 0;
     size_t r9 = 0;
     size_t r10 = 0;
@@ -45,20 +49,6 @@ struct TCB {
     size_t r15 = 0;
 #endif
 
-//=== other ===
-
-    /**
-     * change only by multiCE
-     * scheduler can read only
-     */
-    enum class State : unsigned char {
-        Die,
-        Run,
-        Wait,
-    };
-    State state;
-    
-    unsigned char time_size = 0;
 };
 #pragma pack(pop)
 

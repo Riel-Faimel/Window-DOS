@@ -22,10 +22,10 @@ chan(chan_){
 
     IDE_DISK&& mm = IDE_DISK{IDE_DISK::Device::Master_Device, this};
     if(mm.exist)master = rtl::move(mm);
-    else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Master disk not found\r\n";
+    //else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Master disk not found\r\n";
     IDE_DISK&& ms = IDE_DISK{IDE_DISK::Device::Slave_Device, this};
     if(ms.exist)slave = rtl::move(ms);
-    else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Slave disk not found\r\n";
+    //else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Slave disk not found\r\n";
 }
 
 void IDE_Channal::get_ctlpkg(ctlpkg &cp){
@@ -216,11 +216,12 @@ lock(disk_.lock), info_(disk_.info_), exist(disk_.exist){
 
 IDE_DISK::IDE_DISK(Device dev, IDE_Channal *c):
 lock(c), info_{}, exist{true}{
-    outb(static_cast<u8>(dev), static_cast<u16>(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE)));
+    outb(static_cast<u8>(dev), static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE));
     io_wait();
     auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status == 0xFF){
-        if(registry.do_IDE_controller_initialization_print_info)kprint("[ERROR] No disk found\n");
+        if(registry.do_IDE_controller_initialization_print_info)
+        cout << "[ERROR] No disk found\n";
         exist = false;
         return;
     }
@@ -333,14 +334,16 @@ lock(c), info_{}, exist{true}{
     while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
         i++;
         if(i > 0x10000){
-            if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] time out\n");
+            if(registry.do_IDE_controller_initialization_print_info)
+            cout << "[NOTICE] time out\n";
             exist = false;
             return; //time out
         }
     }; 
     status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x01) {
-        if(registry.do_IDE_controller_initialization_print_info)kprint("[ERROR] IDENTIFY command failed\n");
+        if(registry.do_IDE_controller_initialization_print_info)
+        cout << "[ERROR] IDENTIFY command failed\n";
         exist = false;
         return;
     }
@@ -418,7 +421,7 @@ lock(c), info_{}, exist{true}{
 };
 
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
-    //*
+    /*
     cout << '{' << (unsigned)(&lock) << '}';
     cout << '<' << LBA << ", " << sectors_read << '>';
     //*/

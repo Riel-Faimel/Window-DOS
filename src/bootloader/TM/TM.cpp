@@ -2,11 +2,23 @@
 
 extern "C" {
     __attribute__((naked))
-    void prelude(size_t, void *){
+    void hello(size_t, void *){
+        cout << "hello\n";
+        _Ssche();
+        while(1) { asm volatile ("hlt\n"); }
         asm volatile (
-            "call *%ebx\n"
-            "int $0x21\n"
+            "int $48\n"
         );
+    };
+    __attribute__((naked))
+    void next(size_t, void *){
+        cout << "next\n";
+        _Ssche();
+    };
+    __attribute__((naked))
+    void ok(size_t, void *){
+        cout << "ok\n";
+        _Ssche();
     };
 }
 
@@ -18,5 +30,7 @@ void TaskManager::exec(String filepath) {
         //No such file
         return;
     }
-    executor.run(&prelude, 1, nullptr);
+    Multi_Channel_executor.run((void *)&hello, 0, nullptr, 0);
+    Multi_Channel_executor.run((void *)&next, 0, nullptr, 0);
+    Multi_Channel_executor.run((void *)&ok, 0, nullptr, 0);
 }
