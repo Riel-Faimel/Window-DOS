@@ -14,6 +14,7 @@ void LoaderMain(){
     cout << "FROM: Riel Faimel\n\n";
     cout << "[INFO] boot device ID: " << boot_infomation->boot_device << '\n';
 
+
     asm volatile ("sti");
 
     // init work running on CPU0
@@ -28,6 +29,7 @@ void LoaderMain(){
     /**
      * shouldn't fall through to here
      */
+    //while(1);
     _Syield();
 
     cout << "Unexcept Exit!\n";

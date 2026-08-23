@@ -22,6 +22,7 @@ public:
 
     inline void ScheduleDecision();
     [[noreturn]] void resume();
+    inline void change();
     inline void yield();
     inline void exit(TCB * = nullptr);
     //inline void Switch();

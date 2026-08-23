@@ -14,7 +14,8 @@ public:
 
     void regist(
         void (*handler)(void), unsigned internum, 
-        unsigned char type = 0x8E, unsigned short sec = 0x08
+        unsigned short sec = 0x08, unsigned char DPL = 3, 
+        bool is_32_bits_or_16_bits = true
     ) volatile;
     bool had_handler(unsigned i) const;
 };

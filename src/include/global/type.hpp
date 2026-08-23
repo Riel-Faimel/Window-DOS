@@ -32,7 +32,7 @@ struct u64 {
     u32 low;
 
     constexpr u64() : high(0), low(0) {}
-    constexpr u64(u32 val) : high(0), low(val) {}
+    constexpr explicit u64(u32 val) : high(0), low(val) {}
     constexpr u64(u32 h, u32 l) : high(h), low(l) {}
 
     constexpr operator u32 () { return low; }
@@ -52,7 +52,7 @@ struct u64 {
         result.high = high - other.high - (low < other.low ? 1 : 0);
         return result;
     }
-    constexpr u64 operator-(const u32& other) {
+    constexpr u64 operator-(const u32& other) const {
         return u64{high, low-other};
     }
     template<typename T>
@@ -171,7 +171,7 @@ struct u64 {
         for (int i = 63; i >= 0; i--) {
             remainder = (remainder << 1) | u64(0, (*this >> i).low & 1);
             if (remainder >= u64(0, divisor)) {
-                remainder = remainder - u64(0, divisor);
+                remainder = remainder - u64{0, divisor};
             }
         }
         return remainder;

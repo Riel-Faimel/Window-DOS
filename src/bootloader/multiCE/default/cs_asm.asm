@@ -4,18 +4,35 @@ extern soff, sche_c
 
 _Ssche:
     push dword 0
+    push eax
+    pushf
+    mov eax, esp
+    ; | eflag | eax | code | ...
+    ; ^ eax
+    mov esp, [fs:0]
+    add esp, [soff]
+    mov esp, [esp]
+    cmp word[esp + 4], 0
+    jbe .goto_sche
+    ;return
+    dec word[esp + 4]
+    mov esp, eax
+    pop eax
+    popf
+    add esp, 4
+    iret
+
+.goto_sche:
+    xchg eax, esp
+    popf
+    xchg eax, esp
     jmp keep_context
 
 _Syield:
     push dword 1
-    jmp keep_context
+    ;foll through
 
-_Sexit:
-    push dword 2
-    ;jmp keep_context 
-    ; through
-
-keep_context:
+get_tcb:
     push eax
     mov eax, esp
     ; | eax | code | ...
@@ -23,6 +40,7 @@ keep_context:
     mov esp, [fs:0]
     add esp, [soff]
     mov esp, [esp]
+keep_context:
     add esp, 40
     pusha
     ; | context | eip | cs |
@@ -68,6 +86,10 @@ keep_context:
     ; because we don't return
     mov ebp, esp ; fresh env for c func
     jmp sche_c
+
+_Sexit:
+    push dword 2
+    jmp get_tcb 
 
 _Sint_stack:
     popa

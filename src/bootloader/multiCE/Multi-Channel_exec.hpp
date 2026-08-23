@@ -9,7 +9,7 @@ public:
 
     void run(
         void *func, size_t argc, void *argv,
-        u8 ring = 3
+        u8 ring = 3, size_t time = 1
     );
     void cut(size_t cpuid, struct TCB *tid, size_t intnum);
 };

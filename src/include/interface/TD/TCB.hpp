@@ -10,7 +10,8 @@
 struct TCB {
 //=== other ===
     TCB *next;
-    size_t time_size = 1;
+    u16 remain_size = time_size;
+    u16 time_size = 1;
 
 //=== reg ===
     struct {

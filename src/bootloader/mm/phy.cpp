@@ -6,7 +6,7 @@ atomic<bool> physical_memory_lock{};
 
 PhysicalPage::PhysicalPage(){
     mem_list_root[0] = {
-        .mem = {0, 0},
+        .mem = {u64{0}, u64{0}},
         .next = &(mem_list_root[1]),
         .exist = 255, 
         .r1 = 0, .r2 = 0, .r3 = 0,
@@ -23,7 +23,7 @@ PhysicalPage::PhysicalPage(){
             u64 top = base + len;
             if (top < 0x100000) continue;
 
-            base = 0x100000;
+            base = u64{0x100000};
             len = top - 0x100000;
         } 
 
@@ -105,14 +105,14 @@ address_package PhysicalPage::address_generator::iterator::operator*() {
     u64 alloc_addr, alloc_page;
     if (no_mem) {
         done = true;
-        return { .address = 0, .len = 0, };
+        return { .address = u64{0}, .len = u64{0}, };
     }
     if (conditions->need_continuous) {
 
 for(char i = 0;i < 2;i++){
     // try 2
     for (auto &node : mem_list_root.as_list()) {
-        alloc_page = conditions->pageneedednums;
+        alloc_page = u64{conditions->pageneedednums};
         auto total_pages = node.mem.len / 4096;
         if (total_pages >= alloc_page) {
             alloc_addr = node.mem.address;
@@ -130,13 +130,13 @@ for(char i = 0;i < 2;i++){
 
 auto node_pagenum = thisptr->mem.len/4096;
 if (node_pagenum > conditions->pageneedednums) {
-    u64 need_bytes = conditions->pageneedednums;
+    u64 need_bytes {conditions->pageneedednums};
     need_bytes = need_bytes * 4096;
 
     alloc_addr = thisptr->mem.address;
     thisptr->mem.address += need_bytes;
     thisptr->mem.len -= need_bytes;
-    alloc_page = conditions->pageneedednums;
+    alloc_page = u64{conditions->pageneedednums};
 
     done = true;
 } else {

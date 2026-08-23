@@ -23,6 +23,7 @@ extern "C" {
         //cout << code << "<<\n";
         switch (code) {
             case 0:
+            sche.change();
             sche.ScheduleDecision();
             sche.resume();
             case 1:
@@ -37,6 +38,20 @@ extern "C" {
             // WTF!?
             ;
         };
+    }
+}
+
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::change() {
+    TCB*& thislist = up_is_running ? uplist : downlist;
+    TCB*& nextlist = up_is_running ? downlist : uplist;
+    
+    if (context_local != nullptr) {
+        // yield this tcb
+        context_local->remain_size = context_local->time_size;
+        context_local->next = nextlist;
+        nextlist = context_local;
+        context_local = nullptr;
     }
 }
 
@@ -64,14 +79,7 @@ inline void DefaultScheduler::ScheduleDecision() {
     TCB*& thislist = up_is_running ? uplist : downlist;
     TCB*& nextlist = up_is_running ? downlist : uplist;
     
-loop:
-    if (context_local != nullptr) {
-        // yield this tcb
-        context_local->next = nextlist;
-        nextlist = context_local;
-        context_local = nullptr;
-    }
-    
+loop:    
     if (thislist != nullptr) {
         context_local = thislist;
         thislist = thislist->next;
@@ -116,7 +124,7 @@ void DefaultScheduler::run(void *func, size_t argc, void *argv, u8 ring, size_t 
     TCB* &next_run = up_is_running? downlist:uplist;
     next_run = new TCB{
         .next = next_run,
-        .time_size = time,
+        .time_size = (u16)time,
         .context = { .xdx = (size_t)argv,  .xax = argc,  },
         .xip = (size_t)func,
         .xcs = (size_t)((ring==0)?0x08:0x1B),

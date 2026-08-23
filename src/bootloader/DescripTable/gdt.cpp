@@ -1,6 +1,7 @@
 #include "gdt.hpp"
 #include <DescripTable/IDNT.hpp>
 #include <drv/screen/screen_srv.hpp>
+#include <global/new.hpp>
 
 import lib32;
 
@@ -18,6 +19,7 @@ void SS_handler(){
 
 GDT::GDT(volatile GDTEntry *entries_init, u16 limit_init, IDT& idt) :
 entries(entries_init), limit(limit_init) {
+    static_assert(sizeof(GDTEntry) == 8);
     idt.regist(&NP_handler, static_cast<unsigned>(IDNT::_NP));
     idt.regist(&SS_handler, static_cast<unsigned>(IDNT::_SS));
     GDTPtr gdt_ptr;
@@ -91,17 +93,15 @@ unsigned GDT::create_tss(
 ) volatile {
     for (unsigned i = 1;i < limit;i++)
     if(entries[i].TSS.exist_Segment == 0){
-        entries[i].TSS.must_zero = 0;
-        entries[i].TSS.Base_Address_low = (reinterpret_cast<u32>(base_addr) & 0xFFFF);
-        entries[i].TSS.Base_Address_mid = (reinterpret_cast<u32>(base_addr) >> 16) & 0xFF;
-        entries[i].TSS.Base_Address_high = (reinterpret_cast<u32>(base_addr) >> 24) & 0xFFFF;
-        entries[i].TSS.exist_Segment = 1;
-        entries[i].TSS.G = open_4k_granularity ? 1 : 0;
-        entries[i].TSS.nota_system_seg = 0;
-        entries[i].TSS.ring = ring;
-        entries[i].TSS.Type = type;
-        entries[i].TSS.Seg_limit_low = seg_lim & 0xFFFF;
-        entries[i].TSS.Seg_limit_high = (seg_lim >> 16) & 0xFF;
+        new ((void *)&entries[i]) descrptor::GDTEntry::T {
+            .Seg_limit_low = (u16)seg_lim,
+            .Base_Address_low = (u16)(reinterpret_cast<u32>(base_addr)),
+            .Base_Address_mid = (u8)(reinterpret_cast<u32>(base_addr) >> 16),
+            .Type = type, .ring = ring, .exist_Segment = 1,
+            .Seg_limit_high = (u8)(seg_lim >> 16),
+            .G = (u8)(open_4k_granularity ? 1 : 0),
+            .Base_Address_high = (u8)(reinterpret_cast<u32>(base_addr) >> 24),
+        };
         return i*sizeof(GDTEntry);
     }
     return 0;

@@ -5,7 +5,7 @@ atomic<bool> countorlock{false};
 size_t cpuidcountor{0};
 
 CPU::CPU(): mm{}, idt{new descrptor::IDTEntry[256]}, 
-gdt{new descrptor::Entry[256], 256, idt}, tss{gdt}, scheduler{}{
+gdt{new descrptor::GDTEntry[256]{}, 256, idt}, tss{gdt}, scheduler{}{
     while(!countorlock.try_lock());
     {
         auto &cpup = cpu_list_root;
@@ -13,7 +13,7 @@ gdt{new descrptor::Entry[256], 256, idt}, tss{gdt}, scheduler{}{
         cpup = this;
         cpuidcountor++;
 
-        auto per_cpu_seg = gdt.regist(new char[1024], 1024, descrptor::DTType::Read_write, 0);
+        auto per_cpu_seg = gdt.regist(new char[1024], 1024, descrptor::DType::Read_write, 0);
         asm volatile (
             "mov %0, %%eax\n"
             "mov %%eax, %%fs\n"

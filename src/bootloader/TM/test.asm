@@ -10,9 +10,7 @@ _Shello:
 
 _Snext:
     call next
-    pushf
-    push cs
-    call _Ssche
+    int 48
     jmp _Snext
 
 _Sok:

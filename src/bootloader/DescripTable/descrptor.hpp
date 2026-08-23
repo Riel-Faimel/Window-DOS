@@ -6,7 +6,7 @@
 namespace descrptor {
     
 #pragma pack(push, 1)
-enum class DTType : u8 {
+enum class DType : u8 {
     Read = 0x0,
     Read_accessed = 0x1,
     Read_write = 0x2,
@@ -49,12 +49,13 @@ enum class GateType : u8{
     INT_Gate_32 = 14,
     Trap_Gate_32 = 15,
 };
-union Entry{
-    struct {
+union GDTEntry{
+    u32 nul[2];
+    struct SD {
         u16 Segment_limit_low;
         u16 Base_address_low;
         u8 Base_address_middle;
-        DTType Type : 4;
+        DType Type : 4;
         u8 not_a_system_descriptor : 1;
         u8 ring : 2;
         u8 exist_segment : 1;
@@ -66,7 +67,7 @@ union Entry{
         u8 Base_address_high;
     }Segment_Descript;
 
-    struct {
+    struct CG {
         u16 Offset_address_low;
         u16 Segment_selector;
         u8 params_count : 5;
@@ -78,27 +79,38 @@ union Entry{
         u16 Offset_address_high;
     }Call_Gate;
 
-    struct {
-        u16 Seg_limit_low;
-        u16 Base_Address_low;
-        u8 Base_Address_mid;
+    struct T {
+        u16 Seg_limit_low = 0;
+        u16 Base_Address_low = 0;
+        u8 Base_Address_mid = 0;
         GateType Type : 4;
-        u8 nota_system_seg : 1;
-        u8 ring : 2;
-        u8 exist_Segment : 1;
-        u8 Seg_limit_high : 4;
-        u8 AVL : 1;
-        u8 must_zero : 2;
-        u8 G : 1;
-        u8 Base_Address_high;
+        u8 nota_system_seg : 1 = 0;
+        u8 ring : 2 = 0;
+        u8 exist_Segment : 1 = 1;
+        u8 Seg_limit_high : 4 = 0;
+        u8 AVL : 1 = 0;
+        u8 must_zero : 2 = 0;
+        u8 G : 1 = 0;
+        u8 Base_Address_high = 0;
     } TSS;
+
+    GDTEntry(): nul{0, 0}{}
 };
-struct IDTEntry{
-    u16 addr_low = 0;
-    u16 selector = 0x08;
-    u8 zero = 0;
-    u8 type_attr = 0x8E;
-    u16 addr_high = 0;
+union IDTEntry{
+    u32 nul[2];
+    struct IG {
+        u16 addr_low = 0;
+        u16 selector = 0x08;
+        u8 re = 0;
+        u8 attr : 3 = 0b110;
+        u8 is_32_bits_or_16_bits : 1 = 1;
+        u8 zero : 1 = 0;
+        u8 DPL : 2 = 0b11;
+        u8 exist : 1 = 1;
+        u16 addr_high = 0;
+    } Int_Gate;
+
+    IDTEntry():nul{0, 0} {}
 };
 #pragma pack(pop)
 };

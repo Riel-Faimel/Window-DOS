@@ -183,7 +183,7 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     auto objhead = static_cast<ObjHeader *>(ptr)-1;
     if (objhead->head_guard == ObjectSingalGuard) {
         objhead->head_guard = 0;
-        physicalpage.dloc({(u32)objhead, (u32)objhead->next});
+        physicalpage.dloc({(u64)(u32)objhead, (u64)(u32)objhead->next});
     } else if (objhead->head_guard == ObjectHeadGuard) {
         objhead->head_guard = 0;
         auto &zone = sb->free_zones[(u32)objhead->next];

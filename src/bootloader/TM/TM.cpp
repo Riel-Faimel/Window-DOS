@@ -23,7 +23,7 @@ void TaskManager::exec(String filepath) {
         //No such file
         return;
     }
-    Multi_Channel_executor.run((void *)&_Shello, 0, nullptr, 0);
-    Multi_Channel_executor.run((void *)&_Snext, 0, nullptr, 0);
+    Multi_Channel_executor.run((void *)&_Shello, 0, nullptr, 0, 10);
+    Multi_Channel_executor.run((void *)&_Snext, 0, nullptr, 3);
     Multi_Channel_executor.run((void *)&_Sok, 0, nullptr, 0);
 }

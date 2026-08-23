@@ -2,7 +2,8 @@
 
 import lib32;
 
-IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
+IDT::IDT(volatile IDT_item *tab):idt_base(tab){
+    static_assert(sizeof(IDT_item) == 8, "error");
     struct {
         unsigned short _1;
         unsigned _2;
@@ -16,15 +17,11 @@ IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
         : "memory"
     );
 
-    for(volatile unsigned i = 0;i < 256 * sizeof(IDT_item);++i){
-        reinterpret_cast<volatile unsigned char *>(idt_base)[i] = 0;
-    }
-
     regist(&DE_handler, static_cast<unsigned>(IDNT::_DE)); //除零异常
     regist(&OF_handler, static_cast<unsigned>(IDNT::_OF)); //溢出
     regist(&UD_handler, static_cast<unsigned>(IDNT::_UD)); //无效指令
     regist(&NM_handler, static_cast<unsigned>(IDNT::_NM)); //设备不可用
-    regist(&DF_handler, static_cast<unsigned>(IDNT::_DF)); //双重错误
+    regist(&DF_handler, static_cast<unsigned>(IDNT::_DF), 0x80, 0); //双重错误
     regist(&GP_handler, static_cast<unsigned>(IDNT::_GP)); //通用保护错误
     regist(&basic_time_handler, 48); //基本时钟中断
 
@@ -33,16 +30,20 @@ IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
 #endif
 };
 
-void IDT::regist(void (*handler)(void), unsigned internum, unsigned char type, unsigned short sec) volatile{
-    idt_base[internum].addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF);
-    idt_base[internum].selector = sec;
-    idt_base[internum].type_attr = type;
-    idt_base[internum].addr_high = (unsigned short)((reinterpret_cast<unsigned>(handler) >> 16) & 0xFFFF);
-    idt_base[internum].zero = 0;
+void IDT::regist(
+    void (*handler)(void), unsigned internum, unsigned short sec, 
+    unsigned char DPL, bool _32_or_16
+) volatile {
+    new ((void *)&idt_base[internum]) descrptor::IDTEntry::IG {
+        .addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF),
+        .selector = sec, .is_32_bits_or_16_bits = (unsigned char)(_32_or_16?1:0),
+        .zero = 0, .DPL = DPL, 
+        .addr_high = (unsigned short)((reinterpret_cast<unsigned>(handler) >> 16) & 0xFFFF),
+    };
 }
 
 bool IDT::had_handler(unsigned i) const{
-    if(idt_base[i].type_attr)return true;
+    if(idt_base[i].Int_Gate.exist)return true;
     else return false;
 }
 
@@ -80,7 +81,7 @@ void GP_handler_c(errcode_frame * frame){
 }
 __attribute__((optimize("O0")))
 void basic_time_handler_c(){
-    //cout << "cut ";
+    cout << "cut ";
     _time_count++;
 };
 

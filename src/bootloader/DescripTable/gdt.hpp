@@ -6,8 +6,8 @@
 #include "descrptor.hpp"
 
 class GDT {
-    using GDTEntry = descrptor::Entry;
-    using GDTType = descrptor::DTType;
+    using GDTEntry = descrptor::GDTEntry;
+    using GDTType = descrptor::DType;
     using GateType = descrptor::GateType;
 
     #pragma pack(push, 1)

@@ -2,6 +2,7 @@
 
 #include <hardlib/x86/port.h>
 #include <drv/screen/screen_srv.hpp>
+#include <global/new.hpp>
 #include "intdis.hpp"
 #include "IDNT.hpp"
 
