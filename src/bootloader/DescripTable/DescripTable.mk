@@ -3,12 +3,14 @@ $(BUILD_DIR)bootloader/DescripTable/idt_asm.o: $(SRC_DIR)bootloader/DescripTable
 $(BUILD_DIR)bootloader/DescripTable/gdt.o: $(SRC_DIR)bootloader/DescripTable/gdt.cpp
 $(BUILD_DIR)bootloader/DescripTable/gdt_asm.o: $(SRC_DIR)bootloader/DescripTable/gdt_asm.asm
 $(BUILD_DIR)bootloader/DescripTable/intdis.o: $(SRC_DIR)bootloader/DescripTable/intdis.cpp
+$(BUILD_DIR)bootloader/DescripTable/tss.o: $(SRC_DIR)bootloader/DescripTable/tss.cpp
 
 $(BUILD_DIR)bootloader/DescripTable.o: \
 	$(BUILD_DIR)bootloader/DescripTable/idt.o\
 	$(BUILD_DIR)bootloader/DescripTable/idt_asm.o\
 	$(BUILD_DIR)bootloader/DescripTable/gdt.o\
 	$(BUILD_DIR)bootloader/DescripTable/gdt_asm.o\
-	$(BUILD_DIR)bootloader/DescripTable/intdis.o
+	$(BUILD_DIR)bootloader/DescripTable/intdis.o\
+	$(BUILD_DIR)bootloader/DescripTable/tss.o
 
 	$(LDCMD32) $@ $^

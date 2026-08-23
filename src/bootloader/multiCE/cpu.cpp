@@ -24,9 +24,15 @@ gdt{new descrptor::Entry[256], 256, idt}, tss{gdt}, scheduler{}{
         );
     }
     countorlock.unlock();
+
+#ifdef _DEBUG
+    cout << " :: CPU[";
+    print_hex((u8)cpuid, false);
+    cout << "] >\n";
+#endif
 }
 
 extern "C" { 
-    extern constexpr int soff = sizeof(MemoryManager) + sizeof(IDT)
-    + sizeof(GDT) + sizeof(TSM) + sizeof(void *)*2;
- }
+   extern constexpr int soff = sizeof(MemoryManager) + sizeof(IDT)
+   + sizeof(GDT) + sizeof(TSM) + sizeof(void *)*2;
+}

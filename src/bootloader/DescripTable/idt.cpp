@@ -28,7 +28,9 @@ IDT::IDT(volatile IDT_item *tab):idt_base((IDT::IDT_item *)tab){
     regist(&GP_handler, static_cast<unsigned>(IDNT::_GP)); //通用保护错误
     regist(&basic_time_handler, 48); //基本时钟中断
 
-    cout << "IDT in: " << (void *)tab << '\n';
+#ifdef _DEBUG
+    cout << ", IDT: " << (void *)tab;
+#endif
 };
 
 void IDT::regist(void (*handler)(void), unsigned internum, unsigned char type, unsigned short sec) volatile{

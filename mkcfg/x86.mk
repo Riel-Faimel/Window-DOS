@@ -1,7 +1,7 @@
 CFLAGS32 = -m32 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding -Werror=implicit-int -MMD -MP\
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
-		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/ -Os
+		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/ -Os -D_DEBUG
 
 CPPFLAGS32 = $(CFLAGS32) -nodefaultlibs -fno-rtti -fno-exceptions -fno-use-cxa-atexit\
 	-fno-function-sections -fmodules-ts -mno-sse

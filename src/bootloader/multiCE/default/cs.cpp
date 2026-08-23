@@ -1,43 +1,66 @@
 #include "_cs.hpp"
 
-extern "C" void _Ssche();
-
 DefaultScheduler::DefaultScheduler():
 context_local{new TCB {}}, uplist{nullptr}{
+    //cout << "sche in: " << this << '\n';
     //interrupt_distributor.reg_irq(&_Ssche, IRQ::time);
 }
 
 extern "C" {
+    __attribute__((optimize("O3")))
     [[noreturn]] void sche_c() {
         CPU *cpu_ptr;
         unsigned code;
+        //void *frame;
         asm volatile (
             "movl %%fs:0, %0\n"
             "movl %%eax, %1\n"
             : "=r"(cpu_ptr), "=r"(code)
             :
-            : "memory"
+            : "eax", "memory"
         );
         auto &sche = cpu_ptr->scheduler;
-        sche.ScheduleDecision();
         //cout << code << "<<\n";
-        //switch(code) {
-        //    case 0: // yield
-        //    sche.yield();
-        //    case 1: // schedule
-        //    default:
-        //}
+        switch (code) {
+            case 0:
+            sche.ScheduleDecision();
+            sche.resume();
+            case 1:
+            sche.yield();
+            sche.ScheduleDecision();
+            sche.resume();
+            case 2:
+            sche.exit();
+            sche.ScheduleDecision();
+            sche.resume();
+            default:
+            // WTF!?
+            ;
+        };
     }
 }
 
-[[noreturn]] void DefaultScheduler::yield() {
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::yield() {
     context_local->next = sleeplist;
     sleeplist = context_local;
     context_local = nullptr;
-    ScheduleDecision();
 }
 
-[[noreturn]] void DefaultScheduler::ScheduleDecision() {
+__attribute__((optimize("O3")))
+void DefaultScheduler::exit(TCB *thread) {
+    if (thread == nullptr) {
+        // exit this
+        delete context_local;
+        context_local = 0;
+    }
+    auto p = thread->next;
+    thread->next = p->next;
+    delete p;
+}
+
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::ScheduleDecision() {
     TCB*& thislist = up_is_running ? uplist : downlist;
     TCB*& nextlist = up_is_running ? downlist : uplist;
     
@@ -48,56 +71,58 @@ loop:
         nextlist = context_local;
         context_local = nullptr;
     }
-    cout << '<' << context_local << ", " << thislist << ", " << nextlist << ">\n";
     
     if (thislist != nullptr) {
         context_local = thislist;
         thislist = thislist->next;
-        Switch();
+        return;
     } else if (nextlist != nullptr) {
         context_local = nextlist;
         nextlist = nextlist->next;
         up_is_running = !up_is_running;
-        Switch();
+        return;
     }
     asm volatile("hlt\n");
     goto loop;
 }
 
-[[noreturn]] inline void DefaultScheduler::Switch() <%
-    auto tag_stack = (size_t *)(context_local->context.xsp);
-    tag_stack--;
-    *tag_stack = context_local->xss;
-    tag_stack--;
-    *tag_stack = context_local->context.xsp;
-    tag_stack--;
-    *tag_stack = context_local->xflag;
-    tag_stack--;
-    *tag_stack = context_local->xcs;
-    tag_stack--;
-    *tag_stack = context_local->xip;
-    //cout << "new stack = " << tag_stack << ", context = " << &context_local->context << '\n';
-    //while(1);
-    asm volatile (
-        "mov %0, %%esp\n"
-        "jmp _ScsSwitch\n"
-        :
-        : "r"(&context_local->context)
-        : "memory"
-    );
+__attribute__((optimize("O3")))
+[[noreturn]] void DefaultScheduler::resume() <%
+    if (context_local->xcs & 3) {
+        //int stack
+        asm volatile (
+            "mov %0, %%esp\n"
+            "jmp _Sint_stack\n"
+            : 
+            : "r"(&context_local->context)
+            : "memory"
+        );
+    }
+    else {
+        //call stack
+        //cout << "new stack = " << context_local->xsp << ", context = " << &context_local->context << '\n';
+        asm volatile (
+            "mov %0, %%esp\n"
+            "jmp _Scall_stack\n"
+            :
+            : "r"(&context_local->context)
+            : "memory"
+        );
+    }
 %>
 
-
+__attribute__((optimize("O3")))
 void DefaultScheduler::run(void *func, size_t argc, void *argv, u8 ring, size_t time) {
     TCB* &next_run = up_is_running? downlist:uplist;
     next_run = new TCB{
         .next = next_run,
         .time_size = time,
-        .context = { .xsp = (size_t)new char[4069],.xdx = (size_t)argv,  .xax = argc,  },
+        .context = { .xdx = (size_t)argv,  .xax = argc,  },
         .xip = (size_t)func,
         .xcs = (size_t)((ring==0)?0x08:0x1B),
+        .xsp = (size_t)new char[4069],
         .xss = (size_t)((ring==0)?0x10:0x23),
     };
 }
 
-void DefaultScheduler::cut(size_t tid, size_t num) {}
+void DefaultScheduler::cut(TCB *tid, size_t num) {}

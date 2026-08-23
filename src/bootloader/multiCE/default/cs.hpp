@@ -4,8 +4,11 @@
 #include <interface/TD/sechduler.hpp>
 #include <TL/container>
 
-extern "C" void _Syield();
-extern "C" void _Ssche();
+extern "C" {
+    void _Syield();
+    void _Ssche();
+    void _Sexit();
+}
 
 class DefaultScheduler{
     TCB *context_local = nullptr;
@@ -17,10 +20,12 @@ public:
     DefaultScheduler();
     ~DefaultScheduler(){}
 
-    [[noreturn]] void ScheduleDecision();
-    [[noreturn]] void Switch();
-    [[noreturn]] void yield();
-    void cut(size_t thread_id, size_t num);
+    inline void ScheduleDecision();
+    [[noreturn]] void resume();
+    inline void yield();
+    inline void exit(TCB * = nullptr);
+    //inline void Switch();
+    void cut(TCB *thread_id, size_t num);
     void run(void *func, size_t argc, void *argv, u8 ring, size_t time = 1); // Create Thread
 };
 

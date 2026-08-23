@@ -11,7 +11,7 @@ public:
         void *func, size_t argc, void *argv,
         u8 ring = 3
     );
-    void cut(size_t cpuid, size_t tid, size_t intnum);
+    void cut(size_t cpuid, struct TCB *tid, size_t intnum);
 };
 
 extern "C" {

@@ -34,6 +34,9 @@ entries(entries_init), limit(limit_init) {
     gdt_ptr.base = reinterpret_cast<u32>(entries);
 
     fresh_gdt(&gdt_ptr);
+#ifdef _DEBUG
+    cout << ", GDT: " << gdt_ptr.base;
+#endif
 }
 
 __attribute__((optimize("O0")))

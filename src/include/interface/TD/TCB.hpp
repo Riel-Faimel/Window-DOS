@@ -18,7 +18,7 @@ struct TCB {
         size_t xdi = 0;
         size_t xsi = 0;
         size_t xbp = 0;
-        size_t xsp = 0;
+        size_t _rxsp = 0; // no to use
         size_t xbx = 0;
         size_t xdx = 0;
         size_t xcx = 0;
@@ -29,6 +29,7 @@ struct TCB {
     size_t xip = 0;
     size_t xcs = 0x08;
     size_t xflag = 0b00000000000000000000001000000010;
+    size_t xsp = 0;
     size_t xss = 0x10;
 
     size_t xds = 0x10;

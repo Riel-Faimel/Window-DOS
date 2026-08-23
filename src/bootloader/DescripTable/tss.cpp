@@ -12,4 +12,7 @@ TSM::TSM(GDT &gdt) {
         : "r"(tss_ptr)
         : "memory"
     );
+#ifdef _DEBUG
+    cout << ", tss: " << (u8)tss_ptr;
+#endif
 }

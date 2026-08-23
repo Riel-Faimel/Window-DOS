@@ -199,7 +199,11 @@ KernelHeapFormat{page_base} {
 void *MemoryManager::inpage::alloc(size_t) { return nullptr; }
 void MemoryManager::inpage::dlloc(void *, size_t) {}
 MemoryManager::MemoryManager():
-reserved_space{._rn{nullptr}} {}
+reserved_space{._rn{nullptr}} {
+#ifdef _DEBUG
+cout << "< heap: " << *(void **)(&reserved_space._rn);
+#endif
+}
 
 //======
 
