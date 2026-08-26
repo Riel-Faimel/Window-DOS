@@ -10,8 +10,8 @@
 struct TCB {
 //=== other ===
     TCB *next;
-    u16 remain_size = time_size;
     u16 time_size = 1;
+    u16 remain_size = time_size;
 
 //=== reg ===
     struct {
@@ -27,18 +27,18 @@ struct TCB {
         // stack bottum
     } context;
 
-    size_t xip = 0;
-    size_t xcs = 0x08;
+    size_t xip;
+    size_t xcs;
     size_t xflag = 0b00000000000000000000001000000010;
-    size_t xsp = 0;
-    size_t xss = 0x10;
+    size_t xsp;
+    size_t xss;
 
-    size_t xds = 0x10;
-    size_t xes = 0x10;
-    size_t xfs = 0x30;
-    size_t xgs = 0x10;
-
+    size_t xfs = 0x33;
+    size_t xds;
+    size_t xes;
+    size_t xgs;
     size_t cr3 = 0;
+    size_t ldtr = 0; // only 16 bits
 
 #ifdef _BITS_64
     size_t r8 = 0;

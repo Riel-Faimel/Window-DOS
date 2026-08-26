@@ -6,6 +6,7 @@ namespace rtl{
 template<typename Node>
 struct list_tranveser {
     Node *first_node;
+    Node *last_node = nullptr;
     struct Iterator {
         Node *thisptr;
 
@@ -16,7 +17,7 @@ struct list_tranveser {
     };
 
     constexpr Iterator begin() { return {first_node}; }
-    constexpr Iterator end() const { return {nullptr}; }
+    constexpr Iterator end() const { return {last_node}; }
 };
 
 } // namespace rtl

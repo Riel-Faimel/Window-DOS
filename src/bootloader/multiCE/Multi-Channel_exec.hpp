@@ -8,8 +8,8 @@ public:
     multiCE();
 
     void run(
-        void *func, size_t argc, void *argv,
-        u8 ring = 3, size_t time = 1
+        void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
+        size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
     );
     void cut(size_t cpuid, struct TCB *tid, size_t intnum);
 };

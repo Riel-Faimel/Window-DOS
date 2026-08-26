@@ -1,17 +1,39 @@
 #include "_TM.hpp"
 
 extern "C" {
-    void _Shello();
-    void _Snext();
-    void _Sok();
-    void hello() {
-        cout << "hello\n";
+    void test_call(size_t, void *) {
+        while(1)
+        asm volatile (
+            "mov %0, %%dl\n"
+            "mov $0x02, %%ah\n"
+            "int $0x21\n"
+            :
+            : "N"('A')
+            : "dl", "ah", "memory"
+        );
+    }
+    void test_call_(size_t, void *) {
+        while(1)
+        asm volatile (
+            "mov %0, %%dl\n"
+            "mov $0x02, %%ah\n"
+            "int $0x21\n"
+            :
+            : "N"('B')
+            : "dl", "ah", "memory"
+        );
+    }
+    void hello(size_t, void *) {
+        while(1)
+        cout << "^^^^^";
     }
     void next(size_t, void *){
-        cout << "next\n";
+        while(1)
+        cout << "|||||";
     };
-    void _Cok(size_t, void *){
-        cout << "ok\n";
+    void ok(size_t, void *){
+        while(1)
+        cout << "_____";
     };
 }
 
@@ -23,7 +45,5 @@ void TaskManager::exec(String filepath) {
         //No such file
         return;
     }
-    Multi_Channel_executor.run((void *)&_Shello, 0, nullptr, 0, 10);
-    Multi_Channel_executor.run((void *)&_Snext, 0, nullptr, 3);
-    Multi_Channel_executor.run((void *)&_Sok, 0, nullptr, 0);
+    Multi_Channel_executor.run(&test_call, 0, nullptr, 1, 3);
 }

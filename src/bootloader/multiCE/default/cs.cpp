@@ -1,11 +1,5 @@
 #include "_cs.hpp"
 
-DefaultScheduler::DefaultScheduler():
-context_local{new TCB {}}, uplist{nullptr}{
-    //cout << "sche in: " << this << '\n';
-    //interrupt_distributor.reg_irq(&_Ssche, IRQ::time);
-}
-
 extern "C" {
     __attribute__((optimize("O3")))
     [[noreturn]] void sche_c() {
@@ -20,24 +14,20 @@ extern "C" {
             : "eax", "memory"
         );
         auto &sche = cpu_ptr->scheduler;
-        //cout << code << "<<\n";
         switch (code) {
             case 0:
             sche.change();
-            sche.ScheduleDecision();
-            sche.resume();
+            break;
             case 1:
             sche.yield();
-            sche.ScheduleDecision();
-            sche.resume();
+            break;
             case 2:
-            sche.exit();
-            sche.ScheduleDecision();
-            sche.resume();
             default:
-            // WTF!?
-            ;
+            sche.exit();
+            break;
         };
+        sche.ScheduleDecision();
+        sche.resume();
     }
 }
 
@@ -64,9 +54,10 @@ inline void DefaultScheduler::yield() {
 
 __attribute__((optimize("O3")))
 void DefaultScheduler::exit(TCB *thread) {
+    return;
     if (thread == nullptr) {
         // exit this
-        delete context_local;
+        operator delete (context_local, mm);
         context_local = 0;
     }
     auto p = thread->next;
@@ -96,41 +87,61 @@ loop:
 
 __attribute__((optimize("O3")))
 [[noreturn]] void DefaultScheduler::resume() <%
-    if (context_local->xcs & 3) {
-        //int stack
+    if ((context_local->xcs & 3) == 0) {
+        //ring0 stack
         asm volatile (
             "mov %0, %%esp\n"
-            "jmp _Sint_stack\n"
-            : 
-            : "r"(&context_local->context)
-            : "memory"
+            "mov %1, %%eax\n"
+            "jmp _Sring0_back\n"
+            :
+            : "r"(context_local->xsp), "r"(context_local)
+            : "eax", "memory"
         );
     }
     else {
-        //call stack
-        //cout << "new stack = " << context_local->xsp << ", context = " << &context_local->context << '\n';
+        //ring3 stack
         asm volatile (
             "mov %0, %%esp\n"
-            "jmp _Scall_stack\n"
-            :
-            : "r"(&context_local->context)
+            "jmp _Sring3_back\n"
+            : 
+            : "r"(&context_local->xds)
             : "memory"
         );
     }
 %>
 
 __attribute__((optimize("O3")))
-void DefaultScheduler::run(void *func, size_t argc, void *argv, u8 ring, size_t time) {
+void DefaultScheduler::run(
+    void *func, size_t argc, void *argv, size_t time, 
+    size_t code_seg, size_t data_seg, size_t gs, size_t fs
+) {
     TCB* &next_run = up_is_running? downlist:uplist;
-    next_run = new TCB{
-        .next = next_run,
-        .time_size = (u16)time,
-        .context = { .xdx = (size_t)argv,  .xax = argc,  },
-        .xip = (size_t)func,
-        .xcs = (size_t)((ring==0)?0x08:0x1B),
-        .xsp = (size_t)new char[4069],
-        .xss = (size_t)((ring==0)?0x10:0x23),
-    };
+    auto new_run = new (mm) TCB{};
+    new_run->next = next_run;
+    new_run->time_size = (u16)time;
+    new_run->remain_size = (u16)time;
+    new_run->context.xdx = (size_t)argv;
+    new_run->context.xax = argc;
+    new_run->xip = (size_t)func;
+    new_run->xcs = code_seg & 0xFFFF;
+    new_run->xsp = (size_t)new (mm) char[4069];
+    new_run->xss = data_seg & 0xFFFF;
+    new_run->xfs = fs & 0xFFFF;
+    new_run->xds = data_seg & 0xFFFF;
+    new_run->xes = data_seg & 0xFFFF;
+    new_run->xgs = gs & 0xFFFF;
+    next_run = new_run;
 }
 
+DefaultScheduler::DefaultScheduler(MemoryManager& mm_, IDT& idt):mm{mm_}{
+    new (mm) TCB {};
+    idt.regist(&_Sexit, 0x20);
+}
+
+void DefaultScheduler::start_preemption(IDT &idt) {
+    idt.regist(&_Sint_sche, 48);
+}
+void DefaultScheduler::close_preemption(IDT &idt) {
+    idt.regist(&basic_time_handler_c, 48);
+}
 void DefaultScheduler::cut(TCB *tid, size_t num) {}

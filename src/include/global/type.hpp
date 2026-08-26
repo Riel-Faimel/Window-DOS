@@ -23,7 +23,7 @@ using __l32 = u32;
 
 //only base on Windows_64
 #ifdef _BITS_32
-using size_t = unsigned int;
+using size_t = unsigned;
 using uintptr_t = unsigned long;
 using intptr_t = long;
 

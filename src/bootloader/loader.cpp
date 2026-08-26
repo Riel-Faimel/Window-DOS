@@ -1,10 +1,11 @@
 #include "loader.hpp"
 registry_editor reg_edit;
-extern "C" void when_PATA_Master_cut_handler();
-extern "C" void when_PATA_Slave_cut_handler();
+extern MemoryManager *global_heap;
 
 __attribute__((optimize("O0")))
 void LoaderMain(){
+    MemoryManager init_global_heap{false};
+    global_heap = &init_global_heap;
     CPU cpu0{};
 
     //===INFO===
@@ -26,11 +27,6 @@ void LoaderMain(){
     TaskManager taskmgr;
 
     taskmgr.exec("B:\\INIT.EXE");
-    /**
-     * shouldn't fall through to here
-     */
-    //while(1);
-    _Syield();
-
-    cout << "Unexcept Exit!\n";
+    cpu0.preempt();
+    _Sexit(); // init thread sleep
 }

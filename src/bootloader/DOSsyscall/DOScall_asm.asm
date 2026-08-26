@@ -4,12 +4,9 @@ global DOScall_handler
 extern DOScall_handler_c
 
 DOScall_handler:
-    push edi
-    push esi
-    push edx
-    push ecx
-    push ebx
-    push eax
+    pusha
+    cli
+    mov eax, esp
     call DOScall_handler_c
-    add esp, 24
+    popa
     iret

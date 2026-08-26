@@ -8,6 +8,7 @@
 #include <DescripTable/idt.hpp>
 #include <DescripTable/tss.hpp>
 #include <multiCE/default/cs.hpp>
+#include <DOSsyscall/DOScall.hpp>
 
 #pragma pack(push, 1)
 struct CPU {
@@ -18,9 +19,17 @@ struct CPU {
     GDT gdt;
     TSM tss; // table
     DefaultScheduler scheduler; // schedule loop
+    DOScall syscall;
 
     CPU();
     auto next_node(){ return next; }
+    void preempt();
+    void collabora();
+
+    void run(
+        void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
+        size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
+    );
 
 private:
 };

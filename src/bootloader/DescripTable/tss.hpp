@@ -3,6 +3,7 @@
 
 #include <global/type.hpp>
 class GDT;
+struct MemoryManager;
 
 struct TSS32 {
     u16 task_link = 0; u16 _r1 = 0; u32 esp0 = 0; u16 ss0 = 0; u16 _r2 = 0;
@@ -14,7 +15,7 @@ struct TSS32 {
 };
 
 struct TSM {
-    TSM(GDT &gdt);
+    TSM(GDT &gdt, MemoryManager&);
 };
 
 

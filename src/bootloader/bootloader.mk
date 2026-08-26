@@ -30,12 +30,10 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/SSS.o\
 	$(BUILD_DIR)bootloader/PDS.o\
 	$(BUILD_DIR)bootloader/multiCE.o\
-	$(BUILD_DIR)bootloader/TM.o
-
-#	$(BUILD_DIR)bootloader/test.o\
-	$(BUILD_DIR)bootloader/CenterShell.o\
-	$(BUILD_DIR)bootloader/part-fs.o\
 	$(BUILD_DIR)bootloader/DOSsyscall.o\
+	$(BUILD_DIR)bootloader/TM.o\
+
+#
 	
 	$(LDCMD_F32) $@ $^
 

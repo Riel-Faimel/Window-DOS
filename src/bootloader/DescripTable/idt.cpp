@@ -21,7 +21,7 @@ IDT::IDT(volatile IDT_item *tab):idt_base(tab){
     regist(&OF_handler, static_cast<unsigned>(IDNT::_OF)); //溢出
     regist(&UD_handler, static_cast<unsigned>(IDNT::_UD)); //无效指令
     regist(&NM_handler, static_cast<unsigned>(IDNT::_NM)); //设备不可用
-    regist(&DF_handler, static_cast<unsigned>(IDNT::_DF), 0x80, 0); //双重错误
+    regist(&DF_handler, static_cast<unsigned>(IDNT::_DF), 0x08, 0); //双重错误
     regist(&GP_handler, static_cast<unsigned>(IDNT::_GP)); //通用保护错误
     regist(&basic_time_handler, 48); //基本时钟中断
 
@@ -34,6 +34,7 @@ void IDT::regist(
     void (*handler)(void), unsigned internum, unsigned short sec, 
     unsigned char DPL, bool _32_or_16
 ) volatile {
+    //cout << "reg:" << internum << '\n';
     new ((void *)&idt_base[internum]) descrptor::IDTEntry::IG {
         .addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF),
         .selector = sec, .is_32_bits_or_16_bits = (unsigned char)(_32_or_16?1:0),

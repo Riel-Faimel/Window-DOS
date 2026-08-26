@@ -1,6 +1,6 @@
 #include "_mm.hpp"
 
-MemoryManager::allocable *allocator;
+MemoryManager *global_heap;
 
 
 KernelHeapFormat::KernelHeapFormat(void *page_base){
@@ -138,10 +138,12 @@ KernelHeapFormat::SubZone *KernelHeapFormat::search_zone(void *obj, KernelHeapFo
 }
 
 
-inline MemoryManager::allocable::allocable() { allocator = this; }
+inline MemoryManager::allocable::allocable(MemoryManager *mm) {
+    mm->_ = this;
+}
 
-MemoryManager::nopage::nopage(void* page_base):
-KernelHeapFormat{page_base} {}
+MemoryManager::nopage::nopage(void* page_base, MemoryManager *mm):
+KernelHeapFormat{page_base}, allocable{mm}{}
 void *MemoryManager::nopage::alloc(size_t size) {
     KernelHeapFormat::ObjHeader *box = nullptr;
     auto level = size_to_level(size);
@@ -192,15 +194,16 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
         zone.free_count++;
     }
 }
-MemoryManager::inpage::inpage(void* page_base):
-KernelHeapFormat{page_base} {
+MemoryManager::inpage::inpage(void* page_base, MemoryManager *mm):
+KernelHeapFormat{page_base}, allocable{mm} {
     while(1);
 }
 void *MemoryManager::inpage::alloc(size_t) { return nullptr; }
 void MemoryManager::inpage::dlloc(void *, size_t) {}
-MemoryManager::MemoryManager():
-reserved_space{._rn{nullptr}} {
+MemoryManager::MemoryManager(bool print):
+reserved_space{._rn{nullptr, this}} {
 #ifdef _DEBUG
+if(print)
 cout << "< heap: " << *(void **)(&reserved_space._rn);
 #endif
 }
@@ -208,23 +211,42 @@ cout << "< heap: " << *(void **)(&reserved_space._rn);
 //======
 
 void *operator new(size_t size) {
-    return allocator->alloc(size);
+    return global_heap->alloc(size);
 }
 void operator delete(void *ptr) {
-    return allocator->dlloc(ptr, -1);
+    return global_heap->dlloc(ptr);
 }
 void operator delete(void *ptr, size_t size) {
-    return allocator->dlloc(ptr, size);
+    return global_heap->dlloc(ptr, size);
 }
 
 void *operator new[](size_t size) {
-    return allocator->alloc(size);
+    return global_heap->alloc(size);
 }
 void operator delete[](void *ptr) {
-    return allocator->dlloc(ptr, -1);
+    return global_heap->dlloc(ptr);
 }
 void operator delete[](void *ptr, size_t size) {
-    return allocator->dlloc(ptr, size);
+    return global_heap->dlloc(ptr, size);
+}
+
+void *operator new(size_t size, MemoryManager& mm) {
+    return mm.alloc(size);
+}
+void *operator new[](size_t size, MemoryManager& mm) {
+    return mm.alloc(size);
+}
+void operator delete(void *ptr, MemoryManager& mm) {
+    mm.dlloc(ptr);
+}
+void operator delete(void *ptr, MemoryManager& mm, unsigned size) {
+    mm.dlloc(ptr, size);
+}
+void operator delete[](void *ptr, MemoryManager& mm) {
+    mm.dlloc(ptr);
+}
+void operator delete[](void *ptr, MemoryManager& mm, unsigned size) {
+    mm.dlloc(ptr, size);
 }
 
 /**

@@ -1,8 +1,8 @@
 #include "_tss.hpp"
 
 
-TSM::TSM(GDT &gdt) {
-    auto tss_id = gdt.create_tss(new TSS32 {
+TSM::TSM(GDT &gdt, MemoryManager& mm) {
+    auto tss_id = gdt.create_tss(new (mm) TSS32 {
         .esp0 = (physicalpage.aloc(512, true).begin()).operator*().address.low,
         .ss0 = 0x10
     }, sizeof(TSS32)-1, descrptor::GateType::TSS_32_free, 0, false);
