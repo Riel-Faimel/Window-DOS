@@ -10,10 +10,10 @@ void LoaderMain(){
 
     //===INFO===
     cout << "============\n";
-    cout << "Window-DOS v0.2\n";
+    cout << "renew-DOS v0.2\n";
     cout << "============\n";
     cout << "FROM: Riel Faimel\n\n";
-    cout << "[INFO] boot device ID: " << boot_infomation->boot_device << '\n';
+    //cout << "[INFO] boot device ID: " << boot_infomation->boot_device << '\n';
 
 
     asm volatile ("sti");

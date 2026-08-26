@@ -38,13 +38,8 @@ scheduler{mm, idt}, syscall{idt}{
 #endif
 }
 
-void CPU::preempt() {
-    scheduler.start_preemption(idt);
-}
-
-void CPU::collabora() {
-    scheduler.close_preemption(idt);
-}
+void CPU::preempt() { scheduler.start_preemption(idt); }
+void CPU::collabora() { scheduler.close_preemption(idt); }
 
 void CPU::run(
     void (*func)(size_t, void *), size_t argc, void *argv, size_t time, 

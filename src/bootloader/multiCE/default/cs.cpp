@@ -1,5 +1,10 @@
 #include "_cs.hpp"
 
+inline void tcb_push(TCB *tcb, size_t data, int bytes_num = 4) {
+    tcb->xsp -= bytes_num;
+    *(size_t *)(tcb->xsp) = data;
+}
+
 extern "C" {
     __attribute__((optimize("O3")))
     [[noreturn]] void sche_c() {
@@ -14,16 +19,14 @@ extern "C" {
             : "eax", "memory"
         );
         auto &sche = cpu_ptr->scheduler;
-        switch (code) {
-            case 0:
-            sche.change();
-            break;
-            case 1:
+        if (code & 0x80000000) {
+            // exit bit set
+            sche.exit();
+        } else [[likely]] switch (code) {
+        case 0:
             sche.yield();
             break;
-            case 2:
-            default:
-            sche.exit();
+        default:
             break;
         };
         sche.ScheduleDecision();
@@ -32,41 +35,8 @@ extern "C" {
 }
 
 __attribute__((optimize("O3")))
-inline void DefaultScheduler::change() {
-    TCB*& thislist = up_is_running ? uplist : downlist;
-    TCB*& nextlist = up_is_running ? downlist : uplist;
-    
-    if (context_local != nullptr) {
-        // yield this tcb
-        context_local->remain_size = context_local->time_size;
-        context_local->next = nextlist;
-        nextlist = context_local;
-        context_local = nullptr;
-    }
-}
-
-__attribute__((optimize("O3")))
-inline void DefaultScheduler::yield() {
-    context_local->next = sleeplist;
-    sleeplist = context_local;
-    context_local = nullptr;
-}
-
-__attribute__((optimize("O3")))
-void DefaultScheduler::exit(TCB *thread) {
-    return;
-    if (thread == nullptr) {
-        // exit this
-        operator delete (context_local, mm);
-        context_local = 0;
-    }
-    auto p = thread->next;
-    thread->next = p->next;
-    delete p;
-}
-
-__attribute__((optimize("O3")))
 inline void DefaultScheduler::ScheduleDecision() {
+    // context has been changed and set nullptr
     TCB*& thislist = up_is_running ? uplist : downlist;
     TCB*& nextlist = up_is_running ? downlist : uplist;
     
@@ -110,8 +80,8 @@ __attribute__((optimize("O3")))
     }
 %>
 
-__attribute__((optimize("O3")))
-void DefaultScheduler::run(
+__attribute__((optimize("O3"), used))
+inline void DefaultScheduler::run(
     void *func, size_t argc, void *argv, size_t time, 
     size_t code_seg, size_t data_seg, size_t gs, size_t fs
 ) {
@@ -133,6 +103,68 @@ void DefaultScheduler::run(
     next_run = new_run;
 }
 
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::yield() {
+    TCB*& nextlist = up_is_running ? downlist : uplist;
+    // yield this tcb
+    context_local->remain_size += context_local->time_size;
+    context_local->next = nextlist;
+    nextlist = context_local;
+    context_local = nullptr;
+}
+
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::wait(TCB *tid) {
+    if (sleeplist != nullptr) {
+        sleeplist->prev = context_local;
+    }
+    context_local->next = sleeplist;
+    sleeplist = context_local;
+    context_local = nullptr;
+    // construc frame
+    tcb_push(tid, tid->xflag);
+    tcb_push(tid, tid->xip);
+    tcb_push(tid, (size_t)sleeplist);
+    tid->xip = tid->wait_handler;
+}
+
+__attribute__((optimize("O3")))
+void DefaultScheduler::exit() {
+    // exit this
+    operator delete ((void *)context_local->xsp, mm);
+    operator delete (context_local, mm);
+    context_local = nullptr;
+}
+
+void DefaultScheduler::cut(TCB *tid, size_t num, void *argv) {
+    tcb_push(tid, tid->xflag);
+    tcb_push(tid, tid->xip);
+    tcb_push(tid, num);
+    tcb_push(tid, (size_t)argv);
+    tid->xip = tid->int_handler;
+}
+
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::wake(TCB *tid, size_t wake_num) {
+    if (tid->prev) {
+        // is sleeping
+        tid->prev->next = tid->next;
+        tid->prev = nullptr;
+    } else if (tid == sleeplist) {
+        sleeplist = tid->next;
+    }
+    
+    TCB*& nextlist = up_is_running ? downlist : uplist;
+    tid->next = nextlist;
+    nextlist = tid;
+    tcb_push(tid, wake_num);
+}
+
+__attribute__((optimize("O3")))
+inline void DefaultScheduler::set_time_size(TCB *tcb, u16 time) {
+    tcb->time_size = time;
+}
+
 DefaultScheduler::DefaultScheduler(MemoryManager& mm_, IDT& idt):mm{mm_}{
     new (mm) TCB {};
     idt.regist(&_Sexit, 0x20);
@@ -141,7 +173,14 @@ DefaultScheduler::DefaultScheduler(MemoryManager& mm_, IDT& idt):mm{mm_}{
 void DefaultScheduler::start_preemption(IDT &idt) {
     idt.regist(&_Sint_sche, 48);
 }
+
 void DefaultScheduler::close_preemption(IDT &idt) {
     idt.regist(&basic_time_handler_c, 48);
 }
-void DefaultScheduler::cut(TCB *tid, size_t num) {}
+
+inline void DefaultScheduler::reg_int(TCB *tcb, void *int_handler) {
+    tcb->int_handler = (size_t)int_handler;
+}
+inline void DefaultScheduler::reg_wait(TCB *tcb, void *wait_handler) {
+    tcb->wait_handler = (size_t)wait_handler;
+}

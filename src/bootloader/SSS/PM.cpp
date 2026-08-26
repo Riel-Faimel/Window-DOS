@@ -99,7 +99,7 @@ void PM::resolve(LogicalDisk *disk) {
             disk_stack.append(part);
 
             // try file system
-        kprint("System ID: ");print_hex(sysid);kprint("\n");
+            cout << "[INFO] Part found, system ID: " << sysid << '\n';
             Cluster *fs;
             switch (static_cast<System_ID>(sysid)) {
             case System_ID::FAT12:

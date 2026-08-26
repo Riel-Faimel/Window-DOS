@@ -40,6 +40,10 @@ struct TCB {
     size_t cr3 = 0;
     size_t ldtr = 0; // only 16 bits
 
+    TCB *prev = nullptr;
+    size_t int_handler = 0;
+    size_t wait_handler = 0;
+
 #ifdef _BITS_64
     size_t r8 = 0;
     size_t r9 = 0;

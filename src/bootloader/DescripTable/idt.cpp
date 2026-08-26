@@ -82,7 +82,7 @@ void GP_handler_c(errcode_frame * frame){
 }
 __attribute__((optimize("O0")))
 void basic_time_handler_c(){
-    cout << "cut ";
+    //cout << "cut ";
     _time_count++;
 };
 

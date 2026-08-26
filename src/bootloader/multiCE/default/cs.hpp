@@ -25,15 +25,20 @@ public:
 
     inline void ScheduleDecision();
     [[noreturn]] void resume();
-    inline void change();
-    inline void yield();
-    inline void exit(TCB * = nullptr);
-    //inline void Switch();
-    void cut(TCB *thread_id, size_t num);
-    void run(
+    inline void run(
         void *func, size_t argc, void *argv, size_t time, 
         size_t code_seg, size_t data_seg, size_t gs, size_t fs
     ); // Create Thread
+    inline void exit();
+    inline void join(TCB *);
+    inline void yield();
+    inline void wait(TCB *);
+    inline void wake(TCB *, size_t);
+    inline void cut(TCB *, size_t, void *);
+    inline void set_time_size(TCB *, u16);
+
+    inline void reg_int(TCB *, void *);
+    inline void reg_wait(TCB *, void *);
 
     void start_preemption(IDT &);
     void close_preemption(IDT &);
