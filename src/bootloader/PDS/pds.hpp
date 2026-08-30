@@ -6,9 +6,6 @@
  * it is manage enumerator objects and provide driver queries and API for caller 
  */
 
-#include <interface/dev_cls/logicaldisk.hpp>
-#include <TL/container>
-
 #include <PDS/PCI/pci.hpp>
 #include <PDS/USB/usb.hpp>
 
@@ -16,8 +13,6 @@ class PeripheralDeviceSpace {
 private:
     PCI_space pci;
     USB_space usb;
-
-    rtl::map<size_t, void *> drivers;
 public:
     PeripheralDeviceSpace();
     void probe();

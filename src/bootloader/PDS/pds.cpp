@@ -10,6 +10,6 @@ void PeripheralDeviceSpace::probe() {
 }
 
 void PeripheralDeviceSpace::set_driver() {
-    usb.set_driver();
     pci.set_driver();
+    usb.set_driver();
 }

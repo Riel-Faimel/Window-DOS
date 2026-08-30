@@ -466,13 +466,7 @@ void IDE_DISK::check(){
     print_hex(status);
 }
 
-
-// ======
-
-#include <SSS/PM.hpp>
-#include <PDS/PCI/pci.hpp>
-
-void init_IDE_controller(void *){
+void init_IDE_controller(DeviceConfig &){
     IDE_DISK *re = new IDE_DISK[4];
     new IDE_Channal[2]{
         {re[0], re[1], IDE_Channal::Channal::Master_Channel}, 

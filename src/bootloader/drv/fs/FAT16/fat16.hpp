@@ -172,4 +172,6 @@ private:
     String get_long_filename(DIR *);
 };
 
+Cluster *create_fat_fs(LogicalDisk *);
+
 #endif

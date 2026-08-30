@@ -9,7 +9,6 @@
 #include "DLS_.hpp"
 #include <global/type.hpp>
 #include <interface/dev_cls/cluster.hpp>
-//#include <part-fs/MBR/MBR.hpp>
 #include <global/WIN.hpp>
 #include <PDS/pds.hpp>
 #include <cppstdlib/string>
@@ -41,7 +40,7 @@ public:
     unsigned did_count = 1;
     /**
      * skip A:
-     * it is only for system disk
+     * B: for boot disk
      */
 public:
     DLS();
@@ -59,7 +58,6 @@ public:
     /**
      * open(Window, String "A:\") for open a device also path on it
      */
-    __attribute__((regpram(3)))
     unsigned open(WinHandle&, String, u8 = Read|Write);
     unsigned close(WinHandle&);
     /**

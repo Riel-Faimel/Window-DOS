@@ -33,6 +33,23 @@ protected:
             return ptr != other.ptr;
         }
     };
+
+    template<typename V>
+    void __append(V &&obj){
+        if(size >= capacity){
+            size_t new_capacity = capacity * 2;
+            T *new_ptr = new T [new_capacity];
+            for(size_t i = 0;i < size;i++){
+                new_ptr[i] = ptr[i];
+            }
+            delete[] ptr;
+            ptr = new_ptr;
+            capacity = new_capacity;
+        }
+        ptr[size] = bits::forward(obj);
+        size++;
+    }
+    
 public:
     array(size_t size_ = 1):size{0},capacity{size_}{
         ptr = new T[capacity];
@@ -61,32 +78,8 @@ public:
         this->ptr = ptr;
     }
 
-private:
-    template<typename V>
-    void __append(V &&obj){
-        if(size >= capacity){
-            size_t new_capacity = capacity * 2;
-            T *new_ptr = new T [new_capacity];
-            for(size_t i = 0;i < size;i++){
-                new_ptr[i] = ptr[i];
-            }
-            delete[] ptr;
-            ptr = new_ptr;
-            capacity = new_capacity;
-        }
-        ptr[size] = bits::forward(obj);
-        size++;
-    }
-
 public:
-    T &operator[](size_t index){
-        return ptr[index];
-    }
-
-    const T &operator[](size_t index) const {
-        return ptr[index];
-    }
-
+    T &operator[](size_t index){ return ptr[index]; }
     void remove(size_t index){
         if(index >= size)return;
         for(size_t i = index;i < size - 1;i++){
@@ -94,15 +87,13 @@ public:
         }
         size--;
     }
-
-    void remove(T obj) {
+    void remove(const T &obj) {
         for(size_t i = 0; i < size; i++){
             if (ptr[i] == obj) {
                 remove(i);
             }
         }
     }
-
     void insert(size_t index, const T &obj){
         if(index > size)return;
         if(size >= capacity){
@@ -120,287 +111,197 @@ public:
         }
         ptr[index] = obj;
         size++;
-    }
-
-    size_t get_size() const {
-        return size;
-    }
-
-    T *get_ptr(){
-        return ptr;
-    }
-
-    void clean(){
-        ptr = nullptr;
-    }
-
-    constexpr Iterator begin(){
-        return Iterator{ptr};
-    }
-
-    constexpr Iterator end(){
-        return Iterator{ptr + size};
-    }
-};
-
-template<typename T, bool multi = true>
-class node;
-
-template<typename T>
-class node<T, true> {
-    T data;
-    array<node<T, true>*> son{1};
-public:
-    node(T data_i) : data{data_i} {}
-
-    void point(node<T, true> *n) {
-        son.append(n);
-    }
-
-    node<T, true> *operator[](size_t i) {
-        return son[i];
-    }
-
-    T get_data() const {
-        return data;
-    }
-
-    virtual ~node() {
-        for (auto *s : son) {
-            delete s;
-        }
-    }
-};
-
-template<typename T>
-class node<T, false> {
-    T data;
-    node<T, false> *next;
-    
-public:
-    node(T data_i):data{data_i}{}
-    
-    node(T data_i, node &source_node):
-    data{data_i}{
-        source_node.point(this);
-    }
-    
-     void point(node *n){
-        next = n;
-    };
-
-     T get_data() const {
-        return data;
-    }
-
-     operator node*(){
-        return next;
-    }
-
-    ~node() {
-        delete next;
-    }
-};
-
-template<typename T>
-class single_ptr {
-    T* ptr{nullptr};
-public:
-    void append(T* p) { ptr = p; }
-    void remove(T* p) { if (ptr == p) ptr = nullptr; }
-    void clear() { ptr = nullptr; }
-    size_t get_size() const { return ptr ? 1 : 0; }
-    
-    T*& operator[](size_t i) { return ptr; }
-    T* operator[](size_t i) const { return ptr; }
-    
-    T** begin() { return &ptr; }
-    T** end() { return ptr ? (&ptr + 1) : &ptr; }
-};
-
-template<typename T>
-class multi_ptr {
-    array<T*> arr{1};
-public:
-    void append(T* p) { arr.append(p); }
-    void remove(T* p) { arr.remove(p); }
-    void clear() { arr.clear(); }
-    size_t get_size() const { return arr.get_size(); }
-    
-    T*& operator[](size_t i) { return arr[i]; }
-    T* operator[](size_t i) const { return arr[i]; }
-    
-    auto begin() { return arr.begin(); }
-    auto end() { return arr.end(); }
-};
-
-/*
-*/
-template<typename T, bool MultiFather = true, bool MultiSon = true>
-class link {
-    T data;
-    using FatherPtr = typename conditional<MultiFather, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
-    using SonPtr = typename conditional<MultiSon, multi_ptr<link<T, MultiFather, MultiSon>>, single_ptr<link<T, MultiFather, MultiSon>>>::type;
-    
-    FatherPtr father;
-    SonPtr son;
-    
-public:
-    link(T data) : data{data} {}
-    
-    bool has_son(link* l) {
-        for (auto* s : son) {
-            if (s == l) return true;
-        }
-        return false;
-    }
-    
-    void point_to(link* l) {
-        if (has_son(l)) return;
-        son.append(l);
-        l->father.append(this);
-    }
-    
-    void bind(link* l) {
-        father.append(l);
-        l->son.append(this);
-    }
-    
-    auto get_father() const { return father; }
-    auto get_son() const { return son; }
-    T get_data() const { return data; }
-    
-    ~link() {
-        for (auto* f : father) {
-            for (auto* s : son) {
-                f->point_to(s);
-            }
-        }
-        
-        for (auto* f : father) {
-            f->son.remove(this);
-        }
-        for (auto* s : son) {
-            s->father.remove(this);
-        }
-    }
+    } 
+    size_t get_size() const { return size; } 
+    T *get_ptr(){ return ptr; } 
+    void clean(){ ptr = nullptr; } 
+    constexpr Iterator begin(){ return Iterator{ptr}; } 
+    constexpr Iterator end(){ return Iterator{ptr + size}; }
 };
 
 template<typename T>
 class list {
-    ;
-};
+protected:
+    struct Node {
+        T data;
+        Node* prev = nullptr;
+        Node* next = nullptr;
+        Node(const T &val): data{val}{}
+        Node(T &&val): data{move(val)}{}
+    };
+    Node* head = nullptr;
+    Node* tail = nullptr;
+    size_t size = 0;
 
-template<typename N, typename M>
-struct pair {
-    N key;
-    M value;
-    pair():key{}, value{}{};
-    pair(N key_i, M value_i):key{key_i}, value{value_i}{};
-}; 
-
-template<typename N, typename M>
-class map{
-    array<pair<N, M>> data;
-public:
-    map(): data{}{}
-    M &operator[](N key){
-        for (auto &[k, v] : data) {
-            if (k == key) return v;
+    class Iterator {
+        Node* ptr;
+    public:
+        Iterator(Node* p) : ptr{p} {}
+        T& operator*() { return ptr->data; }
+        Iterator& operator++() {
+            ptr = ptr->next;
+            return *this;
         }
-        data.append({key, {}});
-        return data.back().value;
+        Iterator& operator--() {
+            ptr = ptr->prev;
+            return *this;
+        }
+        bool operator!=(Iterator& other) {
+            return ptr != other.ptr;
+        }
+    };
+
+    void tpend(Node *new_node) {
+        if (!head) {
+            head = tail = new_node;
+        } else {
+            tail->next = new_node;
+            new_node->prev = tail;
+            tail = new_node;
+        }
+        size++;
     }
-};
-
-template<typename N, typename M>
-class map_h {};
-
-template<typename ...Type>
-struct tuple;
-
-template<typename Fir, typename... Args>
-struct tuple<Fir, Args...> : public tuple<Args...> {
-    Fir data;
-    tuple(Fir f, Args... args):
-    data{f}, tuple<Args...>{args...}{}
-
-    tuple(tuple<Fir, Args...>& t):
-    data{t.data}, tuple<Args...>{static_cast<tuple<Args...>&>(t)}{}
-
-    tuple(tuple<Fir, Args...>&& t):
-    data{t.data}, tuple<Args...>{static_cast<tuple<Args...>&&>(t)}{
-        t.data = Fir{};
+    void ppend(Node *new_node) {
+        if (!head) {
+            head = tail = new_node;
+        } else {
+            new_node->next = head;
+            head->prev = new_node;
+            head = new_node;
+        }
+        size++;
     }
-};
 
-template<>
-struct tuple<> {
 public:
-    tuple() = default;
+    list(){}
+    ~list() {
+        while (head) {
+            Node* temp = head;
+            head = head->next;
+            delete temp;
+        }
+    }
+
+    void append(const T &obj) {
+        Node *new_node = new Node{obj};
+        tpend(new_node);
+    }
+    void prepend(const T &obj) {
+        Node* new_node = new Node{obj};
+        ppend(new_node);
+    }
+    void append(T &&obj) {
+        Node* new_node = new Node{move(obj)};
+        tpend(new_node);
+    }
+    void prepend(T &&obj) {
+        Node* new_node = new Node{move(obj)};
+        ppend(new_node);
+    }
+
+    void insert(size_t index, T obj) {
+        if (index > size) return;
+        if (index == 0) { prepend(obj); return; }
+        if (index == size) { append(obj); return; }
+
+        Node* current = head;
+        for (size_t i = 0; i < index; i++) {
+            current = current->next;
+        }
+
+        Node* new_node = new Node(obj);
+        new_node->prev = current->prev;
+        new_node->next = current;
+        current->prev->next = new_node;
+        current->prev = new_node;
+        size++;
+    }
+
+    void remove(size_t index) {
+        if (index >= size) return;
+
+        Node* to_delete;
+        if (index == 0) {
+            to_delete = head;
+            head = head->next;
+            if (head) head->prev = nullptr;
+            else tail = nullptr;
+        } else if (index == size - 1) {
+            to_delete = tail;
+            tail = tail->prev;
+            tail->next = nullptr;
+        } else {
+            Node* current = head;
+            for (size_t i = 0; i < index; i++) {
+                current = current->next;
+            }
+            to_delete = current;
+            current->prev->next = current->next;
+            current->next->prev = current->prev;
+        }
+
+        delete to_delete;
+        size--;
+    }
+
+    void remove(const T &obj) {
+        Node* current = head;
+        while (current) {
+            if (current->data == obj) {
+                Node* to_delete = current;
+                if (current->prev) current->prev->next = current->next;
+                else head = current->next;
+                if (current->next) current->next->prev = current->prev;
+                else tail = current->prev;
+                current = current->next;
+                delete to_delete;
+                size--;
+            } else {
+                current = current->next;
+            }
+        }
+    }
+    void clear() {
+        while (head) {
+            Node* temp = head;
+            head = head->next;
+            delete temp;
+        }
+        tail = nullptr;
+        size = 0;
+    }
+    T& operator[](size_t index) {
+        Node* current = head;
+        for (size_t i = 0; i < index; i++) {
+            current = current->next;
+        }
+        return current->data;
+    } 
+    size_t get_size() { return size; } 
+    bool empty() { return size == 0; }
+    Iterator begin() { return Iterator{head}; } 
+    Iterator end() { return Iterator{nullptr}; }
+
+    list(list&& other): head(other.head), tail(other.tail), size(other.size) {
+        other.head = nullptr;
+        other.tail = nullptr;
+        other.size = 0;
+    }
+    list& operator=(list&& other) {
+        if (this == &other) return *this;
+        clear();
+        head = other.head;
+        tail = other.tail;
+        size = other.size;
+        other.head = nullptr;
+        other.tail = nullptr;
+        other.size = 0;
+        return *this;
+    }
+
+    list(list& other) = delete;
+    list& operator=(list& other) = delete;
 };
-
-template<unsigned long long N, typename Fir, typename... Args>
-auto& get(tuple<Fir, Args...>& t) {
-    if constexpr (N==0) return t.data;
-    else return get<N-1>(static_cast<tuple<Args...>&>(t));
-}
-
-template<unsigned long long N, typename Fir, typename... Args>
-const auto& get(const tuple<Fir, Args...>& t) {
-    if constexpr (N==0)return t.data;
-    else return get<N-1>(static_cast<tuple<Args...>&>(t));
-}
-
-template<unsigned long long N, typename Fir, typename... Args>
-auto&& get(tuple<Fir, Args...>&& t) {
-    if constexpr (N==0)return bits::forward(t.data);
-    else return get<N-1>(static_cast<tuple<Args...>&&>(t));
-}
-
-template<typename... T>
-struct tuple_size;
-
-template<typename Fir, typename... Args>
-struct tuple_size<tuple<Fir, Args...>> {
-    constexpr static unsigned long long value = tuple_size<tuple<Args...>>::value + 1;
-};
-
-template<>
-struct tuple_size<tuple<>> {
-    constexpr static unsigned long long value = 0;
-};
-
-template<unsigned long long I, typename... T>
-struct tuple_type;
-
-template<unsigned long long I, typename Fir, typename... Args>
-struct tuple_type<I, tuple<Fir, Args...>> {
-    using type = typename tuple_type<I-1, tuple<Args...>>::type;
-};
-
-template<typename Fir, typename... Args>
-struct tuple_type<0, tuple<Fir, Args...>> {
-    using type = Fir;
-};
-
-template<unsigned long long I>
-struct tuple_type<I, tuple<>> {
-    using type = void;
-};
-
-template<typename ...T>
-constexpr tuple<T...> make_tuple(T...);
-
-template<typename FirInit, typename ...OthInit>
-constexpr tuple<FirInit, OthInit...> make_tuple(FirInit fir, OthInit... init) {
-    tuple<FirInit, OthInit...>re{make_tuple(init...), fir};
-    return re;
-}
-template<>
-constexpr tuple<> make_tuple<>() {
-    return tuple<>{}; 
-}
 
 }
 

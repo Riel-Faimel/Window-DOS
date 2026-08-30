@@ -1,5 +1,40 @@
 #include "_pci.hpp"
 
+DeviceConfig &construc(PCI_device_config &pcf, PCI_space *enumer) {
+    auto re = new DeviceConfig{ 
+        .bus_type = DeviceConfig::BUS_TYPE::PCI,
+        .class_type = DeviceConfig::CLASS_TYPE::nul, 
+        .device_type = 0, .config = &pcf, .enumer = enumer 
+    };
+    switch (pcf.Class_code[2]){
+    case 0x01: // stroage controller
+        re->class_type = DeviceConfig::CLASS_TYPE::storage;
+        switch (pcf.Class_code[1]) {
+        case 0x01:
+            re->device_type = _GD_storage_IDE_disk;
+            break;
+        default:
+            break;
+        }
+        break;
+    case 0x02: //network controller
+        switch (pcf.Class_code[1]){
+        case 0x00:
+            break;
+        default:
+            break;
+        }
+        break;
+    case 0x03:
+        break;
+    case 0x06:
+        break;
+    default:
+        break;
+    }
+    return *re;
+}
+
 PCI_space::PCI_space(bool print_info): print_info(print_info){};
 
 inline void PCI_space::probe(){
@@ -13,7 +48,7 @@ inline void PCI_space::probe(){
         }
     }
     if(!print_info){
-        cout << "[INFO] PCI device probe done: " << config.get_size() << " devices found\n";
+        cout << "[INFO] PCI probe done: " << config.get_size() << " devices found\n";
     }
 }
 
@@ -33,7 +68,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
     if (
         id == 0xffffffff || id == 0x00000000 ||
 	    id == 0x0000ffff || id == 0xffff0000
-    ) return ;
+    ) return;
 
     unsigned time_count = 0;
     while (id == 0xffff0001) {
@@ -97,66 +132,10 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
 }
 
 void PCI_space::set_driver(){
-    for(auto device : config){
-        switch (device.Class_code[2]){
-        case 0x01: // stroage controller
-            switch (device.Class_code[1]){
-            case 0x00: //SCSI
-                break;
-            case 0x01: //IDE
-                //kprint("IDE controller\r\n");
-                init_IDE_controller(&device);
-                break;
-            case 0x02: //floppy
-                kprint("floppy controller\r\n");
-                break;
-            case 0x06: //STAT
-                kprint("SATA controller\r\n");
-                break;
-            case 0x08: //NVMe
-                break;
-            default:
-                break;
-            }
-            break;
-        case 0x02: //network controller
-            switch (device.Class_code[1]){
-            case 0x00:
-                //kprint("internet controller\r\n");
-                break;
-            default:
-                break;
-            }
-            break;
-        case 0x03:
-            //kprint("display controller\r\n");
-            break;
-        case 0x06:
-        /*
-            switch (device.Class_code[1]){
-            case 0x00: //host bridge
-                kprint("Host bridge\n");
-                break;
-            case 0x01:
-                kprint("ISA bridge\n");
-                break;
-            case 0x02:
-                kprint("EISA bridge\n");
-                break;
-            case 0x03:
-                kprint("MicroChannal bridge\n");
-                break;
-            case 0x04:
-                kprint("PCI bridge\n");
-                break;
-            default:
-                print_hex(static_cast<u16>(device.Class_code[1]<<8 | device.Class_code[0]));
-                break;
-            }
-        */
-            break;
-        default:
-            break;
+    for(auto &device : config) {
+        auto &cf = construc(device, this);
+        if (kmod->driver.exists(cf)) {
+            kmod->driver[cf](cf);
         }
     };
 }

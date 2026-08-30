@@ -1,3 +1,5 @@
-//#include <part-fs/MBR/MBR.hpp>
-#include <drv/screen/screen_srv.hpp>
 #include "fat16.hpp"
+
+#ifdef _DEBUG
+#include <drv/screen/screen_srv.hpp>
+#endif

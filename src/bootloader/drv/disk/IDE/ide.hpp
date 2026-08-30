@@ -31,4 +31,5 @@ public:
     DISK_INFO* info(String);
     unsigned cmd(unsigned, String, void *argv, unsigned argc);
 };
+
 #endif

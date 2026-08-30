@@ -1,6 +1,10 @@
 #ifndef __bootloader_MCE_Multi_Channel_exec_hpp
 #define __bootloader_MCE_Multi_Channel_exec_hpp
 
+/**
+ * multiCE (multi-Channel execator) is a global thread execator
+ * for sth. of a core-local scheduler
+ */
 #include <global/type.hpp>
 
 class multiCE {

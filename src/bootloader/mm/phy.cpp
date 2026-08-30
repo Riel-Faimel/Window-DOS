@@ -1,6 +1,5 @@
 #include "_phy.hpp"
 
-PhysicalPage physicalpage;
 PhysicalPage::mem_list *__window_dos_loader_struct_0x1::start = (PhysicalPage::mem_list *)0x27000;
 atomic<bool> physical_memory_lock{};
 

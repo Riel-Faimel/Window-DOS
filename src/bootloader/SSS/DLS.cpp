@@ -23,10 +23,9 @@ void DLS::regist(Cluster *clu, String le){
         clu, letter, did_count
     });
     did_count++;
-    //kprint("===\nFound a disk! \n    ");kprint(letter);kprint(", Type: ");print_hex((u8)clu->info()->type);kprint(".\n");
+    cout << "[INFO] Get one FS [" << letter << ":], ID = " << (u8)clu->info()->type << '\n';
 }
 
-__attribute__((regpram(4)))
 unsigned DLS::open(WinHandle &win, String file_path, u8 mode){
     if(win.extra) { return -1; }
     // win.extra has other handle
@@ -39,7 +38,7 @@ unsigned DLS::open(WinHandle &win, String file_path, u8 mode){
                 .ID=id, .file_handle=handle, 
                 .count=0, .handle_mode=mode
             };
-            return handle;
+            return 0;
         }
     }
     return -2; // no such disk
@@ -60,17 +59,10 @@ unsigned DLS::close(WinHandle &win){
 unsigned DLS::read(WinHandle &win, unsigned byte_offset, unsigned byte_read){
     if(win.extra){
         Handle *h = reinterpret_cast<Handle *>(win.extra);
-        for (auto [driver, _, id] : space) {
-            if (id == h->ID) {
-                auto b = reinterpret_cast<unsigned short *>(&win+1);
-                /*
-                kprint("read into: ");print_hex((size_t)b);print_char('\n');
-                //*/
-                return driver->read(
-                    b, 
-                    h->file_handle, byte_offset, byte_read
-                );
-            }
+        for (auto [driver, _, id] : space)
+        if (id == h->ID) {
+            auto b = win.size==0?*(reinterpret_cast<void **>(&win+1)):reinterpret_cast<unsigned short *>(&win+1);
+            return driver->read(b, h->file_handle, byte_offset, byte_read);
         }
     }
     return (unsigned)-1;

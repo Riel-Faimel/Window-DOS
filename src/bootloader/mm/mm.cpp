@@ -1,7 +1,7 @@
 #include "_mm.hpp"
 
+PhysicalPage physicalpage;
 MemoryManager *global_heap;
-
 
 KernelHeapFormat::KernelHeapFormat(void *page_base){
     if (page_base == nullptr) {

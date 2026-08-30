@@ -3,36 +3,212 @@
 #include <global/type.hpp>
 #include <TL/container>
 
-namespace rtl{
-
 template<typename T>
-size_t hash(T t);
-
-template<>
-constexpr size_t hash(int num) { return num; }
+size_t hash(const T& t);
 
 template<typename N>
-concept Key = 
-requires (N n) { n == n; }
-&& ( 
-    requires (N n){ n.hash(); } 
-    || requires (N n) { hash(n); } 
-);
+concept hashable = 
+requires (N n) { n == n; } &&
+requires (N n) { hash(n); };
 
-template<Key N, typename M>
+namespace rtl{
+
+template<hashable Key, typename Value>
 class map {
-private:
-    struct item {};
-    array<item> map_list;
 public:
-    map(/* args */){}
-    ~map(){}
+    using key_type = Key;
+    using mapped_type = Value;
 
-    M& operator[] (size_t i) {}
-    bool exist(N n) {}
-    size_t size() {}
+private:
+    struct Node {
+        Key key;
+        Value value;
+        Node* next;
+        
+        Node(const Key& k, const Value& v, Node* n = nullptr): 
+        key(k), value(v), next(n) {}
+    };
+
+    Node** buckets_;
+    size_t bucket_count_;
+    size_t element_count_;
+
+    inline size_t get_bucket_index(const Key& key) const { return hash(key) % bucket_count_; }
+    Node* find_node(const Key& key, size_t index) const {
+        Node* curr = buckets_[index];
+        while (curr) {
+            if (curr->key == key) {
+                return curr;
+            }
+            curr = curr->next;
+        }
+        return nullptr;
+    }
+    void rehash(size_t new_bucket_count) {
+        Node** old_buckets = buckets_;
+        size_t old_count = bucket_count_;
+        
+        buckets_ = new Node*[new_bucket_count]();
+        bucket_count_ = new_bucket_count;
+        
+        for (size_t i = 0; i < old_count; ++i) {
+            Node* curr = old_buckets[i];
+            while (curr) {
+                Node* next = curr->next;
+                size_t new_index = get_bucket_index(curr->key);
+                curr->next = buckets_[new_index];
+                buckets_[new_index] = curr;
+                curr = next;
+            }
+        }
+        
+        delete[] old_buckets;
+    }
+
+    inline void check_load_factor() {
+        if (element_count_ * 4 > bucket_count_ * 3) {
+            rehash(bucket_count_ * 2);
+        }
+    }
+
+public:
+    class iterator {
+    private:
+        Node** buckets_;
+        size_t bucket_count_;
+        Node* current_;
+        size_t current_bucket_;
+        
+        void advance() {
+            if (current_ && current_->next) {
+                current_ = current_->next;
+                return;
+            }
+            
+            for (size_t i = current_bucket_ + 1; i < bucket_count_; ++i) {
+                if (buckets_[i]) {
+                    current_bucket_ = i;
+                    current_ = buckets_[i];
+                    return;
+                }
+            }
+            current_ = nullptr;
+            current_bucket_ = bucket_count_;
+        }
+        
+    public:
+        iterator(Node** b, size_t count, Node* curr = nullptr, size_t bucket = 0)
+            : buckets_(b), bucket_count_(count), current_(curr), current_bucket_(bucket) {
+            if (!current_ && current_bucket_ < bucket_count_) {
+                for (size_t i = 0; i < bucket_count_; ++i) {
+                    if (buckets_[i]) {
+                        current_bucket_ = i;
+                        current_ = buckets_[i];
+                        break;
+                    }
+                }
+            }
+        }
+        const Key& key() const { return current_->key; }
+        Value& value() const { return current_->value; }
+        iterator& operator++() {
+            advance();
+            return *this;
+        }
+        iterator operator++(int) {
+            iterator tmp = *this;
+            advance();
+            return tmp;
+        }
+        bool operator==(const iterator& other) const {
+            return current_ == other.current_;
+        }
+        bool operator!=(const iterator& other) const {
+            return !(*this == other);
+        }
+    };
+    explicit map(size_t bucket_count = 64)
+    :bucket_count_{bucket_count}, element_count_{0}{
+        buckets_ = new Node*[bucket_count_]();
+    }
+    map(map&& other) noexcept : 
+    buckets_{other.buckets_}, bucket_count_{other.bucket_count_},
+    element_count_(other.element_count_){
+        other.buckets_ = nullptr;
+        other.bucket_count_ = 0;
+        other.element_count_ = 0;
+    }
+    map(const map&) = delete;
+    map& operator=(const map&) = delete;
+    ~map() {
+        clear();
+        delete[] buckets_;
+    }
+    
+    Value& operator[](const Key& key) {
+        size_t index = get_bucket_index(key);
+        Node* existing = find_node(key, index);
+        
+        if (existing) {
+            return existing->value;
+        }
+        
+        Node* new_node = new Node(key, Value(), buckets_[index]);
+        buckets_[index] = new_node;
+        ++element_count_;
+        check_load_factor();
+        return new_node->value;
+    }
+    Value* find(const Key& key) {
+        size_t index = get_bucket_index(key);
+        Node* node = find_node(key, index);
+        return node ? &node->value : nullptr;
+    }
+    bool exists(const Key& key) const {
+        size_t index = get_bucket_index(key);
+        return find_node(key, index) != nullptr;
+    }
+    bool erase(const Key& key) {
+        size_t index = get_bucket_index(key);
+        Node* curr = buckets_[index];
+        Node* prev = nullptr;
+        
+        while (curr) {
+            if (curr->key == key) {
+                if (prev) {
+                    prev->next = curr->next;
+                } else {
+                    buckets_[index] = curr->next;
+                }
+                delete curr;
+                --element_count_;
+                return true;
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+        return false;
+    }
+    void clear() {
+        for (size_t i = 0; i < bucket_count_; ++i) {
+            Node* curr = buckets_[i];
+            while (curr) {
+                Node* next = curr->next;
+                delete curr;
+                curr = next;
+            }
+            buckets_[i] = nullptr;
+        }
+        element_count_ = 0;
+    }
+
+    size_t size() const { return element_count_; }
+    bool empty() const { return element_count_ == 0; }
+    size_t bucket_count() const { return bucket_count_; }
+
+    iterator begin() { return iterator(buckets_, bucket_count_); }
+    iterator end() { return iterator(buckets_, bucket_count_, nullptr, bucket_count_); }
 };
-
 
 } // namespace rtl
 

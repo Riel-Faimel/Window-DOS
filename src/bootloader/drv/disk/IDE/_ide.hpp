@@ -3,6 +3,8 @@
 #include <drv/screen/screen_srv.hpp>
 #include <TL/idlib>
 #include <registry/registry.hpp>
+#include <SSS/PM.hpp>
+#include <interface/dev_cls/device.hpp>
 
 class IDE_Channal {
 public:

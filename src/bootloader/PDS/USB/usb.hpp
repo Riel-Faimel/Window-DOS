@@ -3,7 +3,7 @@
 
 #include <interface/enumer.hpp>
 
-class USB_space : public enumer {
+class USB_space : public Enumerator {
 public:
     USB_space() = default;
     void set_driver();

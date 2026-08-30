@@ -160,7 +160,6 @@ void FAT16::set_filesystem_name(char *name){
         bpb.volume_label[i] = name[i];
     }
     part->write(bpb.buf, 0, 0, 1);
-    kprint("set name: ");kprint(name);
 }
 
 unsigned FAT16::open(String filename){
@@ -332,7 +331,6 @@ unsigned FAT16::cmd(unsigned cmd_id, String param, void *, unsigned ){
     case 0:
         set_filesystem_name(param.c_str());
         return 0;
-    
     default:
         return 0;
     }
@@ -348,4 +346,8 @@ unsigned FAT16::clu2sec_map(unsigned clu)const {
 
 void *FAT16::mmap(String filepath, void * = nullptr) {
     ;
+}
+
+Cluster *create_fat_fs(LogicalDisk *part) {
+    return new FAT16{part};
 }

@@ -43,7 +43,7 @@ struct PCI_device_config{
 };
 #pragma pack(pop)
 
-class PCI_space : public enumer {
+class PCI_space : public Enumerator {
 
     /**
      * this type is static
@@ -62,10 +62,10 @@ class PCI_space : public enumer {
     unsigned pci_read(int, int, int, int);
     void pci_probe_device(int, int, bool);
 public:
-    PCI_space(bool print_info = true);
+    PCI_space(bool print_info = false);
     void probe() override;
     void set_driver();
-    rtl::array<PCI_device_config> config{}; // 8 is initial size, but it can be expanded if needed
+    rtl::list<PCI_device_config> config{};
 };
 
 

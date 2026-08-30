@@ -1,5 +1,6 @@
 #include "registry.hpp"
 _registry registry;
+registry_editor reg_edit;
 
 registry_editor::registry_editor(){
     registry.do_VGA_text_mode_always_use_carriage_return_after_newline = true;
