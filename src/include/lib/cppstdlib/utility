@@ -1,0 +1,14 @@
+#ifndef __lib_cppstdlib_utility_hpp
+#define __lib_cppstdlib_utility_hpp
+
+template<typename T>
+constexpr T min(T fir, T sec) {
+    return fir<sec?fir:sec;
+}
+
+template<typename T>
+constexpr T max(T fir, T sec) {
+    return fir>sec?fir:sec;
+}
+
+#endif

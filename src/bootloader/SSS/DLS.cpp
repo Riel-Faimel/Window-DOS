@@ -56,25 +56,22 @@ unsigned DLS::close(WinHandle &win){
     return -1;
 }
 
-unsigned DLS::read(WinHandle &win, unsigned byte_offset, unsigned byte_read){
+unsigned DLS::read(void *buf, WinHandle &win, unsigned byte_offset, unsigned byte_read){
     if(win.extra){
         Handle *h = reinterpret_cast<Handle *>(win.extra);
         for (auto [driver, _, id] : space)
-        if (id == h->ID) {
-            auto b = win.size==0?*(reinterpret_cast<void **>(&win+1)):reinterpret_cast<unsigned short *>(&win+1);
-            return driver->read(b, h->file_handle, byte_offset, byte_read);
-        }
+        if (id == h->ID)
+        return driver->read(buf, h->file_handle, byte_offset, byte_read);
     }
     return (unsigned)-1;
 }
 
-unsigned DLS::write(WinHandle &win, unsigned byte_offset, unsigned byte_write){
+unsigned DLS::write(void *buf, WinHandle &win, unsigned byte_offset, unsigned byte_write){
     if(win.extra){
         Handle *h = reinterpret_cast<Handle *>(win.extra);
-        return space[h->ID].driver->write(
-            reinterpret_cast<unsigned short *>(&win+1), 
-            h->file_handle, byte_offset, byte_write
-        );
+        for (auto [driver, _, id] : space)
+        if (id == h->ID)
+        return driver->write(buf, h->file_handle, byte_offset, byte_write);
     }
     else { return (unsigned)-1; }
 }
@@ -97,7 +94,12 @@ unsigned DLS::cmd(WinHandle &win, unsigned n, String s, void *argv, unsigned arg
     else return -1;
 }
 
-void *DLS::mmap(WinHandle win, String filepath, void *addr = nullptr) {
-    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->mmap(filepath, addr);
-    else return nullptr;
+void *DLS::mmap(WinHandle win, String filepath, void *nice_address = nullptr) {
+    auto path = filepath.split(':');
+    for (auto [driver, letter, id] : space) {
+        if (letter == path[0]) {
+            return driver->mmap(path[1], nice_address);
+        }
+    }
+    return nullptr;
 }

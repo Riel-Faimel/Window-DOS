@@ -3,7 +3,7 @@
 #include <SSS/DLS.hpp>
 #include <interface/dev_cls/cluster.hpp>
 #include <global/type.hpp>
-#include <kmod/kmod.hpp>
+#include <drv/kmod.hpp>
 
 #include <drv/screen/screen_srv.hpp>
 

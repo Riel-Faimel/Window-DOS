@@ -3,6 +3,7 @@
 #include <start/BIOSinfo.hpp>
 #include <global/new.hpp>
 #include <TL/generator>
+#include <TL/utility>
 #include <cppstdlib/atomic>
 #include <drv/screen/screen_srv.hpp>
 
@@ -45,7 +46,7 @@ struct __window_dos_loader_struct_0x1 {
     };
 
     inline mem_list &operator[] (size_t offset) { return start[offset]; }
-    inline mem_list *operator *() { return start; }
+    inline mem_list *&operator *() { return start; }
     constexpr array as_arr() { return {}; }
     constexpr auto as_list() { return rtl::list_tranveser{start->next}; }
     constexpr mem_list *findspace();

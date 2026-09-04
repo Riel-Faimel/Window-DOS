@@ -10,7 +10,6 @@ include $(SRC_DIR)bootloader/SSS/DLS.mk
 include $(SRC_DIR)bootloader/PDS/pds.mk
 include $(SRC_DIR)bootloader/multiCE/multiCE.mk
 include $(SRC_DIR)bootloader/TM/TM.mk
-include $(SRC_DIR)bootloader/kmod/kmod.mk
 
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -33,7 +32,6 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/multiCE.o\
 	$(BUILD_DIR)bootloader/DOSsyscall.o\
 	$(BUILD_DIR)bootloader/TM.o\
-	$(BUILD_DIR)bootloader/kmod.o\
 
 #
 	

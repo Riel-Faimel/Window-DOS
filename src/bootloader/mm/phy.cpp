@@ -72,8 +72,218 @@ constexpr PhysicalPage::mem_list *__window_dos_loader_struct_0x1::findspace() {
     }
     return nullptr;
 }
+
+rtl::pair<PhysicalPage::mem_list *, size_t> right_sort(PhysicalPage::mem_list *&last_tail, size_t len_max);
+inline void append_or_merge(PhysicalPage::mem_list *&tail, PhysicalPage::mem_list *chosen, size_t& new_len) {
+    if (tail->mem.address + tail->mem.len == chosen->mem.address) {
+        tail->mem.len += chosen->mem.len;
+        tail->next = chosen->next;
+        new_len--;
+    } else {
+        tail->next = chosen;
+        tail = tail->next;
+    }
+}
+inline rtl::pair<PhysicalPage::mem_list*, size_t> merge(
+    PhysicalPage::mem_list* llist, size_t llen,
+    PhysicalPage::mem_list* rlist, size_t rlen
+) {
+    if (llist == nullptr) llen = 0;
+    if (rlist == nullptr) rlen = 0;
+    PhysicalPage::mem_list* result = nullptr;
+    size_t i = 0, j = 0;
+    size_t new_len = llen + rlen;
+
+    if (llen == 0) {
+        result = rlist;
+        rlist = rlist->next;
+        j++;
+    } else if (rlen == 0) {
+        result = llist;
+        llist = llist->next;
+        i++;
+    } else if (llist->mem.address <= rlist->mem.address) {
+        result = llist;
+        llist = llist->next;
+        i++;
+    } else {
+        result = rlist;
+        rlist = rlist->next;
+        j++;
+    }
+    auto tail = result;
+
+    while (i < llen && j < rlen) {
+        PhysicalPage::mem_list* chosen;
+        if (llist->mem.address <= rlist->mem.address) {
+            chosen = llist;
+            llist = llist->next;
+            i++;
+        } else {
+            chosen = rlist;
+            rlist = rlist->next;
+            j++;
+        }
+        append_or_merge(tail, chosen, new_len);
+    }
+    while (i < llen) {
+        auto chosen = llist;
+        llist = llist->next;
+        i++;
+        append_or_merge(tail, chosen, new_len);
+    }
+    while (j < rlen) {
+        auto chosen = rlist;
+        rlist = rlist->next;
+        j++;
+        append_or_merge(tail, chosen, new_len);
+    }
+
+    return {result, new_len};
+}
+inline void cmp_swap(PhysicalPage::mem_list*& a, PhysicalPage::mem_list*& b) {
+    if (a->mem.address > b->mem.address) {
+        auto tmp = a; a = b; b = tmp;
+    }
+}
+inline rtl::pair<PhysicalPage::mem_list*, size_t> branch_sort(
+    PhysicalPage::mem_list *&last_tail, size_t len_max
+) {
+    if (last_tail == nullptr) return {nullptr, 0};
+    
+    PhysicalPage::mem_list* nodes[4];
+    size_t n = 0;
+    while (last_tail != nullptr && n < len_max) {
+        nodes[n++] = last_tail;
+        last_tail = last_tail->next;
+    }
+    
+    switch (n) {
+    case 0: return {nullptr, 0};
+    case 1: break;
+    case 2:
+        cmp_swap(nodes[0], nodes[1]);
+        break;
+    case 3:
+        cmp_swap(nodes[0], nodes[1]);
+        cmp_swap(nodes[1], nodes[2]);
+        cmp_swap(nodes[0], nodes[1]);
+        break;
+    case 4:
+        cmp_swap(nodes[0], nodes[1]);
+        cmp_swap(nodes[2], nodes[3]);
+        cmp_swap(nodes[0], nodes[2]);
+        cmp_swap(nodes[1], nodes[3]);
+        cmp_swap(nodes[1], nodes[2]);
+        break;
+    }
+    
+    size_t result_len = n;
+    size_t tail_idx = 0;
+    
+    for (size_t i = 1; i < n; i++) {
+        if (nodes[tail_idx]->mem.address + nodes[tail_idx]->mem.len == nodes[i]->mem.address) {
+            nodes[tail_idx]->mem.len += nodes[i]->mem.len;
+            nodes[tail_idx]->next = nodes[i]->next;
+            result_len--;
+        } else {
+            nodes[tail_idx]->next = nodes[i];
+            tail_idx = i;
+        }
+    }
+    
+    return {nodes[0], result_len};
+}
+inline rtl::pair<PhysicalPage::mem_list*, size_t> insert_sort(
+    PhysicalPage::mem_list *&last_tail, size_t len_max
+) {
+    if (last_tail == nullptr) return {nullptr, 0};
+    
+    PhysicalPage::mem_list* nodes[16];
+    size_t n = 0;
+    while (last_tail != nullptr && n < len_max) {
+        nodes[n++] = last_tail;
+        last_tail = last_tail->next;
+    }
+    
+    PhysicalPage::mem_list* sorted[16];
+    size_t sorted_len = 0;
+    
+    for (size_t k = 0; k < n; k++) {
+        auto node = nodes[k];
+        size_t pos = 0;
+        while (pos < sorted_len && sorted[pos]->mem.address < node->mem.address) {
+            pos++;
+        }
+        
+        if (pos > 0 && sorted[pos-1]->mem.address + sorted[pos-1]->mem.len == node->mem.address) {
+            sorted[pos-1]->mem.len += node->mem.len;
+            if (pos < sorted_len && sorted[pos-1]->mem.address + sorted[pos-1]->mem.len == sorted[pos]->mem.address) {
+                sorted[pos-1]->mem.len += sorted[pos]->mem.len;
+                for (size_t t = pos; t + 1 < sorted_len; t++) {
+                    sorted[t] = sorted[t+1];
+                }
+                sorted_len--;
+            }
+        }
+        else if (pos < sorted_len && node->mem.address + node->mem.len == sorted[pos]->mem.address) {
+            sorted[pos]->mem.address = node->mem.address;
+            sorted[pos]->mem.len += node->mem.len;
+            if (pos > 0 && sorted[pos-1]->mem.address + sorted[pos-1]->mem.len == sorted[pos]->mem.address) {
+                sorted[pos-1]->mem.len += sorted[pos]->mem.len;
+                for (size_t t = pos; t + 1 < sorted_len; t++) {
+                    sorted[t] = sorted[t+1];
+                }
+                sorted_len--;
+            }
+        }
+        else {
+            for (size_t t = sorted_len; t > pos; t--) {
+                sorted[t] = sorted[t-1];
+            }
+            sorted[pos] = node;
+            sorted_len++;
+        }
+    }
+    
+    for (size_t k = 0; k + 1 < sorted_len; k++) {
+        sorted[k]->next = sorted[k+1];
+    }
+    
+    return {sorted[0], sorted_len};
+}
+inline auto merge_sort(PhysicalPage::mem_list *&last_tail, size_t len_max) {
+    auto left_len = len_max / 2, right_len = len_max-left_len;
+
+    auto [llist, llen] = right_sort(last_tail, left_len);
+    auto [rlist, rlen] = right_sort(last_tail, right_len);
+    return merge(llist, llen, rlist, rlen);
+}
+/**
+ * output: {result list, result lenght}
+ * it push cursor by branch/insert sort
+ */
+rtl::pair<PhysicalPage::mem_list *,size_t> right_sort(PhysicalPage::mem_list *&last_tail, size_t len_max) {
+    if (last_tail == nullptr) return {nullptr, 0};
+    if (len_max <= 4) {
+        return branch_sort(last_tail, len_max);
+    } else if (len_max <= 16) {
+        return insert_sort(last_tail, len_max);
+    } else {
+        return merge_sort(last_tail, len_max);
+    }
+}
 unsigned PhysicalPage::neaten() {
-    ;
+    auto cursor = *mem_list_root;
+    auto [left_list, left_len] = branch_sort(cursor, 4);
+    auto left_root = left_list;
+    while (cursor != nullptr) {
+        auto [right_list, right_len] = right_sort(cursor, left_len);
+        auto [new_left_list, len] = merge(left_root, left_len, right_list, right_len);
+        left_root = new_left_list;
+        left_len = len;
+    }
+    mem_list_root.start = left_root;
 }
 
 __window_dos_loader_struct_0x1::array::Iterator&

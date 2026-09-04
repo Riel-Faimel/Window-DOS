@@ -13,7 +13,7 @@ class TaskManager {
 public:
     TaskManager();
 
-    unsigned exec(String);
+    unsigned exec(String, size_t, void *);
 };
 
 #endif

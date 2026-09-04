@@ -16,7 +16,7 @@ extern "C" {
 #include <TM/TM.hpp>
 #include <interface/Window.hpp>
 #include <start/BIOSinfo.hpp>
-#include <kmod/kmod.hpp>
+#include <drv/kmod.hpp>
 
 //#include <DOSsyscall/DOScall.hpp>
 

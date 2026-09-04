@@ -28,7 +28,7 @@ void PM::resolve(LogicalDisk *disk) {
             disk_stack.append(part);
 
             // try file system
-            cout << "[INFO] Part found, ID: " << sysid << '\n';
+            cout << "[INFO] Part found, ID: " << sysid << ", [" << start << "]\n";
             Cluster *fs;
             if (kmod->fs.exists(sysid)) {
                 fs = kmod->fs[sysid](part);

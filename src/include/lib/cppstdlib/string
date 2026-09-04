@@ -100,4 +100,5 @@ inline char * String::c_str() const {
 inline bool String::empty() const {
     return len == 0;
 }
+
 #endif

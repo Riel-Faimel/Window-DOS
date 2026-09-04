@@ -11,9 +11,8 @@
 #include <TL/container>
 
 class PM {
-private:
 #pragma pack(push, 1)
-    typedef struct __attribute__((packed)){
+    struct PE {
         unsigned char boot_flag;
         unsigned char start_head;
         unsigned char start_sector;
@@ -26,14 +25,14 @@ private:
         unsigned short start_LBA_high;
         unsigned short sector_count_low;
         unsigned short sector_count_high;
-    }PE;
+    };
     union MBR{
         unsigned short buf[256];
         struct {
             unsigned char boot[446];
             PE part[4];
             unsigned short sign;
-        }__attribute__((packed));
+        };
     };
 #pragma pack(pop)
 
@@ -54,7 +53,7 @@ private:
         Re = 0xDA,
     };
 
-    rtl::array<LogicalDisk *> disk_stack;
+    rtl::list<LogicalDisk *> disk_stack;
 public:
     PM();
     ~PM() = default;

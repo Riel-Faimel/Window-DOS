@@ -25,7 +25,7 @@ void LoaderMain(){
     pds.set_driver();
     TaskManager taskmgr;
     cout << "[INFO] start INIT.EXE\n";
-    auto err = taskmgr.exec("B:\\INIT.EXE");
+    auto err = taskmgr.exec("B:\\INIT.EXE", 0, nullptr);
     if (err != 0) switch (err) {
     case (unsigned)-1:{
         cout << "[FAILED] No initializer \"B:\\INIT.EXE\"\n";

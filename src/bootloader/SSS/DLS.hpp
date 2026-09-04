@@ -53,8 +53,8 @@ public:
     /**
      * read/write(Window, begin byte, byte nums) for read by sectors
      */
-    unsigned read(WinHandle&, unsigned, unsigned);
-    unsigned write(WinHandle&, unsigned, unsigned);
+    unsigned read(void *, WinHandle&, unsigned, unsigned);
+    unsigned write(void *, WinHandle&, unsigned, unsigned);
     /**
      * open(Window, String "A:\") for open a device also path on it
      */
