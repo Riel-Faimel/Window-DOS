@@ -39,7 +39,7 @@ class SectorCache {
         }
         CacheObj *e = m_cache.space_append();
         new (e) CacheObj{sector, {}, false};
-        if (disk_read(&e->data, sector, 1) == -1) {
+        if (disk_read(&e->data, sector, 1) == (unsigned)-1) {
             m_cache.remove(e);
             return nullptr;
         }
@@ -130,8 +130,8 @@ protected:
     
     rtl::pair<u16, bool> get_fat(u16 cluster) {
         if (cluster == 0) return {0, true};
-        auto [high, err1] = get(cluster * 2 + 1);
-        auto [low, err2] = get(cluster * 2); // cluster as offset in FAT
+        auto [high, err1] = get(cluster * 2u + 1u);
+        auto [low, err2] = get(cluster * 2u); // cluster as offset in FAT
         if (err1 || err2) return {0, true};
         return {static_cast<u16>((high << 8) | low), false};
     }
@@ -333,9 +333,9 @@ protected:
 
     rtl::pair<DIR*, DirResolvError> resolv_dir(String path) {
         path.get_word('\\');
-        if (path.empty()) return {dirptr(0, 0).key, DirResolvError::NoError};
+        if (path.empty()) return {dirptr(0u, 0u).key, DirResolvError::NoError};
 
-        auto [entry, err] = find_dir_entry(0, path.get_word('\\'));
+        auto [entry, err] = find_dir_entry(0u, path.get_word('\\'));
         if (err) return {nullptr, DirResolvError::NoSuchFile};
 
         while (!path.empty()) {
@@ -375,7 +375,6 @@ public:
 
 // disk info
     LogicalDisk *part;
-    Cluster_Info info_ = { Cluster_Info::Type::FAT16, 0, 0 };
     unsigned sec_per_clu; // sectors num
     unsigned clu0_sec_offset; // sector offset
     unsigned bytes_per_sector;
@@ -389,8 +388,8 @@ public:
     unsigned close(unsigned ) override;
     unsigned create(String) override;
     unsigned delet(String) override;
-    void *mmap(String, void *) override;
-    Cluster_Info* info(String) override;
+    void *mmap(unsigned, void *) override;
+    ClusterInfo *info(unsigned, String) override;
     unsigned cmd(unsigned, String, void *argv, unsigned argc) override;
 private:
     void set_filesystem_name(char *name);

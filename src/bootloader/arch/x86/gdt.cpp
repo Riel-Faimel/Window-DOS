@@ -1,5 +1,5 @@
 #include "gdt.hpp"
-#include <DescripTable/IDNT.hpp>
+#include "IDNT.hpp"
 #include <drv/screen/screen_srv.hpp>
 #include <global/new.hpp>
 

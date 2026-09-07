@@ -14,14 +14,21 @@ void caller(size_t n, void *v) {
         : "eax", "edx", "memory"
     );
 }
-void hello(size_t, void *) {
-    while(1)
-    cout << '-';
-}
 
 TaskManager::TaskManager() {}
 
 #pragma pack(push, 1)
+struct exCOM_Header {
+    u8 magic[4];
+    void *enter_point;
+    size_t text_offset;
+    void *text_start;
+    size_t text_size;
+    size_t data_offset;
+    void *data_start;
+    size_t data_size;
+    size_t bss_size;
+};
 struct MZ_Header {
     u16 magic;
     u16 last_page_bytes;
@@ -41,17 +48,36 @@ struct MZ_Header {
 };
 #pragma pack(pop)
 
+void *exCOM_resolv(WinHandle &win) {
+    auto h = (DLS::Handle *)win.extra;
+    exCOM_Header buf;
+    driverletterspace->read(&buf, h, 0, sizeof(buf));
+
+    //cout << buf.enter_point << ' ' << buf.text_offset << ' ' << buf.text_start << ' ' << buf.text_size << ' '\
+    << buf.data_offset << ' ' << buf.data_start << ' ' << buf.data_size << ' ';
+    
+    if (buf.magic[0] != 'E' || buf.magic[1] != 'C' || 
+        buf.magic[2] != 'O' || buf.magic[3] != 'M') {
+        return nullptr;
+    }
+    
+    driverletterspace->read((void*)buf.text_start, h, buf.text_offset, buf.text_size);
+    if (buf.data_size > 0) {
+        driverletterspace->read((void*)buf.data_start, h, buf.data_offset, buf.data_size);
+    }
+    if (buf.bss_size > 0) {
+        __builtin_memset((void*)(buf.data_start + buf.data_size), 0, buf.bss_size);
+    }
+    return buf.enter_point;
+}
+
 unsigned TaskManager::exec(String filepath, size_t argc, void *argv) {
     WinHandle win{};
     
-    auto executor_base = (MZ_Header *)driverletterspace->mmap(win, filepath, nullptr);
-    u32 header_size = executor_base->header_size * 16;
+    driverletterspace->open(win, filepath);
+    u8 *enter_point = (u8 *)exCOM_resolv(win);
     
-    u32 entry_offset = header_size + (executor_base->init_cs * 16) + executor_base->init_ip;
-    u8 *enter_point = (u8*)executor_base + entry_offset;
-    Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv);
-    for (unsigned i = 0;i < 512;i++) {
-        print_hex(enter_point[i], false);cout << ' ';
-    }
+    Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv, 1, 3);
+    //for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);cout << ' '; }
     return 0;
 }

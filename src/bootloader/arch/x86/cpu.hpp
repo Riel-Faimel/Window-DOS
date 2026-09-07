@@ -4,11 +4,11 @@
 #include <global/type.hpp>
 #include <TL/utility>
 #include <mm/mm.hpp>
-#include <DescripTable/gdt.hpp>
-#include <DescripTable/idt.hpp>
-#include <DescripTable/tss.hpp>
+#include "gdt.hpp"
+#include "idt.hpp"
+#include "tss.hpp"
 #include <multiCE/default/cs.hpp>
-#include <DOSsyscall/DOScall.hpp>
+#include <syscall/DOS/DOScall.hpp>
 
 #pragma pack(push, 1)
 struct CPU {

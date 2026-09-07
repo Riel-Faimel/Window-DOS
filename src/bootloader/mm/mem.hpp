@@ -5,17 +5,17 @@
 
 class mem : public Cluster {
 public:
-    unsigned read(void *, unsigned, unsigned, unsigned);
-    unsigned write(void *, unsigned, unsigned , unsigned);
-    Cluster_Info* info(String);
-    unsigned cmd(unsigned, String, void *, unsigned);
+    unsigned read(void *, unsigned, unsigned, unsigned) override;
+    unsigned write(void *, unsigned, unsigned , unsigned) override;
+    ClusterInfo* info(unsigned, String) override;
+    unsigned cmd(unsigned, String, void *, unsigned) override;
 
-    unsigned open(String);
-    unsigned close(unsigned);
-    unsigned create(String);
-    unsigned del(String);
+    unsigned open(String) override;
+    unsigned close(unsigned) override;
+    unsigned create(String) override;
+    unsigned delet(String) override;
 
-    void *mmap(String, void *);
+    void *mmap(unsigned, void *) override;
 };
 
 #endif

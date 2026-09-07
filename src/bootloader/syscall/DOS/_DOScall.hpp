@@ -2,9 +2,10 @@
 
 #include <global/type.hpp>
 #include <drv/screen/screen_srv.hpp>
-#include <DescripTable/idt.hpp>
+#include <arch/x86/idt.hpp>
 #include <multiCE/default/cs.hpp>
 
+#pragma pack(push, 1)
 struct Frame {
     unsigned edi;
     unsigned esi;
@@ -18,3 +19,4 @@ struct Frame {
     unsigned cs;
     unsigned eflag;
 };
+#pragma pack(pop)

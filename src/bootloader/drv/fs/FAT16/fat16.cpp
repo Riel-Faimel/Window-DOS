@@ -1,4 +1,5 @@
 #pragma GCC optimize("Os")
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "_fat16.hpp"
 
 FAT16::FAT16(LogicalDisk *part_init):
@@ -44,13 +45,24 @@ unsigned FAT16::open(String filename) {
     auto [entry, err] = resolv_dir(filename);
     switch (err) {
     case DirResolvError::NoError:
-        return entry->_8_3FN.first_cluster_low;
+        return (unsigned) (new FileInfo{
+            ClusterInfo{
+                .index_start {entry->_8_3FN.first_cluster_low},
+                .index_num {entry->_8_3FN.file_size},
+                .index_size {1}
+            },
+            filename, entry->_8_3FN.Creation_Date,
+            entry->_8_3FN.Creation_time_in_hour_minute_second,
+            entry->_8_3FN.Last_modification_date,
+            entry->_8_3FN.Last_modification_time,
+            entry->_8_3FN.Last_access_Date,
+            entry->_8_3FN.attribute, 0
+        });
     case DirResolvError::NoSuchFile:
-        return 1;
     case DirResolvError::NotADir:
+    default:
         return 1; // cluster 1 is always invalid cluster
-    }
-    
+    }    
 }
 
 unsigned FAT16::close(unsigned) {
@@ -66,7 +78,8 @@ unsigned FAT16::delet(String) {
     return 0;
 }
 
-unsigned FAT16::read(void *buf, unsigned handle, unsigned byte, unsigned count) {
+unsigned FAT16::read(void *buf, unsigned h, unsigned byte, unsigned count) {
+    u16 handle = ((FileInfo *)(h))->index_start;
     if (handle == 0 || handle == 1) return -1;
     auto total_sector_skip_num = byte / bytes_per_sector;
     auto in_sector_bytes_skip_num = byte % bytes_per_sector;
@@ -134,8 +147,8 @@ unsigned FAT16::write(void *buf, unsigned handle, unsigned byte, unsigned count)
     return 0;
 }
 
-Cluster_Info *FAT16::info(String) {
-    return &info_;
+ClusterInfo *FAT16::info(unsigned, String) {
+    return nullptr;
 }
 
 unsigned FAT16::cmd(unsigned cmd_id, String param, void *, unsigned ){
@@ -148,18 +161,18 @@ unsigned FAT16::cmd(unsigned cmd_id, String param, void *, unsigned ){
     }
 }
 
-void *FAT16::mmap(String filename, void *nice_address) {
+void *FAT16::mmap(unsigned h, void *nice_address) {
+    auto fip = (FileInfo *)(h);
+    auto file_size = fip->index_num;
     if (nice_address) {
         // I not care [doge]
     }
-    auto [file_entry, err] = resolv_dir(filename);
-    if (err != DirResolvError::NoError) return nullptr;
-
-    auto file_size = file_entry->_8_3FN.file_size;
-    auto cluster_start = file_entry->_8_3FN.first_cluster_low;
     auto buf = new u8 [file_size];
-    auto bytes_read = read(buf, cluster_start, 0, file_size);
-    if (bytes_read != file_size) return nullptr;
+    auto bytes_read = read(buf, h, 0, file_size);
+    if (bytes_read != file_size) {
+        delete buf;
+        return nullptr;
+    }
     return buf;
 }
 
@@ -176,7 +189,6 @@ unsigned FAT16::disk_read(void *buf, unsigned sector, unsigned count) {
 void FAT16::set_filesystem_name(char *name) {
     for (int i = 0; i < 8; i++) {
         if (name[i] == '\0') break;
-        info_.type = Cluster_Info::Type::FAT16;
     }
 }
 

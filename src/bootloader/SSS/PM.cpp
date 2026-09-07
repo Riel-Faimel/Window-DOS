@@ -13,11 +13,6 @@ void PM::include(LogicalDisk *disk){
 void PM::resolve(LogicalDisk *disk) {
     MBR mbr;
     disk->read(mbr.buf, 0, 0, 1);
-    /*
-    for (unsigned i = 0;i < 512;i++) {
-        print_hex(reinterpret_cast<unsigned char *>(mbr.buf)[i], false);print_char(' ');
-    }
-    //*/
     if(mbr.sign == (unsigned short)0xAA55)
     for(unsigned char i = 0;i < 4;i++){
         auto sysid = mbr.part[i].system_id;

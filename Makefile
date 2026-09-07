@@ -39,7 +39,7 @@ kernel.exe:
 result: boot.img kernel.exe
 mod:
 QEMUFLAGS = -serial stdio -drive format=raw,index=0,file=boot.img,media=disk \
-	-drive format=raw,index=1,file=disk.vhd,media=disk
+	-drive format=raw,index=1,file=flp.vhd,media=disk
 
 run: 
 	$(QEMU) $(QEMUFLAGS)

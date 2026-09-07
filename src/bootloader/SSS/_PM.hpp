@@ -9,16 +9,16 @@
 
 
 class SingalPart : public LogicalDisk {
-    Cluster_Info info_;
+    ClusterInfo info_;
     size_t total_sectors;
     size_t start; //LBA
     LogicalDisk *disk;
 public:
     SingalPart(LogicalDisk *disk_, unsigned begin, unsigned size):
-    info_{ .type=Cluster_Info::Type::Part, .total_bytes=size, .cluster_size=0 }, 
+    info_{ .index_start = begin, .index_num=size, .index_size=0, .type=0, }, 
     start{begin}, disk{disk_}{
-        info_.cluster_size = disk->info()->cluster_size;
-        total_sectors = (info_.total_bytes + 1) / info_.cluster_size;
+        info_.index_size = disk->info()->index_size;
+        total_sectors = (info_.index_num + 1) / info_.index_num;
     };
 
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums){
@@ -40,7 +40,7 @@ public:
         nums;
         return disk->write(buf, LBA + start, 0, write_num);
     }
-    Cluster_Info* info(String){
+    ClusterInfo* info(unsigned, String){
         return &info_;
     }
     unsigned cmd(unsigned, String, void *, unsigned){
@@ -50,12 +50,12 @@ public:
 
 class RAW : public Cluster {
     LogicalDisk* disk;
-    Cluster_Info info_ {.type=Cluster_Info::Type::RAW};
+    ClusterInfo info_ {.type=1};
 public:
     RAW(LogicalDisk *d): disk{d}{
         auto i = disk->info();
-        info_.cluster_size = i->cluster_size;
-        info_.total_bytes = i->total_bytes;
+        info_.index_size = i->index_size;
+        info_.index_num = i->index_num;
     }
     ~RAW() = default;
 
@@ -66,12 +66,12 @@ public:
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums) {
         return disk->write(buf, LBA, 0, nums);
     }
-    void *mmap(String, void * = nullptr){};
+    void *mmap(unsigned, void * = nullptr) override { return nullptr; };
     unsigned open(String s) { return static_cast<unsigned>(s.to_int()); }
     unsigned close(unsigned) { return 0; }
     unsigned create(String) { return 0; }
     unsigned delet(String) { return 0; }
-    Cluster_Info* info(String) {
+    ClusterInfo* info(unsigned, String) {
         return &info_;
     }
     unsigned cmd(unsigned cmdid, String args, void *argv, unsigned argc){

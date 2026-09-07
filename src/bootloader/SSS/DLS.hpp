@@ -18,24 +18,17 @@ class DLS {
 public:
     struct DriveInfo{
         Cluster *driver;
+        unsigned cid;
         /**
          * also partition manager or file system
          */
         String driver_letter;
-        unsigned cid;
     };
     rtl::array<DriveInfo> space;
 
-    enum Handle_Mode : unsigned char {
-        Read = 0x01,
-        Write = 0x02,
-        Exec = 0x04,
-    };
     struct Handle {
         unsigned ID;
-        unsigned file_handle; 
-        unsigned count;
-        u8 handle_mode;
+        unsigned file_handle;
     };
     unsigned did_count = 1;
     /**
@@ -53,12 +46,14 @@ public:
     /**
      * read/write(Window, begin byte, byte nums) for read by sectors
      */
-    unsigned read(void *, WinHandle&, unsigned, unsigned);
-    unsigned write(void *, WinHandle&, unsigned, unsigned);
+    unsigned read(void *, Handle *, unsigned, unsigned);
+    unsigned write(void *, Handle *, unsigned, unsigned);
     /**
+     * start(Window, String "A:") for open a device only
      * open(Window, String "A:\") for open a device also path on it
      */
-    unsigned open(WinHandle&, String, u8 = Read|Write);
+    unsigned start(WinHandle&, String);
+    unsigned open(WinHandle&, String);
     unsigned close(WinHandle&);
     /**
      * creat/del(Window, String path) for files or folders, 
@@ -69,12 +64,14 @@ public:
     /**
      * Info(Window, String path) for get info of a file or folder or device
      */
-    Cluster_Info info(WinHandle&, String);
-    unsigned cmd(WinHandle&, unsigned, String, void *argv, unsigned argc);
+    ClusterInfo *info(Handle *, String);
+    unsigned cmd(Handle *, unsigned, String, void *argv, unsigned argc);
     /**
      * mmap(Window, String) for map handling object to memory
      */
-    void *mmap(WinHandle, String, void *);
+    void *mmap(Handle *, void *);
+private:
+    Cluster *search_disk(Handle *);
 };
 
 #endif

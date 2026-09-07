@@ -40,13 +40,13 @@ InterruptDistributor::InterruptDistributor() {
     set_PIC();
 }
 
-void InterruptDistributor::reg_irq(void (*handler)(), IRQ irq_num, int cpuid) {
+void InterruptDistributor::reg_irq(void (*handler)(), IRQ irq_num, size_t cpuid) {
     for (auto &cpu : rtl::list_tranveser{cpu_list_root})
     if (cpu.cpuid == cpuid) {
         cpu.idt.regist(handler, (unsigned char)irq_num+0x30);
     }
 }
 
-void InterruptDistributor::reg_idt(IDT idt) {
+void InterruptDistributor::reg_idt(IDT) {
     ;
 }

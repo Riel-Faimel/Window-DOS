@@ -2,9 +2,7 @@
 
 DLS* driverletterspace;
 
-DLS::DLS(){
-    driverletterspace = this;
-}
+DLS::DLS(){ driverletterspace = this; }
 
 void DLS::regist(Cluster *clu, String le){
     String letter;
@@ -19,25 +17,57 @@ void DLS::regist(Cluster *clu, String le){
     }
     else { letter = le; }
 
-    space.append(DriveInfo{
-        clu, letter, did_count
-    });
+    space.append(DriveInfo{clu, did_count, letter});
     did_count++;
-    cout << "[INFO] Get one FS [" << letter << ":], ID = " << (u8)clu->info()->type << '\n';
+    cout << "[INFO] Get one FS [" << letter << ":], ID = " << (u8)clu->info(0)->type << '\n';
 }
 
-unsigned DLS::open(WinHandle &win, String file_path, u8 mode){
+unsigned DLS::start(WinHandle &win, String driver_letter) {
+    auto len = driver_letter.length();
+    auto path = driver_letter.get_word(':');
+    auto hptr = (Handle *)win.handle;
+    if (path.length() >= len) {
+        // not found ':'
+        return -1;
+    }
+    if (hptr) {
+        // need to close
+        Cluster *disk = nullptr;
+        unsigned new_id = 0;
+        for (auto [driver, id, letter] : space) {
+            if (hptr->ID == id) {
+                disk = driver;
+            }
+            if (letter == path) {
+                new_id = id;
+            }
+        }
+        if (new_id == hptr->ID) {
+            return 0;
+        } else {
+            delete hptr;
+            hptr = new Handle { .ID{new_id}, .file_handle{0} };
+            return 0;
+        }
+    } else {
+        for (auto [driver, id, letter] : space)
+        if (letter == path) {
+            win.extra = new Handle { .ID{id}, .file_handle{0}, };
+            return 0;
+        }
+    }
+    return -1;
+}
+
+unsigned DLS::open(WinHandle &win, String file_path){
     if(win.extra) { return -1; }
     // win.extra has other handle
     auto path_part = file_path.split(':');
-    for (auto [driver, letter, id] : space) {
+    for (auto [driver, id, letter] : space) {
         if (letter == path_part[0]) {
             auto handle = driver->open(path_part[1]);
             if (handle == (unsigned)-1) return -1; // not found
-            win.extra = new Handle {
-                .ID=id, .file_handle=handle, 
-                .count=0, .handle_mode=mode
-            };
+            win.extra = new Handle { .ID=id, .file_handle=handle, };
             return 0;
         }
     }
@@ -56,24 +86,16 @@ unsigned DLS::close(WinHandle &win){
     return -1;
 }
 
-unsigned DLS::read(void *buf, WinHandle &win, unsigned byte_offset, unsigned byte_read){
-    if(win.extra){
-        Handle *h = reinterpret_cast<Handle *>(win.extra);
-        for (auto [driver, _, id] : space)
-        if (id == h->ID)
-        return driver->read(buf, h->file_handle, byte_offset, byte_read);
-    }
-    return (unsigned)-1;
+unsigned DLS::read(void *buf, Handle *h, unsigned byte_offset, unsigned byte_read){
+    if (auto d = search_disk(h);d)
+    return d->read(buf, h->file_handle, byte_offset, byte_read);
+    else return -1;
 }
 
-unsigned DLS::write(void *buf, WinHandle &win, unsigned byte_offset, unsigned byte_write){
-    if(win.extra){
-        Handle *h = reinterpret_cast<Handle *>(win.extra);
-        for (auto [driver, _, id] : space)
-        if (id == h->ID)
-        return driver->write(buf, h->file_handle, byte_offset, byte_write);
-    }
-    else { return (unsigned)-1; }
+unsigned DLS::write(void *buf, Handle *h, unsigned byte_offset, unsigned byte_write){
+    if (auto d = search_disk(h);d)
+    return d->write(buf, h->file_handle, byte_offset, byte_write);
+    else return -1;
 }
 
 unsigned DLS::create(WinHandle &win, String filename){
@@ -84,22 +106,28 @@ unsigned DLS::del(WinHandle &, String){
     return (unsigned)-1;
 }
 
-Cluster_Info DLS::info(WinHandle& win, String s){
-    if(win.extra) return *space[static_cast<Handle*>(win.extra)->ID].driver->info(s);
-    else return {};
+ClusterInfo *DLS::info(Handle *h, String s){
+    if (auto d = search_disk(h);d)
+    return d->info(h->file_handle, s);
+    else return nullptr;
 }
 
-unsigned DLS::cmd(WinHandle &win, unsigned n, String s, void *argv, unsigned argc){
-    if(win.extra) return space[static_cast<Handle*>(win.extra)->ID].driver->cmd(n, s,argv, argc);
+unsigned DLS::cmd(Handle *h, unsigned n, String s, void *argv, unsigned argc){
+    if (auto d = search_disk(h);d)
+    return d->cmd(n, s, argv, argc);
     else return -1;
 }
 
-void *DLS::mmap(WinHandle win, String filepath, void *nice_address = nullptr) {
-    auto path = filepath.split(':');
-    for (auto [driver, letter, id] : space) {
-        if (letter == path[0]) {
-            return driver->mmap(path[1], nice_address);
-        }
-    }
+void *DLS::mmap(Handle *h, void *nice_address = nullptr) {
+    if (auto d = search_disk(h);d)
+    return d->mmap(h->file_handle, nice_address);
+    else return nullptr;
+}
+
+Cluster *DLS::search_disk(Handle *h) {
+    if (h)
+    for (auto [driver, id, letter] : space)
+    if (h->ID == id)
+    return driver;
     return nullptr;
 }

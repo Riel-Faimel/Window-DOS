@@ -1,18 +1,19 @@
 #include "_mem.hpp"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 /**
  * Create a named shared memory
  * Return memory base address
  */
 unsigned mem::create(String mapname) {
-    ;
+    return 0;
 }
 
 /**
  * Delete named sh-mem
  */
-unsigned mem::del(String mapname) {
-    ;
+unsigned mem::delet(String mapname) {
+    return 0;
 }
 
 /**
@@ -20,13 +21,17 @@ unsigned mem::del(String mapname) {
  * from name and return address
  */
 unsigned mem::open(String mapname) {
-    ;
+    return 0;
 }
 
 /**
  * Close a map
  * Return error code
  */
-unsigned mem::close(unsigned mapaddr) {}
+unsigned mem::close(unsigned mapaddr) {
+    return 0;
+}
 
-void *mmap(String, void *) {}
+void *mmap(String, void *) {
+    return nullptr;
+}

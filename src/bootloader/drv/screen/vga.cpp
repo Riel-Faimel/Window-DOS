@@ -57,8 +57,8 @@ void VGA_text_mode::push() volatile{
     }
 }
 
-void VGA_text_mode::print(const char *str) volatile {
-    for(unsigned i = 0; str[i]; i++){
+void VGA_text_mode::print(const char *str, char end) volatile {
+    for(unsigned i = 0; str[i] != end; i++){
         switch(str[i]){
         case '\r':
             return_carriage();
@@ -71,7 +71,7 @@ void VGA_text_mode::print(const char *str) volatile {
             continue;
         default:
             buffer[line * LINE_SIZE + offset] = registry.VGA_text_mode_screen_default_display_attribute << 8 | str[i];
-            offset++;
+            offset+=1;
             break;
         }
         if(offset >= LINE_SIZE){  // 行满自动换行
@@ -86,7 +86,7 @@ void VGA_text_mode::return_carriage() volatile {
 }
 
 void VGA_text_mode::newline() volatile {
-    line++;
+    line+=1;
     if(line < LINE_NUM){
         if(registry.do_VGA_text_mode_always_use_carriage_return_after_newline)offset = 0;
         return ;
@@ -98,10 +98,10 @@ void VGA_text_mode::newline() volatile {
 
 void VGA_text_mode::back() volatile{
     if (offset > 0) {
-        offset--;
+        offset-=1;
         if(registry.do_VGA_text_mode_always_use_full_space_after_back)buffer[LINE_SIZE * line + offset] = (registry.VGA_text_mode_screen_default_display_attribute << 8) | ' ';
     } else if (line > 0) {
-        line--;
+        line-=1;
         offset = LINE_SIZE - 1;
         if(registry.do_VGA_text_mode_always_use_full_space_after_back)buffer[LINE_SIZE * line + offset] = (registry.VGA_text_mode_screen_default_display_attribute << 8) | ' ';
     }

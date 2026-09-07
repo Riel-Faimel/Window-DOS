@@ -12,7 +12,7 @@ public:
     ~VGA_text_mode() = default;
 
     void clear();
-    void print(const char *str) volatile;
+    void print(const char *str, char = '\0') volatile;
     void _prt(char);
 private:
     void push() volatile;

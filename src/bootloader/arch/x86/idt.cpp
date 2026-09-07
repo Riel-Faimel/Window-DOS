@@ -95,7 +95,7 @@ void no_errcode_frame_status(no_errcode_frame *frame) {
 void errorcode_frame_status (errcode_frame *frame) {
     cout << "Error Code: " << frame->errcode;
     cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
-    if (frame->errcode & 0b0100 == 0)return;
+    if ((frame->errcode & 0b0100) == 0)return;
     cout << "< SS = " << frame->ss << ", ESP = " << frame->esp << " >\n";
 }
 

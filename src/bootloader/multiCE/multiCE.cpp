@@ -16,8 +16,7 @@ void multiCE::run(
     if (true) {
         cpu.run(
             func, argc, argv, time,
-            ring==0?0x08:0x1B, ring==0?0x10:0x23,
-            ring==0?0x10:0x23, ring==0?0x30:0x33
+            ring, cs, ds, gs, fs
         );
         return;
     }

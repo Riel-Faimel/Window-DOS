@@ -2,7 +2,7 @@
 #define __bootloader_mm_gdt_hpp
 
 #include <global/type.hpp>
-#include <DescripTable/idt.hpp>
+#include "idt.hpp"
 #include "descrptor.hpp"
 
 class GDT {

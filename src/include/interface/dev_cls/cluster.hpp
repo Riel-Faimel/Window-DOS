@@ -10,8 +10,7 @@ public:
     virtual unsigned close(unsigned) = 0;
     virtual unsigned create(String) = 0;
     virtual unsigned delet(String) = 0;
-
-    virtual void *mmap(String, void *) = 0;
+    virtual void *mmap(unsigned, void *) = 0;
 };
 
 #endif

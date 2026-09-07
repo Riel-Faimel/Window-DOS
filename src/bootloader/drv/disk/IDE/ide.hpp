@@ -1,6 +1,6 @@
 #ifndef __bootloader_drv_disk_IDE_ide_hpp
 #define __bootloader_drv_disk_IDE_ide_hpp
-#include <DescripTable/intdis.hpp> 
+#include <intdis/intdis.hpp> 
 #include <interface/dev_cls/logicaldisk.hpp>
 #include "ide_.hpp"
 
@@ -12,7 +12,7 @@ class IDE_DISK : public LogicalDisk {
     };
 
     IDE_Channal *lock;
-    DISK_INFO info_;
+    DiskInfo info_;
 public:
     bool exist;
     IDE_DISK();
@@ -28,7 +28,7 @@ public:
     void check();
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned sectors_read);
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned sectors_write);
-    DISK_INFO* info(String);
+    DiskInfo* info(unsigned, String);
     unsigned cmd(unsigned, String, void *argv, unsigned argc);
 };
 

@@ -45,7 +45,7 @@ void CPU::run(
     void (*func)(size_t, void *), size_t argc, void *argv, size_t time, 
     u8 ring, size_t cs, size_t ds, size_t gs, size_t fs
 ) {
-    if (ring <= 3)
+    if (ring > 3)
     scheduler.run((void *)func, argc, argv, time, cs, ds, gs, fs);
     else {
         scheduler.run(

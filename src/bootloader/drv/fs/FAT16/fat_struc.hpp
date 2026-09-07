@@ -7,6 +7,12 @@ struct attribute_choice {
     u8 dir : 1 = 0;
     u8 archive : 1 = 0;
     u8 reserve : 2 = 0;
+
+    operator u8 () {
+        return u8{
+read_only | (hidden << 1u) | (system << 2u) | (volume_ID << 3u) | (dir << 4u) | (archive << 5u)
+        };
+    }
 };
 
 union BPB{

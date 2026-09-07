@@ -48,7 +48,6 @@ protected:
     atomic_chg locking;
     
     static unsigned long long to_ull(T v) {
-        unsigned long long result = 0;
         union { T t; unsigned long long u; } converter;
         converter.t = v;
         return converter.u;

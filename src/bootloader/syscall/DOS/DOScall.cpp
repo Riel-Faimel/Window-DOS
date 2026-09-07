@@ -18,14 +18,6 @@ extern "C" {
      */
     void direct_console_input_no_echo(){};
     void direct_console_input_with_ctrl_c(){};
-    void print_string(char *edx){
-        for(unsigned i = 0;true;i++)
-        if(edx[i] == '$'){
-            edx[i] = '\0';
-            kprint(edx);
-            return;
-        }
-    };
     void buffered_keyboard_input(){};
     void check_stdin_status(){};
     void flush_buffer_and_input(){};
@@ -60,7 +52,7 @@ void DOScall_handler_c() {
         :
         : "memory"
     );
-    auto syscall_number = (u8)((frame->eax >> 8) & 0xFF); //AH
+    auto syscall_number = (u8)(frame->eax & 0xFF); //AH
     switch(syscall_number) {
     case 0x00:  // 程序终止
         program_exit();
@@ -77,8 +69,8 @@ void DOScall_handler_c() {
     case 0x08:  // 无回显键盘输入（处理Ctrl+C）
         direct_console_input_with_ctrl_c();
         break;
-    case 0x09:  // 字符串输出（$结尾）
-        print_string(reinterpret_cast<char *>(frame->edx));
+    case 0x09:  // string print end of $
+        kprint(reinterpret_cast<char *>(frame->edx), '$');
         break;
     case 0x0A:  // 缓冲字符串输入
         buffered_keyboard_input();
@@ -110,18 +102,18 @@ void DOScall_handler_c() {
         seek_file();
         break;
     
-    // 内存管理组 (0x48-0x4A)
-    case 0x48:  // 分配内存
+    // mem (0x48-0x4A)
+    case 0x48:  // alloc
         allocate_memory();
         break;
-    case 0x49:  // 释放内存
+    case 0x49:  // free
         free_memory();
         break;
-    case 0x4A:  // 修改内存块大小
+    case 0x4A:  // change
         modify_memory_block();
         break;
     
-    // 进程退出组
+    // programe exit
     case 0x4C:  // 带返回码退出
         _Sexit();
         break;
@@ -129,7 +121,7 @@ void DOScall_handler_c() {
         terminate_and_stay_resident();
         break;
     
-    // 目录操作组
+    // dir op
     case 0x3B:  // 改变当前目录
         change_directory();
         break;
@@ -137,7 +129,7 @@ void DOScall_handler_c() {
         get_current_directory();
         break;
     
-    // 时间日期组
+    // time/date
     case 0x2A:  // 获取日期
         get_date();
         break;

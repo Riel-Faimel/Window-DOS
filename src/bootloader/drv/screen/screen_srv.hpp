@@ -6,6 +6,7 @@
 extern "C" { void kprint(char *); 
 void print_hex(unsigned short val, bool is_add_a_prefix = true);}
 void kprint(const char *str);
+void kprint(char *str, char);
 void print_hex(unsigned char val, bool is_add_a_prefix = true);
 void print_hex(unsigned val, bool is_add_a_prefix = true);
 void print_char(char);
@@ -14,6 +15,7 @@ class screen_output {
     VGA_text_mode VGA_screen;
     friend void print_char(char);
     friend void kprint(char *);
+    friend void kprint(char *, char);
 public:
     screen_output &operator<< (char *s) { kprint(s);return *this; }
     screen_output &operator<< (const char *s) { kprint(s);return *this; }

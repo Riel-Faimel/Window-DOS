@@ -18,12 +18,12 @@ PhysicalPage::PhysicalPage(){
         u64 base{mmap_struc_base[i].base_high, mmap_struc_base[i].base_low};
         u64 len{mmap_struc_base[i].len_high, mmap_struc_base[i].len_low};
 
-        if (base < 0x100000) {
+        if (base < 0x100000u) {
             u64 top = base + len;
-            if (top < 0x100000) continue;
+            if (top < 0x100000u) continue;
 
             base = u64{0x100000};
-            len = top - 0x100000;
+            len = top - 0x100000u;
         } 
 
         mem_list_root[node_index-1].next = &(mem_list_root[node_index]);
@@ -58,7 +58,7 @@ unsigned PhysicalPage::dloc(address_package addrpkg) {
         if (!s) return -1;
     }
     mem_list *new_node = new (s) mem_list{
-        .mem = { .address = addrpkg.address, .len = addrpkg.len*4096 },
+        .mem = { .address = addrpkg.address, .len = addrpkg.len*4096u },
         .next = mem_list_root[0].next,
         .exist = 1,
         .r1 = 0, .r2 = 0, .r3 = 0,
@@ -284,6 +284,7 @@ unsigned PhysicalPage::neaten() {
         left_len = len;
     }
     mem_list_root.start = left_root;
+    return 0;
 }
 
 __window_dos_loader_struct_0x1::array::Iterator&
@@ -307,7 +308,7 @@ PhysicalPage::address_generator::~address_generator() {
 
 PhysicalPage::address_generator::iterator::iterator(PhysicalPage::address_generator *ptr):
 conditions{ptr}, thisptr{*mem_list_root}, lastptr{mem_list_root.start}, no_mem{false}, done{false}{
-    if (mem_list_root[0].mem.len / 4096 < conditions->pageneedednums) 
+    if (mem_list_root[0].mem.len / 4096u < conditions->pageneedednums) 
     { done = true; }
 }
 address_package PhysicalPage::address_generator::iterator::operator*() {
@@ -322,12 +323,12 @@ for(char i = 0;i < 2;i++){
     // try 2
     for (auto &node : mem_list_root.as_list()) {
         alloc_page = u64{conditions->pageneedednums};
-        auto total_pages = node.mem.len / 4096;
+        auto total_pages = node.mem.len / 4096u;
         if (total_pages >= alloc_page) {
             alloc_addr = node.mem.address;
             
-            node.mem.address += alloc_page * 4096;
-            node.mem.len -= alloc_page * 4096;
+            node.mem.address += alloc_page * 4096u;
+            node.mem.len -= alloc_page * 4096u;
             
             done = true;
             return { .address = alloc_addr, .len = alloc_page, };
@@ -337,10 +338,10 @@ for(char i = 0;i < 2;i++){
 }
     } else {
 
-auto node_pagenum = thisptr->mem.len/4096;
+auto node_pagenum = thisptr->mem.len/4096u;
 if (node_pagenum > conditions->pageneedednums) {
     u64 need_bytes {conditions->pageneedednums};
-    need_bytes = need_bytes * 4096;
+    need_bytes = need_bytes * 4096u;
 
     alloc_addr = thisptr->mem.address;
     thisptr->mem.address += need_bytes;

@@ -143,7 +143,7 @@ inline MemoryManager::allocable::allocable(MemoryManager *mm) {
 }
 
 MemoryManager::nopage::nopage(void* page_base, MemoryManager *mm):
-KernelHeapFormat{page_base}, allocable{mm}{}
+allocable{mm}, KernelHeapFormat{page_base} {}
 void *MemoryManager::nopage::alloc(size_t size) {
     KernelHeapFormat::ObjHeader *box = nullptr;
     auto level = size_to_level(size);
@@ -195,7 +195,7 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     }
 }
 MemoryManager::inpage::inpage(void* page_base, MemoryManager *mm):
-KernelHeapFormat{page_base}, allocable{mm} {
+allocable{mm}, KernelHeapFormat{page_base} {
     while(1);
 }
 void *MemoryManager::inpage::alloc(size_t) { return nullptr; }

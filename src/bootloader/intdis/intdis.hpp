@@ -1,6 +1,8 @@
 #ifndef __bootloader_DescripTable_intdis_hpp
 #define __bootloader_DescripTable_intdis_hpp
 
+#include <global/type.hpp>
+
 class IDT;
 
 enum class IRQ : unsigned char {
@@ -16,7 +18,7 @@ enum class IRQ : unsigned char {
 class InterruptDistributor {
 public:
     InterruptDistributor();
-    void reg_irq(void (*handler)(), IRQ irq_num, int cpuid = 0);
+    void reg_irq(void (*handler)(), IRQ irq_num, size_t cpuid = 0);
     void reg_idt(IDT idt);
 };
 

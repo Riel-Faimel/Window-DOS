@@ -16,11 +16,11 @@ public:
 
 private:
     Channal chan;
-    unsigned read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info);
+    unsigned read(unsigned short *buf, unsigned LBA, unsigned count, DiskInfo *info);
     unsigned read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
     unsigned read_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
 
-    unsigned write(unsigned short *buf, unsigned LBA, unsigned char count, DISK_INFO *info);
+    unsigned write(unsigned short *buf, unsigned LBA, unsigned char count, DiskInfo *info);
     unsigned write_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
     unsigned write_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
 

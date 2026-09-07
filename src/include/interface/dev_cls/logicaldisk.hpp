@@ -4,31 +4,34 @@
 #include <global/type.hpp>
 #include <cppstdlib/string>
 
-struct Cluster_Info {
-    enum class Type{
-        IDE_Disk_driver,
-        SATA_Disk_driver,
-
-        Part,
-
-        RAW,
-        minFS,
-        FAT16,
-    } type;
-    size_t total_bytes;
-    size_t cluster_size;
+struct ClusterInfo {
+    size_t index_start;
+    size_t index_num;
+    size_t index_size;
+    size_t type = 0;
 };
 
-struct DISK_INFO : public Cluster_Info {
-    int total_sectors;
-    int LBA_support;
-    int PIO_supported;
+struct DiskInfo : ClusterInfo {
+    bool LBA_support;
+    bool PIO_supported;
     char model[41];
     u8 device; 
     u16 CHS_cylinders;
     u16 CHS_heads;
     u16 CHS_sectors_per_track;
     u32 multi_count;
+};
+
+struct FileInfo : ClusterInfo {
+    String name;
+    u16 create_date;
+    u16 create_time;
+    u16 write_date;
+    u16 write_time;
+    u16 access_date;
+
+    u32 xattr1;
+    u32 xattr2;
 };
 
 /**
@@ -45,7 +48,7 @@ public:
      */
     virtual unsigned read(void *, unsigned, unsigned, unsigned) = 0;
     virtual unsigned write(void *, unsigned, unsigned, unsigned) = 0;
-    virtual Cluster_Info* info(String = {}) = 0;
+    virtual ClusterInfo* info(unsigned = 0, String = {}) = 0;
     virtual unsigned cmd(unsigned, String, void *argv, unsigned argc) = 0;
 };
 

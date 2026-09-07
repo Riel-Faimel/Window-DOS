@@ -1,7 +1,7 @@
 #include "loader.hpp"
 extern MemoryManager *global_heap;
 
-__attribute__((optimize("O0")))
+__attribute__((optimize("O0"), noreturn))
 void LoaderMain(){
     MemoryManager init_global_heap{false};
     global_heap = &init_global_heap;
@@ -24,11 +24,11 @@ void LoaderMain(){
     pds.probe();
     pds.set_driver();
     TaskManager taskmgr;
-    cout << "[INFO] start INIT.EXE\n";
-    auto err = taskmgr.exec("B:\\INIT.EXE", 0, nullptr);
+    cout << "[INFO] start INIT.COM\n";
+    auto err = taskmgr.exec("B:\\INIT.COM", 0, nullptr);
     if (err != 0) switch (err) {
     case (unsigned)-1:{
-        cout << "[FAILED] No initializer \"B:\\INIT.EXE\"\n";
+        cout << "[FAILED] \"B:\\INIT.COM\" not found\n";
     }
     default: {}
     }

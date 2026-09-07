@@ -5,14 +5,12 @@
 
 #pragma pack(push, 1)
 class WinHandle {
-protected:
 public:
     friend class WinMgr;
-    unsigned long long handle;
-    unsigned long long flag;
     void *extra;
+    unsigned long long handle;
     unsigned long long size;
-    WinHandle():handle{0}, flag{0}, extra{nullptr}, size{0}{};
+    WinHandle():extra{nullptr}, handle{0}, size{0}{};
     WinHandle(WinHandle*);
     ~WinHandle(){};
 };

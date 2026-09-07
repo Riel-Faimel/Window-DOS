@@ -1,7 +1,6 @@
 #include "intdis.hpp"
 
-#include "idt.hpp"
-#include <multiCE/cpu.hpp>
+#include <arch/cpu.hpp>
 #include <TL/generator>
 #include <drv/screen/screen_srv.hpp>
 

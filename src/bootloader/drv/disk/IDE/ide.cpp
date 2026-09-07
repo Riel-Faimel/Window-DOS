@@ -1,5 +1,5 @@
 #include "_ide.hpp"
-#include <DescripTable/IDNT.hpp>
+
 inline bool is_power_of_2(u32 n){
     return (n != 0) && ((n & (n - 1)) == 0);
 }
@@ -78,7 +78,7 @@ void IDE_Channal::effect_ctlpkg(IDE_Channal::ctlpkg &cp){
     inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
 }
 
-unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DISK_INFO *info){
+unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DiskInfo *info){
     /*
     cout << '<' << LBA << ',' << count << '>';
     //*/
@@ -140,7 +140,7 @@ unsigned IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned /*LBA*/, un
     return -1;
 }
 
-unsigned IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, DISK_INFO *info){
+unsigned IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, DiskInfo *info){
     if(info->LBA_support) return write_PIO_LBA(buf, LBA, count, info->device);
     else return write_PIO_CHS(buf, LBA, count, info->device);
 }
@@ -353,10 +353,9 @@ lock(c), info_{}, exist{true}{
 
 //full_info_:
     info_.LBA_support = (identify_info.support >> 9) & 0x1;
-    info_.total_sectors = identify_info.LBA28_sectors;
+    info_.index_num = identify_info.LBA28_sectors;
     info_.PIO_supported = identify_info.PIO_supported & 0x8000 ? identify_info.PIO_supported & 0b11111111  : 0;
-    info_.cluster_size = 512;
-    info_.total_bytes = info_.total_sectors * info_.cluster_size;
+    info_.index_size = 512;
     for(int i = 0;i < 40;i++){
         info_.model[i] = reinterpret_cast<char *>(identify_info.model)[i];
     }
@@ -380,7 +379,7 @@ lock(c), info_{}, exist{true}{
         if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
 	}
 
-	info_.total_sectors = identify_info.LBA28_sectors;
+	info_.index_num = identify_info.LBA28_sectors;
 
     u8 LBA_mode = 0b01000000;
 	/* get current R/W Multiple count setting */
@@ -434,7 +433,7 @@ unsigned IDE_DISK::write(void *buf, unsigned LBA, unsigned, unsigned sectors_wri
     else return -1;
 }
 
-DISK_INFO* IDE_DISK::info(String){
+DiskInfo* IDE_DISK::info(unsigned, String){
     return &info_;
 }
 
