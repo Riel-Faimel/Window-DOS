@@ -1,8 +1,8 @@
 #include "fat16.hpp"
 #include "fat_struc.hpp"
-#include <lib/cppstdlib/string>
+#include <lib/string>
 #include <global/new.hpp>
-#include <lib/cppstdlib/utility>
+#include <lib/utility>
 
 #ifdef _DEBUG
 #include <drv/screen/screen_srv.hpp>

@@ -47,8 +47,13 @@ SECTIONS {
         __bss_end = .;
     }
 
-    .idt : {
-        *(.idt)
+    .eh_frame : {
+        __eh_frame_start = .;
+        KEEP(*(.eh_frame))
+        __eh_frame_end = .;
+        __gcc_except_table_start = .;
+        KEEP(*(.gcc_except_table))
+        __gcc_except_table_end = .;
     }
 
     . = ALIGN(4);

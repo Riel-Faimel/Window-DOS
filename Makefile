@@ -48,3 +48,6 @@ clean:
 	rmdir /s "$(BUILD_DIR)"
 	rmdir /s "$(ROOT_DIR)/gcm.cache"
 	del boot.img
+
+debug:
+	qemu-system-i386 -s -S $(QEMUFLAGS)

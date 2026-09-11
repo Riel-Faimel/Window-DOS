@@ -2,12 +2,12 @@
 #define __include_interface_logicaldisk_hpp
 
 #include <global/type.hpp>
-#include <cppstdlib/string>
+#include <string>
 
 struct ClusterInfo {
-    size_t index_start;
-    size_t index_num;
-    size_t index_size;
+    size_t index_start; // cluster index start
+    size_t index_num; // cluster counts
+    size_t index_size; // bytes per cluster
     size_t type = 0;
 };
 

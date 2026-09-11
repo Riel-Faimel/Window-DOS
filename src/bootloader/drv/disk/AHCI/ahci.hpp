@@ -1,6 +1,7 @@
-#ifndef __bootloader_drv_disk_SATA_sata_hpp
-#define __bootloader_drv_disk_SATA_sata_hpp
-#include <drv/disk/disk.hpp>
+#ifndef __bootloader_drv_disk_AHCI_ahci_hpp
+#define __bootloader_drv_disk_AHCI_ahci_hpp
+
+#include <interface/dev_cls/cluster.hpp>
 
 class SATA : public Cluster {
     void check();

@@ -1,6 +1,6 @@
 #include "idt.hpp"
 
-#include <hardlib/x86/port.h>
+#include <port.h>
 #include <drv/screen/screen_srv.hpp>
 #include <global/new.hpp>
 #include <intdis/intdis.hpp>
@@ -32,5 +32,5 @@ struct no_errcode_frame {
 };
 #pragma pack(pop)
 void no_errcode_frame_status(no_errcode_frame *);
-void errorcode_frame_status (errcode_frame *frame);
+u32 errorcode_frame_status (errcode_frame *frame);
 

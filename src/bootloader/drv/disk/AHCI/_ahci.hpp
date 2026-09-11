@@ -1,5 +1,5 @@
-#include "sata.hpp"
-#include <lib/hardlib/x86/port.h>
+#include "ahci.hpp"
+#include <port.h>
 
 struct FIS_to {};
 

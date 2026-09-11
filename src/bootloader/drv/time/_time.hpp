@@ -1,7 +1,7 @@
 #include "time.hpp"
 
-#include <hardlib/x86/port.h>
+#include <port.h>
 #include <drv/screen/screen_srv.hpp>
-#include <DescripTable/intdis.hpp>
+#include <intdis/intdis.hpp>
 #include <drv/screen/screen_srv.hpp>
-#include <DescripTable/IDNT.hpp>
+#include <arch/x86/IDNT.hpp>

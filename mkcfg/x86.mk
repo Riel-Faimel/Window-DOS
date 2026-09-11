@@ -2,9 +2,12 @@ CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding -MMD -MP\
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
 		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/ -Os -D_DEBUG -D_x86
+
 CFLAGS32 = $(CBASE) -Werror=implicit-int
-CPPFLAGS32 = $(CBASE) -nodefaultlibs -fno-rtti -fno-exceptions -fno-use-cxa-atexit\
-	-fno-function-sections -fmodules-ts -mno-sse
+CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts
+CPPFLAGS32 = $(CPPBASE) -fno-exceptions -mno-sse
+CPPEXCEPTION = $(CPPBASE) -fexceptions
+	
 LDFLAGS_B32 = -nostdlib -m elf_i386
 LDFLAGS32 = $(LDFLAGS_B32) -r
 LDFLAGS_F32 = $(LDFLAGS_B32) -static -T $(MK_DIR)x86.ld -Map=loader.map
@@ -24,6 +27,10 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.cpp
 	$(call MKDIR_F,$@)
 	$(CPP-ELF) -D_BITS_32 -std=c++20 $(CPPFLAGS32) -c $< -o $@
 
+$(BUILD_DIR)%.o: $(SRC_DIR)%_exception.cpp
+	$(call MKDIR_F,$@)
+	$(CPP-ELF) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
+
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c 
 	$(call MKDIR_F,$@)
 	$(CC-ELF) -D_BITS_32 $(CFLAGS32) -c $< -o $@
@@ -39,3 +46,7 @@ $(BUILD_DIR)%.bin: $(SRC_DIR)%.asm
 $(BUILD_DIR)%.o: $(SRC_DIR)%.cppm
 	$(call MKDIR_F,$@)
 	$(CPP-ELF) -D_BITS_32 -std=c++20 $(CPPFLAGS32) -c $< -o $@
+
+$(BUILD_DIR)%.o: $(SRC_DIR)%_exception.cppm
+	$(call MKDIR_F,$@)
+	$(CPP-ELF) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@

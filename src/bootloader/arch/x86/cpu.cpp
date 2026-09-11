@@ -6,7 +6,14 @@ size_t cpuidcountor{0};
 
 CPU::CPU(): mm{}, idt{new (mm) descrptor::IDTEntry[256]}, 
 gdt{new (mm) descrptor::GDTEntry[256]{}, 256, idt}, tss{gdt, mm}, 
-scheduler{mm, idt}, syscall{idt}{
+scheduler{mm, idt}, syscall{idt}, info{ 
+    .arch_type = CPUInfo::ArchType::x86,
+    .bit_num = 32,
+    .Segmentation_support = 1,
+    .paging_support = 1,
+    .Segmentation_mode = 1,
+    .paging_mode = 0
+}{
     while(!countorlock.try_lock());
     {
         if (cpu_list_root == nullptr) {
@@ -31,11 +38,15 @@ scheduler{mm, idt}, syscall{idt}{
     }
     countorlock.unlock();
 
-#ifdef _DEBUG
-    cout << " :: CPU[";
-    print_hex((u8)cpuid, false);
-    cout << "] >\n";
-#endif
+    DebugInfo (
+        cout << " :: CPU[";
+        print_hex((u8)cpuid, false);
+        cout << "] >\n";
+    )
+}
+
+CPUInfo CPU::get_info() {
+    return info;
 }
 
 void CPU::preempt() { scheduler.start_preemption(idt); }

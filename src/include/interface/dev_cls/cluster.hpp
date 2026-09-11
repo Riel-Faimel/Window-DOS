@@ -2,7 +2,7 @@
 #define __include_interface_bootoader_cluster_hpp
 
 #include <interface/dev_cls/logicaldisk.hpp>
-#include <cppstdlib/string>
+#include <string>
 
 class Cluster : public LogicalDisk {
 public:

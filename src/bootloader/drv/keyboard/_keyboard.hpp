@@ -1,8 +1,8 @@
 #include "keyboard.hpp"
-#include <hardlib/x86/port.h>
+#include <port.h>
 #include <drv/screen/screen_srv.hpp>
-#include <DescripTable/IDNT.hpp>
-#include <DescripTable/intdis.hpp>
+#include <arch/x86/IDNT.hpp>
+#include <intdis/intdis.hpp>
 
 #define DATA 0x60
 #define CMD 0x64

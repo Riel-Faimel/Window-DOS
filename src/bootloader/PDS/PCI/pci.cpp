@@ -9,9 +9,11 @@ DeviceConfig &construc(PCI_device_config &pcf, PCI_space *enumer) {
     switch (pcf.Class_code[2]){
     case 0x01: // stroage controller
         re->class_type = DeviceConfig::CLASS_TYPE::storage;
+        break;
         switch (pcf.Class_code[1]) {
-        case 0x01:
-            re->device_type = _GD_storage_IDE_disk;
+        case 0x06:
+            if (pcf.Class_code[0] == 0x01)
+            re->device_type = _GD_storage_AHCI;
             break;
         default:
             break;
@@ -20,15 +22,12 @@ DeviceConfig &construc(PCI_device_config &pcf, PCI_space *enumer) {
     case 0x02: //network controller
         switch (pcf.Class_code[1]){
         case 0x00:
-            break;
         default:
             break;
         }
         break;
     case 0x03:
-        break;
     case 0x06:
-        break;
     default:
         break;
     }
@@ -47,9 +46,9 @@ inline void PCI_space::probe(){
             pci_probe_device(bus, dev, print_info);
         }
     }
-    if(!print_info){
+    DebugInfo(
         cout << "[INFO] PCI probe done: " << config.get_size() << " devices found\n";
-    }
+    )
 }
 
 inline void PCI_space::pci_lookfor_addr(int bus, int dev, int func, int reg){
@@ -89,11 +88,11 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
     }
     config.append(cfg);
 
-    if(print_info){
+    DebugInfo(
         cout << ("[INFO] VEN:DEV  REV  CLS\n");
         cout << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' ' 
-        << static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]);
-    }
+        << static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
+    )
     if(cfg.Header_type & 0x80){
         for(int func_id_ = 1;func_id_ < 8;func_id_++){
             unsigned int id = pci_read(bus, dev, func_id_, 0);
@@ -120,14 +119,11 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
                 reinterpret_cast<unsigned *>(&cfg)[i] = pci_read(bus, dev, func_id_, i*4);
             }
             config.append(cfg);
-            if(print_info){
-                cout << "\n[MULTIFUNC] VEN:DEV  REV  CLS\n" << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' '
+            DebugInfo(
+                cout << "[MULTIFUNC] VEN:DEV  REV  CLS\n" << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' '
                 << static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
-            }
+            )
         }
-    }
-    if(print_info){
-        cout << '\n';
     }
 }
 

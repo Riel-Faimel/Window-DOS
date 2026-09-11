@@ -1,6 +1,7 @@
 #include "pci.hpp"
 #include <global/type.hpp>
-#include <hardlib/x86/port.h>
+#include <global/macro.hpp>
+#include <port.h>
 #include <drv/screen/screen_srv.hpp>
 #include <drv/kmod.hpp>
 #define PCI_address  0xCF8

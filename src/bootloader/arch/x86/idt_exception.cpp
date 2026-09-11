@@ -1,6 +1,6 @@
 #include "_idt.hpp"
 
-import lib32;
+import exception;
 
 IDT::IDT(volatile IDT_item *tab):idt_base(tab){
     static_assert(sizeof(IDT_item) == 8, "error");
@@ -52,9 +52,9 @@ unsigned long long _time_count = 0;
 
 extern "C" {
 
-void DE_handler_c(){
-    kprint("#DE: /0!\n");
-    while (true){ asm volatile ("hlt"); }
+void DE_handler_c(no_errcode_frame* frame){
+    cout << "#DE" << frame->eip;
+    throw "#DE";
 }
 void OF_handler_c(){
     kprint("#OF: Overflaw!\n");
@@ -74,11 +74,28 @@ void DF_handler_c(){
     kprint("#DF: Double fault!\n");
     while (true){ asm volatile ("hlt"); }
 }
-__attribute__((optimize("O0")))
 void GP_handler_c(errcode_frame * frame){
     cout << "=== #GP ===\n";
-    errorcode_frame_status(frame);
-    catch_program();
+    auto err = errorcode_frame_status(frame);
+    bool is_extern = err & 1;
+    bool is_IDT = err & 2;
+    bool is_LDT = err & 4;
+    u16 seg = err & 0xFFF8;
+    if (is_extern) {
+        cout << "extern exception\n";
+    } else {
+        if (is_IDT) {
+            cout << "IDT err\n";
+            return;
+        } else {
+            if (is_LDT) {
+                cout << "LDT err\n";
+            } else {
+                cout << "GDT err\n";
+            }
+            catch_program();
+        }
+    }
 }
 __attribute__((optimize("O0")))
 void basic_time_handler_c(){
@@ -92,10 +109,12 @@ void no_errcode_frame_status(no_errcode_frame *frame) {
     cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
 }
 
-void errorcode_frame_status (errcode_frame *frame) {
-    cout << "Error Code: " << frame->errcode;
+u32 errorcode_frame_status (errcode_frame *frame) {
+    cout << "Error Code: ";
     cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
-    if ((frame->errcode & 0b0100) == 0)return;
+    if ((frame->errcode & 0b0100) == 0)goto Done;
     cout << "< SS = " << frame->ss << ", ESP = " << frame->esp << " >\n";
+    Done:
+    return frame->errcode;
 }
 

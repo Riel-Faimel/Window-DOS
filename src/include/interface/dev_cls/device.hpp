@@ -5,8 +5,8 @@
 #include <interface/enumer.hpp>
 
 // global defination
-#define _GD_storage_IDE_disk 0
-#define _GD_storage_SATA_disk 1
+#define _GD_storage_IDE 0
+#define _GD_storage_AHCI 1
 #define _GD_storage_NVMe_disk 2
 #define _GD_network 0
 

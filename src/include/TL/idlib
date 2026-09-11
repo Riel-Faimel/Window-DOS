@@ -19,3 +19,7 @@ namespace rtl {
 #include <TL/pointer>
 #include <TL/container>
 #include <TL/utility>
+#include <TL/tuple>
+#include <TL/generator>
+#include <TL/lock_modif>
+#include <TL/map>

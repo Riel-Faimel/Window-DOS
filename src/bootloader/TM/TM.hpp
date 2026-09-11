@@ -6,7 +6,7 @@
  * task include thread and sources list
  */
 
-#include <lib/cppstdlib/string>
+#include <lib/string>
 #include <multiCE/Multi-Channel_exec.hpp>
 
 class TaskManager {

@@ -1,6 +1,8 @@
 #include "loader.hpp"
 extern MemoryManager *global_heap;
 
+extern void f(int);
+
 __attribute__((optimize("O0"), noreturn))
 void LoaderMain(){
     MemoryManager init_global_heap{false};
@@ -29,6 +31,9 @@ void LoaderMain(){
     if (err != 0) switch (err) {
     case (unsigned)-1:{
         cout << "[FAILED] \"B:\\INIT.COM\" not found\n";
+    }
+    case (unsigned)-2:{
+        cout << "[FAILED] No \"B:\"!\n";
     }
     default: {}
     }

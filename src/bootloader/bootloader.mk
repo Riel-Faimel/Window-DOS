@@ -11,17 +11,16 @@ include $(SRC_DIR)bootloader/SSS/DLS.mk
 include $(SRC_DIR)bootloader/PDS/pds.mk
 include $(SRC_DIR)bootloader/multiCE/multiCE.mk
 include $(SRC_DIR)bootloader/TM/TM.mk
+include $(SRC_DIR)bootloader/start/start.mk
 
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 -include $(OBJECTS:.o=.d)
 
 $(BUILD_DIR)bootloader/loader.o: $(SRC_DIR)bootloader/loader.cpp
-$(BUILD_DIR)bootloader/start/_start.o: $(SRC_DIR)bootloader/start/_start.asm
-$(BUILD_DIR)bootloader/start/boot.bin: $(SRC_DIR)bootloader/start/boot.asm
 
 $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
-	$(BUILD_DIR)bootloader/start/_start.o\
+	$(BUILD_DIR)bootloader/start.o\
 	$(BUILD_DIR)bootloader/loader.o\
 	$(BUILD_DIR)bootloader/mm.o\
 	$(BUILD_DIR)bootloader/registry.o\

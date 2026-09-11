@@ -196,4 +196,99 @@ Cluster *create_fat_fs(LogicalDisk *part) {
     return new FAT16(part);
 }
 
+void format_fat_fs(
+    LogicalDisk *part, size_t cluster_size
+){
+    BPB bpb;
+    for(unsigned i = 0;i < 256;i++){
+        bpb.buf[i] = 0;
+    }
+    bpb.jmp[0] = 0xEB;
+    bpb.jmp[1] = 0x3C;
+    bpb.jmp[2] = 0x90; //fixed
+    
+    for(unsigned i = 0;i < 8 && "WINDOS0.1"[i];i++){
+        bpb.oem[i] = "WINDOS0.1"[i];
+    }
+    
+    auto info = part->info({});
+
+    bpb.bytes_per_sector = 512;//fixed
+    bpb.sectors_per_cluster= cluster_size;
+    bpb.reserved_sectors = 1;
+    bpb.fat_table_count = 2;
+    bpb.root_entry_num = 512; //fixed
+    bpb.total_sectors_16 = (info->index_num > 65536) ? 0 : info->index_num;
+    bpb.medis_type_descriptor = 0xF8; //hdd
+    bpb.sector_per_fat_table = 0;
+    bpb.sectors_per_track = 63; //hdd
+    bpb.num_heads = 16;
+    bpb.total_sectors_32 = (info->index_num < 65536) ? 0 : info->index_num;
+    bpb.drive_number = 0x80;
+    bpb.reserved2 = 0; //fixed
+    bpb.boot_sign = 0x29; //extra, 0x28 for not extra
+    bpb.volume_id = 0x20260213;
+    
+    for(unsigned i = 0;i < 11 && "Riel FAT16"[i];i++){
+        bpb.volume_label[i] = "Riel FAT16"[i];
+    }
+    for(unsigned i = 0;i < 8 && "FAT16 "[i];i++){
+        bpb.fs_type[i] = "FAT16 "[i];
+    }
+    
+    for(unsigned i = 0;i < 448;i++){
+        bpb.boot_code[i] = 0;
+    }
+    
+    bpb.boot_sector_sign = 0xAA55;
+
+    unsigned S = cluster_size;
+    unsigned T = info->index_num; // total sectors
+    unsigned R, F, D, C;
+    R = 1;
+    F = 1;
+    unsigned F_ = F;
+    unsigned R_ = R;
+    while(true){
+        F_ = F;
+        F = (T - R - 2 * F - 32 + 256 * S - 1)/(256 * S);
+        if(F != F_)continue;
+        R_ = R;
+        R = (2 * F + 32) % S ? S - ((2 * F + 32) % S) : 1;
+        if(R != R_)continue;
+        break;
+    }
+    D = R + 2 * F + 32;
+    C = (T - D) / S;
+    auto cluster0sector_id = D / S;
+    bpb.reserved_sectors = R;
+    bpb.sector_per_fat_table = F;
+    part->write(bpb.buf, 0, 0, 1);
+    
+    // clear FAT
+    unsigned short fat[256];
+    for(int i = 0;i < 256;i++) fat[i] = 0;
+    fat[0] = 0xFFF8;
+    fat[1] = 0xFFFF;
+    part->write(fat, 0, R, 1);
+    part->write(fat, 0, R + F, 1);
+    fat[0] = 0;
+    fat[1] = 0;
+    for(unsigned i = 1;i < F;i++){
+        part->write(fat, 0, R + i, 1);
+        part->write(fat, 0, R + F + i, 1);
+    }
+
+    // set volume label
+    unsigned char *root = reinterpret_cast<unsigned char *>(fat);
+    for(int i = 0;i < 11;i++)root[i] = bpb.volume_label[i];
+    root[11] = 0x08;
+    part->write((unsigned short *)root, 0, R + 2*F, 1);
+    for(int i = 0;i <= 11;i++)root[i] = 0;
+    for(int i = 1;i < 32;i++){
+        part->write((unsigned short *)root, 0, R + 2 * F + i, 1);
+    }
+    return;
+}
+
 #pragma GCC optimize("Os")

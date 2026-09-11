@@ -1,0 +1,68 @@
+#ifndef __include_TL_lock_modif
+#define __include_TL_lock_modif
+
+#include <global/type.hpp>
+#include <TL/utility>
+#include <atomic>
+
+namespace rtl {
+
+template<typename T>
+concept Task = requires (T f) {
+    f.operator() ();
+};
+template<typename Q, typename T>
+concept QueuePointer = 
+requires (Q q, T &t){
+    ++q || q++;
+    t = *q;
+};
+
+template<Task T>
+class spin_lock {
+    atomic<bool> lock;
+public:
+    template<typename... Args>
+    __attribute__((always_inline, optimize("O3")))
+    auto operator ()(Args&&... args) {
+        T task{rtl::forward(args...)};
+        struct Guard {
+            atomic<bool> &lr;
+            __attribute__((always_inline))
+            Guard(atomic<bool> &lr_): lr{lr_} { while(lr_.try_lock()); } // spin
+            __attribute__((always_inline))
+            ~Guard() { lr.unlock(); }
+        } guard{lock};
+        return task();
+    }
+};
+
+template<Task T, QueuePointer <T>Q>
+class queue_lock {
+    atomic<bool> lock;
+    atomic<bool> qlock;
+    Q queue_t;
+    Q queue_h;
+
+public:
+    template<typename... Args>
+    auto operator ()(Args... args) {
+        T task{args...};
+        if (lock.try_lock()) {
+            auto result = task();
+            lock.unlock();
+            return result;
+        } else {
+            while(qlock.try_lock());
+            auto &space = *queue;
+            ++queue;
+            qlock.unlock();
+
+        }
+    }
+};
+
+    
+} // namespace rtl 
+
+#endif

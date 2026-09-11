@@ -1,15 +1,21 @@
 #include "_pds.hpp"
 
-PeripheralDeviceSpace::PeripheralDeviceSpace(): pci{false}, usb() {}
+PeripheralDeviceSpace::PeripheralDeviceSpace(): space{} {
+    space.append(new ISA_space{});
+    space.append(new PCI_space{});
+    space.append(new USB_space{});
+}
 
 void PeripheralDeviceSpace::remove(unsigned long long tpid){}
 
 void PeripheralDeviceSpace::probe() {
-    pci.probe();
-    usb.probe();
+    for (auto &enumer : space) {
+        enumer->probe();
+    }
 }
 
 void PeripheralDeviceSpace::set_driver() {
-    pci.set_driver();
-    usb.set_driver();
+    for (auto &enumer : space) {
+        enumer->set_driver();
+    }
 }

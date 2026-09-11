@@ -17,10 +17,17 @@ driver{}, fs{} {
     constexpr DeviceConfig pci_ide{
         DeviceConfig::BUS_TYPE::PCI,
         DeviceConfig::CLASS_TYPE::storage,
-        _GD_storage_IDE_disk,
+        _GD_storage_IDE,
+        0, 0
+    };
+    constexpr DeviceConfig pci_stat_compatible {
+        DeviceConfig::BUS_TYPE::PCI,
+        DeviceConfig::CLASS_TYPE::storage,
+        _GD_storage_AHCI,
         0, 0
     };
     driver[pci_ide] = init_IDE_controller;
+    driver[pci_stat_compatible] = init_IDE_controller;
     fs[14] = create_fat_fs;
     kmod = this;
 }

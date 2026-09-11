@@ -1,0 +1,548 @@
+#include <global/type.hpp>
+#include <interface/dev_cls/cluster.hpp>
+#include <port.h>
+#include <drv/screen/screen_srv.hpp>
+#include <intdis/intdis.hpp>
+#include "..\ATA\ATAcmd.hpp"
+#include <registry/registry.hpp>
+
+class IDE_Channal;
+
+class IDE_DISK : public LogicalDisk {
+    friend class IDE_Channal;
+    enum class Device{
+        Master_Device = 0xE0,
+        Slave_Device = 0xF0,
+    };
+
+    IDE_Channal *lock;
+    DiskInfo info_;
+public:
+    bool exist;
+    IDE_DISK();
+    IDE_DISK(IDE_DISK &) = delete;
+    IDE_DISK(IDE_DISK &&);
+    IDE_DISK(Device dev, IDE_Channal *);
+    ~IDE_DISK() = default;
+
+    IDE_DISK& operator=(IDE_DISK&&);
+    IDE_DISK& operator=(IDE_DISK&) = delete;
+    IDE_DISK& operator=(const IDE_DISK&) = delete;
+
+    void check();
+    unsigned read(void *buf, unsigned LBA, unsigned, unsigned sectors_read);
+    unsigned write(void *buf, unsigned LBA, unsigned, unsigned sectors_write);
+    DiskInfo* info(unsigned, String);
+    unsigned cmd(unsigned, String, void *argv, unsigned argc);
+};
+
+class IDE_Channal {
+public:
+    enum class Channal{
+        Master_Channel = 0x1F0,
+        Slave_Channel = 0x170
+    };
+    IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan); //use strange
+
+private:
+    Channal chan;
+    unsigned read(unsigned short *buf, unsigned LBA, unsigned count, DiskInfo *info);
+    unsigned read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
+    unsigned read_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned count, u8 dev);
+
+    unsigned write(unsigned short *buf, unsigned LBA, unsigned char count, DiskInfo *info);
+    unsigned write_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
+    unsigned write_PIO_CHS(unsigned short *buf, unsigned LBA, unsigned char count, u8 dev);
+
+    struct ctlpkg{
+        unsigned long	flags;		/* TFLAG_xxx */
+        u8			protocol;	/* PROT_xxx */
+        u8			ctl;		/* control reg */
+        u8			feature;
+        u8			nsect;
+		u8			l;
+    	u8			m;
+    	u8			h;
+		struct {
+        u8			feature;
+        u8			nsect;
+		u8			l;
+    	u8			m;
+    	u8			h;
+		} hob;
+
+        u8			device;
+        u8			cmd_stat;	/* IO operation */
+    };
+    void get_ctlpkg(ctlpkg&);
+    void send_ctlpkg(ctlpkg &);
+    void effect_ctlpkg(ctlpkg &);
+    friend class IDE_DISK;
+};
+
+inline bool is_power_of_2(u32 n){
+    return (n != 0) && ((n & (n - 1)) == 0);
+}
+extern "C" void when_PATA_Master_cut_handler();
+extern "C" void when_PATA_Slave_cut_handler();
+//constexpr u16 ctl = 0x206;
+
+
+
+IDE_Channal::IDE_Channal(IDE_DISK& master, IDE_DISK& slave, Channal chan_):
+chan(chan_){
+    switch (chan_) {
+    case Channal::Master_Channel:
+        interrupt_distributor.reg_irq(&when_PATA_Master_cut_handler, IRQ::ATA_Master);
+        break;
+    case Channal::Slave_Channel:
+        interrupt_distributor.reg_irq(&when_PATA_Slave_cut_handler, IRQ::ATA_Slave);
+        break;
+    default:
+        return;
+    }
+
+    IDE_DISK&& mm = IDE_DISK{IDE_DISK::Device::Master_Device, this};
+    if(mm.exist)master = rtl::move(mm);
+    //else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Master disk not found\r\n";
+    IDE_DISK&& ms = IDE_DISK{IDE_DISK::Device::Slave_Device, this};
+    if(ms.exist)slave = rtl::move(ms);
+    //else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Slave disk not found\r\n";
+}
+
+void IDE_Channal::get_ctlpkg(ctlpkg &cp){
+	cp.cmd_stat = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
+	cp.feature = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_ERR));
+	cp.nsect = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+	cp.l = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+	cp.m = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+	cp.h = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
+	cp.device = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_DEVICE));
+
+	if (cp.flags & static_cast<u8>(ATA::TFLAG_LBA48)) {
+		outb(cp.ctl | static_cast<u8>(ATA::HOB), static_cast<u16>(chan) + static_cast<u8>(ATA::PCI_CTL_OFS));
+		cp.hob.feature = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_ERR));
+		cp.hob.nsect = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+		cp.hob.l = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+		cp.hob.m = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+		cp.hob.h = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
+		outb(cp.ctl, static_cast<u16>(chan) + static_cast<u16>(ATA::PCI_CTL_OFS));
+	}
+}
+
+void IDE_Channal::send_ctlpkg(IDE_Channal::ctlpkg &cp){
+	unsigned int is_addr = cp.flags & static_cast<u8>(ATA::TFLAG_ISADDR);
+
+	if (is_addr && (cp.flags & static_cast<u8>(ATA::TFLAG_LBA48))) {
+		outb(cp.hob.feature, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_FEATURE));
+		outb(cp.hob.nsect, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+		outb(cp.hob.l, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+		outb(cp.hob.m, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+		outb(cp.hob.h, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
+	}
+
+	if (is_addr) {
+		outb(cp.feature, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_FEATURE));
+		outb(cp.nsect, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_NSECT));
+		outb(cp.l, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAL));
+		outb(cp.m, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAM));
+		outb(cp.h, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_LBAH));
+	}
+
+	if (cp.flags & static_cast<u8>(ATA::TFLAG_DEVICE)) {
+		outb(cp.device, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_DEVICE));
+	}
+    while(inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & static_cast<u8>(ATA::BUSY));
+}
+
+void IDE_Channal::effect_ctlpkg(IDE_Channal::ctlpkg &cp){
+	outb(cp.cmd_stat, static_cast<u16>(chan) + static_cast<u16>(ATA::REG_CMD));
+    inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
+}
+
+unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DiskInfo *info){
+    /*
+    cout << '<' << LBA << ',' << count << '>';
+    //*/
+    if(info->LBA_support) return read_PIO_LBA(buf, LBA, count, info->device);
+    else return read_PIO_CHS(buf, LBA, count, info->device);
+}
+
+unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev){
+    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
+    if(status & 0x80){
+        unsigned i = 0;
+        while ((inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x80)){
+            i++;
+            if(i > 0x10000){
+                if(registry.do_IDE_controller_initialization_print_info)
+                cout << "[NOTICE] time out\n";
+                return -1; //time out
+            }
+        };    
+    }
+    ctlpkg cp {
+        .flags = static_cast<u32>(ATA::TFLAG_ISADDR) | 
+        static_cast<u32>(ATA::TFLAG_DEVICE) | 
+        static_cast<u32>(ATA::TFLAG_LBA),
+        .protocol = static_cast<u8>(ATA::PROT_FLAG_PIO),
+        .ctl = 0,
+        .nsect = (u8)count,
+        .l = (u8)(LBA & 0xFF),
+        .m = (u8)((LBA >> 8) & 0xFF),
+        .h = (u8)((LBA >> 16) & 0xFF),
+        .hob = {},
+        .device = (u8)(dev | ((LBA >> 24) & 0x0F)),
+        .cmd_stat = static_cast<u8>(ATA::CMD_PIO_READ)
+    };
+    send_ctlpkg(cp);
+    effect_ctlpkg(cp);
+
+    unsigned re = 0;
+    for(unsigned char fan = 0;fan < count;fan++){
+        unsigned i = 0;
+        while (!(inb(static_cast<u16>(chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
+            i++;
+            if(i > 10000){
+                if(registry.do_IDE_controller_initialization_print_info)
+                cout << "[NOTICE] Time out\n";
+                return -1;
+            }
+        };
+        for(unsigned int i = 0;i < 256;i++){
+            buf[i + fan * 256] = inw(static_cast<u16>(chan));
+            re += 2;
+        }
+    }
+    return re;
+}
+
+unsigned IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned /*LBA*/, unsigned /*count*/, u8 /*dev*/){
+    kprint("[NOTICE] CHS read not implemented yet\r\n");
+    return -1;
+}
+
+unsigned IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, DiskInfo *info){
+    if(info->LBA_support) return write_PIO_LBA(buf, LBA, count, info->device);
+    else return write_PIO_CHS(buf, LBA, count, info->device);
+}
+
+inline unsigned IDE_Channal::write_PIO_LBA(unsigned short *buf, unsigned int LBA, unsigned char count, u8 dev){
+    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u8>(ATA::REG_STATUS));
+    if(status & 0x80){
+        while ((inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x80));        
+    }
+
+    ctlpkg cp {
+        .flags = static_cast<u32>(ATA::TFLAG_ISADDR) | 
+        static_cast<u32>(ATA::TFLAG_DEVICE) | 
+        static_cast<u32>(ATA::TFLAG_LBA),
+        .protocol = static_cast<u8>(ATA::PROT_FLAG_PIO),
+        .ctl = 0,
+        .nsect = (u8)count,
+        .l = (u8)(LBA & 0xFF),
+        .m = (u8)((LBA >> 8) & 0xFF),
+        .h = (u8)((LBA >> 16) & 0xFF),
+        .hob = {},
+        .device = (u8)(dev | ((LBA >> 24) & 0x0F)),
+        .cmd_stat = static_cast<u8>(ATA::CMD_PIO_WRITE)
+    };
+    send_ctlpkg(cp);
+    effect_ctlpkg(cp);
+
+
+    unsigned re = 0;
+    for(unsigned char fan = 0;fan < count;fan++){
+        unsigned i = 0;
+        while (!(inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x08)){
+            i++;
+            if(i > 10000){
+                if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] Time out\r\n");
+                break;
+            }
+        };
+        for(unsigned int i = 0;i < 256;i++){
+            outw(buf[i + fan * 256], static_cast<u16>(chan) + static_cast<u16>(ATA::REG_DATA));
+            re += 2;
+        }
+    }
+    return re;
+}
+
+inline unsigned IDE_Channal::write_PIO_CHS(unsigned short */*buf*/, unsigned int /*LBA*/, unsigned char /*count*/, u8 /*dev*/){
+    kprint("[NOTICE] CHS write not implemented yet\r\n");
+    return -1;
+}
+
+//=====================================================================
+
+IDE_DISK &IDE_DISK::operator=(IDE_DISK &&other){
+    if(this == &other)return *this;
+    lock = other.lock;
+    info_ = other.info_;
+    exist = other.exist;
+
+    other.lock = nullptr;
+    other.info_ = {};
+    other.exist = false;
+    return *this;
+}
+
+IDE_DISK::IDE_DISK():lock(nullptr), info_(), exist{false} {}
+IDE_DISK::IDE_DISK(IDE_DISK &&disk_):
+lock(disk_.lock), info_(disk_.info_), exist(disk_.exist){
+    disk_.lock = nullptr;
+    disk_.info_ = {};
+    disk_.exist = false;
+}
+
+IDE_DISK::IDE_DISK(Device dev, IDE_Channal *c):
+lock(c), info_{}, exist{true}{
+    outb(static_cast<u8>(dev), static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE));
+    io_wait();
+    auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
+    if(status == 0xFF){
+        if(registry.do_IDE_controller_initialization_print_info)
+        cout << "[ERROR] No disk found\n";
+        exist = false;
+        return;
+    }
+#pragma pack(push, 1)
+    union {
+        u16 id[256];
+        struct {
+            u16 general_config;
+            u16 CHS_cylinders;
+            u16 _re;
+            u16 CHS_heads;
+            u16 __re[2];
+            u16 CHS_sectors_per_track;
+            u16 re_[3];
+            u16 serial_number[10];
+            u16 re__[3];
+            u16 firmware_rev[4];
+            u16 model[20];
+            u16 rw_multiple;
+            u16 re___;
+            u16 support;
+            u16 capabilities2;
+            u16 pio_timing;
+            u16 dma_timing;
+            u16 fields_valid;
+            u16 current_cylinders;
+            u16 current_heads;
+            u16 current_sectors;
+            u32 current_chs_sectors;
+            u16 rw_multiple_setting;
+            u32 LBA28_sectors;
+            u16 sw_dma_modes;
+            u16 mw_dma_modes;
+            u16 PIO_supported;
+            u16 min_mw_dma_cycle;
+            u16 min_mw_dma_cycle2;
+            u16 min_pio_cycle;
+            u16 min_pio_cycle_iordy;
+            u16 re____[6];
+            u16 queue_depth;
+            u16 sata_cap[4];
+            u16 major_version;
+            u16 minor_version;
+            u16 cmd_set1;
+            u16 cmd_set2;
+            u16 cmd_set3;
+            u16 cmd_set4;
+            u16 cmd_set5;
+            u16 cmd_set6;
+            u16 UDMA_modes;
+            u16 secure_erase_time[4];
+            u16 re_____[7];
+            u32 LBA48_sectors_low;
+            u32 LBA48_sectors_high;
+            u16 stream_min_req;
+            u16 stream_transfer_time;
+            u16 logical_sector_size;
+            u16 inter_seek_delay;
+            u32 wwn[4];
+            u16 re______[5];
+            u32 words_per_sector;
+            u16 cmd_set7;
+            u16 cmd_set8;
+            u16 re_______[6];
+            u16 removable_status;
+            u16 security_status;
+            u16 vendor_specific[31];
+            u16 cfa_power_mode;
+            u16 cfa_key_mgmt;
+            u16 cfa_modes;
+            u16 cfa_trans;
+            u16 cfa_mdata1;
+            u16 cfa_mdata2;
+            u16 cfa_mdata3;
+            u16 cfa_mdata4;
+            u16 cfa_reserved;
+            u16 re__8[7];
+            u16 media_serial[30];
+            u16 sct_cmd_support[4];
+            u16 re__9[7];
+            u16 nominal_rotation_rate;
+            u16 re__10[4];
+            u16 transport_major;
+            u16 transport_minor;
+            u16 re__11[10];
+            u16 min_prefetch;
+            u16 max_prefetch;
+            u16 re__12[19];
+            u16 integrity_word;
+        } identify_info;
+    };
+#pragma pack(pop)
+
+//read_identify:
+    outb(static_cast<u8>(dev), static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DEVICE));
+    unsigned i = 0;
+    while(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x80){
+        i++;
+        if(i > 0x10000){
+            if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] time out\n";
+            exist = false;
+            return; //time out
+        }
+    }; 
+    // wait until device is not busy
+    outb(static_cast<u8>(0xEC), static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_CMD)); 
+    // send identify command
+
+    i = 0;
+    while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
+        i++;
+        if(i > 0x10000){
+            if(registry.do_IDE_controller_initialization_print_info)
+            cout << "[NOTICE] time out\n";
+            exist = false;
+            return; //time out
+        }
+    }; 
+    status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
+    if(status & 0x01) {
+        if(registry.do_IDE_controller_initialization_print_info)
+        cout << "[ERROR] IDENTIFY command failed\n";
+        exist = false;
+        return;
+    }
+    for(int i = 0;i < 256;i++){
+        id[i] = inw(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DATA));
+    }
+
+//full_info_:
+    info_.LBA_support = (identify_info.support >> 9) & 0x1;
+    info_.index_num = identify_info.LBA28_sectors;
+    info_.PIO_supported = identify_info.PIO_supported & 0x8000 ? identify_info.PIO_supported & 0b11111111  : 0;
+    info_.index_size = 512;
+    for(int i = 0;i < 40;i++){
+        info_.model[i] = reinterpret_cast<char *>(identify_info.model)[i];
+    }
+
+    /**
+     * from Linux2.6.32.1
+     * driver/ata/libata-core.c
+     */
+    /* ATA-specific feature tests */
+	if (
+        identify_info.general_config == 0x848A ||
+        identify_info.general_config == 0x844A ||
+        identify_info.general_config == 0x045A
+    ) { //兼容CF卡的小玩意
+		/* CPRM may make this media unusable */
+		if (id[static_cast<u32>(ATA::ID_CFA_KEY_MGMT)] & 1)
+        if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
+	} else {
+		/* Warn the user if the device has TPM extensions */
+		if (identify_info.cmd_set2 & 0b0001)
+        if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
+	}
+
+	info_.index_num = identify_info.LBA28_sectors;
+
+    u8 LBA_mode = 0b01000000;
+	/* get current R/W Multiple count setting */
+	if ((id[47] >> 8) == 0x80 && (id[59] & 0x100)) {
+		unsigned int max = id[47] & 0xFF;
+		unsigned int cnt = id[59] & 0xFF;
+		/* only recognize/allow powers of two here */
+		if (is_power_of_2(max) && is_power_of_2(cnt)) 
+        if (cnt <= max)
+		info_.multi_count = cnt;
+	}
+
+	if (identify_info.support & (1 << 9)) {
+        info_.LBA_support = 1;
+		if (identify_info.cmd_set2 & (1 << 10)) {
+			info_.LBA_support = 2;
+            if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA48\n");
+		}else 
+        if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA\n");
+	} else {
+		/* CHS */
+        if(registry.do_IDE_controller_initialization_print_info)kprint("does not support LBA, using CHS\n");
+        LBA_mode = 0;
+
+		/* Default translation */
+		info_.CHS_cylinders	= identify_info.current_cylinders;
+		info_.CHS_heads	= identify_info.current_heads;
+		info_.CHS_sectors_per_track	= identify_info.current_sectors;
+
+		if (identify_info.fields_valid & 0b01) {
+			/* Current CHS translation is valid. */
+			info_.CHS_cylinders = identify_info.CHS_cylinders;
+			info_.CHS_heads = identify_info.CHS_heads;
+			info_.CHS_sectors_per_track = identify_info.CHS_sectors_per_track;
+		}
+	}
+    info_.device = static_cast<u8>(dev);
+};
+
+unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
+    /*
+    cout << '{' << (unsigned)(&lock) << '}';
+    cout << '<' << LBA << ", " << sectors_read << '>';
+    //*/
+    if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
+    else while(1);//return -1;
+}
+
+unsigned IDE_DISK::write(void *buf, unsigned LBA, unsigned, unsigned sectors_write){
+    if(lock) return lock->write(static_cast<unsigned short *>(buf), LBA, sectors_write, &info_);
+    else return -1;
+}
+
+void IDE_DISK::check(){
+    outb(info_.device, static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_DEVICE));
+    io_wait();
+    
+    auto status = inb(static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_STATUS));
+    
+    if(status == 0xFF) {
+        kprint("-- No Device --\n");
+        return;
+    }
+    
+    if(status & 0x80) kprint("-- Device Busy --\n");
+    if(status & 0x40) kprint("-- Device Ready --\n");
+    if(status & 0x20) kprint("-- Device Fault --\n");
+    if(status & 0x10) kprint("-- Data Request Ready --\n");
+    if(status & 0x08) kprint("-- Device Error --\n");
+    
+    if(!(status & 0x80) && !(status & 0x08) && !(status & 0x10)) {
+        kprint("-- Device idle --\n");
+    }
+    
+    print_hex(status);
+}
+
+DiskInfo *IDE_DISK::info(unsigned, String){
+    return &info_;
+}
+
+unsigned IDE_DISK::cmd(unsigned, String, void *, unsigned) {
+    return 0;
+}

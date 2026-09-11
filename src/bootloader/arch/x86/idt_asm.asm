@@ -73,7 +73,7 @@ NM_handler:
     iretd
 
 DF_handler:
-    pusha
+    push esp
     call DF_handler_c
     mov al, 0x20
     out 0x20, al
@@ -90,7 +90,8 @@ GP_handler:
     call GP_handler_c
     pop eax
     pop eax
-    iretd
+    add esp, 4
+    iret
 
 basic_time_handler:
     pusha

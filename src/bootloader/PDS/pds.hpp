@@ -6,13 +6,12 @@
  * it is manage enumerator objects and provide driver queries and API for caller 
  */
 
-#include <PDS/PCI/pci.hpp>
-#include <PDS/USB/usb.hpp>
+#include <TL/container>
+#include <interface/enumer.hpp>
 
 class PeripheralDeviceSpace {
 private:
-    PCI_space pci;
-    USB_space usb;
+    rtl::array<Enumerator *> space;
 public:
     PeripheralDeviceSpace();
     void probe();

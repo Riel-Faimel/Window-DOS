@@ -4,7 +4,7 @@
 #include <global/new.hpp>
 #include <TL/generator>
 #include <TL/utility>
-#include <cppstdlib/atomic>
+#include <atomic>
 #include <drv/screen/screen_srv.hpp>
 
 #define StackSize 4096

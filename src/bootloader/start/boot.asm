@@ -46,7 +46,6 @@ boot:
     mov ax, 0x0003
     int 0x10
 
-;    jmp .mem_done
 ;touch memory
 .mem:
     mov eax, 0xE820
