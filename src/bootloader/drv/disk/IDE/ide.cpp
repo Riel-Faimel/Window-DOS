@@ -1,88 +1,122 @@
-#pragma GCC optimize("Os")
+#pragma GCC optimize("O2")
 #include "_ide.hpp"
 
 void init_IDE_controller(DeviceConfig &) {
     new IDE_control{};
 }
 
+static void DiskInfoPrint(DiskInfo *diskinfo) {
+    cout << "[INFO] ";
+    if (diskinfo->address_mode & 0b10) {
+        cout << "LBA";
+        if (diskinfo->address_mode & 0b100) {
+            cout << "48 ";
+        } else {
+            cout << "28 ";
+        }
+    } else if (diskinfo->address_mode & 1) {
+        cout << "CHS ";
+    } else {
+        cout << "Bad ";
+    }
+    cout << "Disk, ";
+    if (diskinfo->PIO_supported) {
+        cout << "PIO mode\n";
+    } else {
+        cout << "Unknown Mode\n";
+    }
+}
+
 IDE_control::IDE_control() {
-    // mm, ms, sm, ss
-    for (u8 i = 0;i < 4;i++) {
-        DebugInfo(cout << "Identify\n";)
-        auto diskinfo = identify(i);
-        DebugInfo(cout << "done\n";)
+    interrupt_distributor.reg_irq(&when_PATA_Master_cut_handler, IRQ::ATA_Master);
+    interrupt_distributor.reg_irq(&when_PATA_Slave_cut_handler, IRQ::ATA_Slave);
+    
+    for (auto disk_ID : *this) {
+        auto diskinfo = identify(disk_ID);
         if (diskinfo) {
             // disk exist
-            auto disk = new IDE{*diskinfo, *this, i};
+            DebugInfo(DiskInfoPrint(diskinfo);)
+            auto disk = new IDE{*diskinfo, *this, disk_ID};
             partmanager->resolve(disk);
-        } DebugInfo(else {
+            ASMLabelMark(resolve_done)
+#undef LocalDebug
+#include <global/macro.hpp>
+        } LocalDebugInfo(else {
             cout << "null port\n";
         })
     }
 }
 
+__attribute__((optimize("O0")))
 DetectTable IDE_control::act(const ActionTable &at) {
     // IDE
-    u16 chan = (at.device_index & 2u)?0x170:0x1F0;
-    u8 device = (at.device_index & 1u)?0b10110000:0b10100000;
+    auto [chan, device] = diskID2chan_dev(at.device_index);
+    u8 timeout_counter = 0;
+    DetectTable result;
 
-    LocalDebugInfo(cout << chan << ", " << device;)
-    LocalDebugInfo(cout << "choose device\n";)
-    outb(device, chan + CMDBlock::device);
-    io_wait();
-    auto result = detect(at.device_index & 2u);
-    while(result.status.busy) {
-        result = detect(at.device_index & 2u);
-    }
-
-    LocalDebugInfo(cout << "filled addr, sec\n";)
-    if (at.fill_addr)
-    if (at.if_need_CHS) {
-        // well...
-        outb(at.LBA.count, chan + CMDBlock::sector_num);
-        outb(at.CHS.sector, chan + CMDBlock::sector_index);
-        outb(static_cast<u8>(at.CHS.cylinder), chan + CMDBlock::cylinder_l);
-        outb(static_cast<u8>(at.CHS.cylinder >> 8), chan + CMDBlock::cylinder_h);
-        device |= at.head;
-    } else {
-        // LBA mode
-        device |= 0b01000000;
-        u8 lba28l = static_cast<u8>(at.LBA.low), lba28m = static_cast<u8>(at.LBA.low >> 8),
-        lba28h = static_cast<u8>(at.LBA.low >> 16), lba48l = static_cast<u8>(at.LBA.low >> 24),
-        lba28e = lba48l & 0x0Fu, lba48l_hf = (lba48l >> 4) & 0x0Fu,
-        lba48m = static_cast<u8>(at.LBA.high), lba48h = static_cast<u8>(at.LBA.high >> 8);
-
-        if (at.LBA.high || lba48l_hf) {
-            outb(static_cast<u8>(at.feature >> 8), chan + CMDBlock::feature);
-            outb(static_cast<u8>(at.LBA.count >> 8), chan + CMDBlock::sector_num);
-            outb(lba48l, chan + CMDBlock::LBAl);
-            outb(lba48m, chan + CMDBlock::LBAm);
-            outb(lba48h, chan + CMDBlock::LBAh);
+    if (at.fill_addr){
+        if (at.if_need_CHS) {
+            // well...
+            outb(at.LBA.count, chan + CMDBlock::sector_num);
+            outb(at.CHS.sector, chan + CMDBlock::sector_index);
+            outb(static_cast<u8>(at.CHS.cylinder), chan + CMDBlock::cylinder_l);
+            outb(static_cast<u8>(at.CHS.cylinder >> 8), chan + CMDBlock::cylinder_h);
+            device |= at.head;
         } else {
-            device |= lba28e;
+            // LBA mode
+            device |= 0b01000000;
+            u8 lba28l = static_cast<u8>(at.LBA.low), lba28m = static_cast<u8>(at.LBA.low >> 8),
+            lba28h = static_cast<u8>(at.LBA.low >> 16), lba48l = static_cast<u8>(at.LBA.low >> 24),
+            lba28e = lba48l & 0x0Fu, lba48l_hf = (lba48l >> 4) & 0x0Fu,
+            lba48m = static_cast<u8>(at.LBA.high), lba48h = static_cast<u8>(at.LBA.high >> 8);
+
+            if (at.need_48_mode) {
+                outb(static_cast<u8>(at.feature >> 8), chan + CMDBlock::feature);
+                outb(static_cast<u8>(at.LBA.count >> 8), chan + CMDBlock::sector_num);
+                outb(lba48l, chan + CMDBlock::LBAl);
+                outb(lba48m, chan + CMDBlock::LBAm);
+                outb(lba48h, chan + CMDBlock::LBAh);
+            } else {
+                device |= lba28e;
+            }
+
+            outb(static_cast<u8>(at.feature), chan + CMDBlock::feature);
+            outb(static_cast<u8>(at.LBA.count), chan + CMDBlock::sector_num);
+            outb(lba28l, chan + CMDBlock::LBAl);
+            outb(lba28m, chan + CMDBlock::LBAm);
+            outb(lba28h, chan + CMDBlock::LBAh);
         }
 
-        outb(static_cast<u8>(at.feature), chan + CMDBlock::feature);
-        outb(static_cast<u8>(at.LBA.count), chan + CMDBlock::sector_num);
-        outb(lba28l, chan + CMDBlock::LBAl);
-        outb(lba28m, chan + CMDBlock::LBAm);
-        outb(lba28h, chan + CMDBlock::LBAh);
+        result = detect(at.device_index);
+        for (;!result.status.ready || result.status.busy;timeout_counter++) {
+            if (timeout_counter > 128u) return result;
+            result = detect(at.device_index);
+        }
     }
 
-    ATAstatus status = (ATAstatus)inb(chan + CMDBlock::status);
-    while(!status.ready || status.busy) {
-        status = (ATAstatus)inb(chan + CMDBlock::status);
+    if (at.fill_device) {
+        outb(device, chan + CMDBlock::device);
+        result = detect(at.device_index);
+        for (;!result.status.ready || result.status.busy;timeout_counter++) {
+            if (timeout_counter > 128u) return result;
+            result = detect(at.device_index);
+        }
     }
-    LocalDebugInfo(cout << "send cmd\n";)
-    outb(static_cast<u8>(at.cmd), chan + CMDBlock::CMD);
-    return {
-        .error = (ATAerror)inb(chan + CMDBlock::error),
-        .status = (ATAstatus)inb(chan + CMDBlock::status),
-    };
+
+    if (at.send_cmd) {
+        outb(static_cast<u8>(at.cmd), chan + CMDBlock::CMD);
+        for (;!result.status.ready || result.status.busy || result.status.error;timeout_counter++) {
+            if (timeout_counter > 128u || result.status.error) return result;
+            result = detect(at.device_index);
+        }
+    }
+
+    return result;
 }
 
+__attribute__((optimize("O0")))
 DetectTable IDE_control::detect(u8 device_index) {
-    u16 chan = device_index?0x170:0x1F0;
+    auto [chan, _] = diskID2chan_dev(device_index);
     return {
         .error = (ATAerror)inb(chan + CMDBlock::error),
         .status = (ATAstatus)inb(chan + CMDBlock::status),
@@ -90,28 +124,31 @@ DetectTable IDE_control::detect(u8 device_index) {
 }
 
 u16 IDE_control::data_port_read(u8 device_index) {
-    return inw(device_index?0x170:0x1F0 + CMDBlock::data);
+    auto [chan, _] = diskID2chan_dev(device_index);
+    return inw(chan + CMDBlock::data);
 }
 
 void IDE_control::data_port_write(u16 val, u8 device_index) {
-    outw(val, device_index?0x170:0x1F0 + CMDBlock::data);
+    auto [chan, _] = diskID2chan_dev(device_index);
+    outw(val, chan + CMDBlock::data);
 }
 
-IDE::IDE(DiskInfo &diskinfo_, IDE_control &ctl_, bool device_):
+IDE::IDE(DiskInfo &diskinfo_, IDE_control &ctl_, u8 device_):
 diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}
 
 unsigned IDE::read(void *buf, unsigned LBA, unsigned, unsigned count) {
     DetectTable detect{};
     size_t bytes = 0;
-    if (diskinfo.LBA_support) {
-        if (diskinfo.PIO_supported) {
+    if (diskinfo.address_mode & 0b10) {
+        LocalDebugInfo(cout << "PIO mode: " << diskinfo.PIO_supported << '\n';)
+        if (diskinfo.PIO_supported || true) {
             auto [d_, b_] = ctl.read_PIO_LBA((u16 *)buf, LBA, 0, count, device);
             detect = d_; bytes = b_;
-        } else {
-            //auto [d_, b_] = ctl.read_DMA_LBA((u16 *)buf, LBA, 0, count, device);
-            //detect = d_; bytes = b_;
-        }
-    } else {
+        } /* else {
+            auto [d_, b_] = ctl.read_DMA_LBA((u16 *)buf, LBA, 0, count, device);
+            detect = d_; bytes = b_;
+        } */
+    } else if (diskinfo.address_mode & 1) {
         auto sec_per_tr = diskinfo.CHS_sectors_per_track;
         auto tra_per_suf = diskinfo.CHS_cylinders;
 
@@ -135,9 +172,12 @@ unsigned IDE::read(void *buf, unsigned LBA, unsigned, unsigned count) {
                 if (detect.status.error) return -1;
             }
         }
+    } else {
+        LocalDebugInfo(cout << "can't read\n";)
+        return -1;
     }
 DONE:
-    if (detect.status.error) return -1;
+    if (detect.status.error || detect.status.busy) return -1;
     else return bytes;
 }
 
@@ -155,6 +195,13 @@ unsigned IDE::cmd(unsigned, String, void *, unsigned) {
     return 0;
 }
 
+rtl::pair<u16, u8> IDE_control::diskID2chan_dev(u8 device_index) {
+    // mm, ms, sm, ss
+    return {
+        (device_index & 2u)?(u16)0x170:(u16)0x1F0,
+        (device_index & 1u)?(u8)0b10110000:(u8)0b10100000
+    };
+}
 
 
 #pragma GCC optimize("Os")

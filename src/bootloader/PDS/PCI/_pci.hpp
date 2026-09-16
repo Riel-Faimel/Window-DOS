@@ -1,5 +1,6 @@
 #include "pci.hpp"
 #include <global/type.hpp>
+#undef LocalDebug
 #include <global/macro.hpp>
 #include <port.h>
 #include <drv/screen/screen_srv.hpp>

@@ -2,6 +2,8 @@
 #include <interface/dev_cls/cluster.hpp>
 #include <port.h>
 #include <drv/screen/screen_srv.hpp>
+#include <interface/dev_cls/device.hpp>
+#include <SSS/PM.hpp>
 #include <intdis/intdis.hpp>
 #include "..\ATA\ATAcmd.hpp"
 #include <registry/registry.hpp>
@@ -164,7 +166,7 @@ unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, Di
     /*
     cout << '<' << LBA << ',' << count << '>';
     //*/
-    if(info->LBA_support) return read_PIO_LBA(buf, LBA, count, info->device);
+    if(info->address_mode & 0b10) return read_PIO_LBA(buf, LBA, count, info->device);
     else return read_PIO_CHS(buf, LBA, count, info->device);
 }
 
@@ -223,7 +225,7 @@ unsigned IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned /*LBA*/, un
 }
 
 unsigned IDE_Channal::write(unsigned short *buf, unsigned int LBA, unsigned char count, DiskInfo *info){
-    if(info->LBA_support) return write_PIO_LBA(buf, LBA, count, info->device);
+    if(info->address_mode & 0b10) return write_PIO_LBA(buf, LBA, count, info->device);
     else return write_PIO_CHS(buf, LBA, count, info->device);
 }
 
@@ -434,8 +436,8 @@ lock(c), info_{}, exist{true}{
     }
 
 //full_info_:
-    info_.LBA_support = (identify_info.support >> 9) & 0x1;
-    info_.index_num = identify_info.LBA28_sectors;
+    info_.address_mode |= ((identify_info.support >> 9) & 0x1)?0b10:0;
+    info_.index_num = (u64)identify_info.LBA28_sectors;
     info_.PIO_supported = identify_info.PIO_supported & 0x8000 ? identify_info.PIO_supported & 0b11111111  : 0;
     info_.index_size = 512;
     for(int i = 0;i < 40;i++){
@@ -453,7 +455,7 @@ lock(c), info_{}, exist{true}{
         identify_info.general_config == 0x045A
     ) { //兼容CF卡的小玩意
 		/* CPRM may make this media unusable */
-		if (id[static_cast<u32>(ATA::ID_CFA_KEY_MGMT)] & 1)
+		if (id[static_cast<u32>(162)] & 1)
         if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
 	} else {
 		/* Warn the user if the device has TPM extensions */
@@ -461,7 +463,7 @@ lock(c), info_{}, exist{true}{
         if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
 	}
 
-	info_.index_num = identify_info.LBA28_sectors;
+	info_.index_num = (u64)identify_info.LBA28_sectors;
 
     u8 LBA_mode = 0b01000000;
 	/* get current R/W Multiple count setting */
@@ -475,9 +477,9 @@ lock(c), info_{}, exist{true}{
 	}
 
 	if (identify_info.support & (1 << 9)) {
-        info_.LBA_support = 1;
+        info_.address_mode |= 0b10;
 		if (identify_info.cmd_set2 & (1 << 10)) {
-			info_.LBA_support = 2;
+			info_.address_mode |= 0b100;
             if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA48\n");
 		}else 
         if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA\n");
@@ -499,6 +501,7 @@ lock(c), info_{}, exist{true}{
 		}
 	}
     info_.device = static_cast<u8>(dev);
+    static bool a = false;
 };
 
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
@@ -545,4 +548,28 @@ DiskInfo *IDE_DISK::info(unsigned, String){
 
 unsigned IDE_DISK::cmd(unsigned, String, void *, unsigned) {
     return 0;
+}
+
+void init_IDE_controller(DeviceConfig &){
+    IDE_DISK *re = new IDE_DISK[4];
+    new IDE_Channal[2]{
+        {re[0], re[1], IDE_Channal::Channal::Master_Channel}, 
+        {re[2], re[3], IDE_Channal::Channal::Slave_Channel}, 
+    };
+    u8 exist_disk = 0;
+    u8 j = 0;
+    for(u8 i = 0;i < 4;i++)if(re[i].exist){
+        exist_disk++;
+    }
+    IDE_DISK *re_;
+    if(exist_disk > 0) re_ = new IDE_DISK[exist_disk];
+    else { return; }
+    for(u8 i = 0;i < 4;i++){
+        if(re[i].exist){
+            re_[j] = rtl::move(re[i]);
+            partmanager->resolve(&re_[j]);
+            j++;
+        }
+    }
+    delete[] re;
 }

@@ -6,13 +6,13 @@
 
 struct ClusterInfo {
     size_t index_start; // cluster index start
-    size_t index_num; // cluster counts
+    u64 index_num; // cluster counts
     size_t index_size; // bytes per cluster
     size_t type = 0;
 };
 
 struct DiskInfo : ClusterInfo {
-    bool LBA_support;
+    u8 address_mode; // | CHS(bit1) | LBA28(bit2) | LBA48(bit3)
     bool PIO_supported;
     char model[41];
     u8 device; 

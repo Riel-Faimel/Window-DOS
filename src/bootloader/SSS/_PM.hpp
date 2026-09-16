@@ -5,26 +5,26 @@
 #include <global/type.hpp>
 #include <drv/kmod.hpp>
 
+#define LocalDebug
+#include <global/macro.hpp>
 #include <drv/screen/screen_srv.hpp>
 
 
 class SingalPart : public LogicalDisk {
     ClusterInfo info_;
-    size_t total_sectors;
     size_t start; //LBA
     LogicalDisk *disk;
 public:
-    SingalPart(LogicalDisk *disk_, unsigned begin, unsigned size):
+    SingalPart(LogicalDisk *disk_, u64 begin, u64 size):
     info_{ .index_start = begin, .index_num=size, .index_size=0, .type=0, }, 
     start{begin}, disk{disk_}{
         info_.index_size = disk->info()->index_size;
-        total_sectors = (info_.index_num + 1) / info_.index_num;
     };
 
     unsigned read(void *buf, unsigned LBA, unsigned, unsigned nums){
         unsigned read_num = 
         //*
-        nums > total_sectors ? total_sectors - LBA : 
+        nums > info_.index_num ? info_.index_num - LBA : 
         //*/
         nums;
         /*
@@ -35,7 +35,7 @@ public:
     unsigned write(void *buf, unsigned LBA, unsigned, unsigned nums){
         unsigned write_num = 
         //*
-        nums > total_sectors ? total_sectors - LBA : 
+        nums > info_.index_num ? info_.index_num - LBA : 
         //*/
         nums;
         return disk->write(buf, LBA + start, 0, write_num);

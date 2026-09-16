@@ -1,6 +1,8 @@
 #ifndef __include_TL_tuple
 #define __include_TL_tuple
 
+#include "bits/forward"
+
 namespace rtl {
     
 template<typename ...Type>
@@ -10,13 +12,13 @@ template<typename Fir, typename... Args>
 struct tuple<Fir, Args...> : public tuple<Args...> {
     Fir data;
     tuple(Fir f, Args... args):
-    data{f}, tuple<Args...>{args...}{}
+    tuple<Args...>{args...}, data{f}{}
 
     tuple(tuple<Fir, Args...>& t):
-    data{t.data}, tuple<Args...>{static_cast<tuple<Args...>&>(t)}{}
+    tuple<Args...>{static_cast<tuple<Args...>&>(t)}, data{t.data}{}
 
     tuple(tuple<Fir, Args...>&& t):
-    data{t.data}, tuple<Args...>{static_cast<tuple<Args...>&&>(t)}{
+    tuple<Args...>{static_cast<tuple<Args...>&&>(t)}, data{t.data}{
         t.data = Fir{};
     }
 };
@@ -45,37 +47,6 @@ auto&& get(tuple<Fir, Args...>&& t) {
     else return get<N-1>(static_cast<tuple<Args...>&&>(t));
 }
 
-template<typename... T>
-struct tuple_size;
-
-template<typename Fir, typename... Args>
-struct tuple_size<tuple<Fir, Args...>> {
-    constexpr static unsigned long long value = tuple_size<tuple<Args...>>::value + 1;
-};
-
-template<>
-struct tuple_size<tuple<>> {
-    constexpr static unsigned long long value = 0;
-};
-
-template<unsigned long long I, typename... T>
-struct tuple_type;
-
-template<unsigned long long I, typename Fir, typename... Args>
-struct tuple_type<I, tuple<Fir, Args...>> {
-    using type = typename tuple_type<I-1, tuple<Args...>>::type;
-};
-
-template<typename Fir, typename... Args>
-struct tuple_type<0, tuple<Fir, Args...>> {
-    using type = Fir;
-};
-
-template<unsigned long long I>
-struct tuple_type<I, tuple<>> {
-    using type = void;
-};
-
 template<typename ...T>
 constexpr tuple<T...> make_tuple(T...);
 
@@ -90,5 +61,44 @@ constexpr tuple<> make_tuple<>() {
 }
 
 };
+
+namespace std{
+    
+template<typename... Args>
+using tuple = rtl::tuple<Args...>;
+
+template<typename... T>
+struct tuple_size;
+
+template<typename Fir, typename... Args>
+struct tuple_size<tuple<Fir, Args...>> {
+    constexpr static unsigned long long value = tuple_size<tuple<Args...>>::value + 1;
+};
+
+template<>
+struct tuple_size<tuple<>> {
+    constexpr static unsigned long long value = 0;
+};
+
+template<unsigned long long I, typename... T>
+struct tuple_element;
+
+template<unsigned long long I, typename Fir, typename... Args>
+struct tuple_element<I, tuple<Fir, Args...>> {
+    using type = typename tuple_element<I-1, tuple<Args...>>::type;
+};
+
+template<typename Fir, typename... Args>
+struct tuple_element<0, tuple<Fir, Args...>> {
+    using type = Fir;
+};
+
+template<unsigned long long I>
+struct tuple_element<I, tuple<>> {
+    using type = void;
+};
+
+
+} // namespace std
 
 #endif

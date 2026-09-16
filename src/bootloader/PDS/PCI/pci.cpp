@@ -46,7 +46,7 @@ inline void PCI_space::probe(){
             pci_probe_device(bus, dev, print_info);
         }
     }
-    DebugInfo(
+    LocalDebugInfo(
         cout << "[INFO] PCI probe done: " << config.get_size() << " devices found\n";
     )
 }
@@ -88,7 +88,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
     }
     config.append(cfg);
 
-    DebugInfo(
+    LocalDebugInfo(
         cout << ("[INFO] VEN:DEV  REV  CLS\n");
         cout << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' ' 
         << static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
@@ -119,7 +119,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
                 reinterpret_cast<unsigned *>(&cfg)[i] = pci_read(bus, dev, func_id_, i*4);
             }
             config.append(cfg);
-            DebugInfo(
+            LocalDebugInfo(
                 cout << "[MULTIFUNC] VEN:DEV  REV  CLS\n" << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' '
                 << static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
             )

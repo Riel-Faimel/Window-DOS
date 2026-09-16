@@ -1,4 +1,6 @@
 #include <global/type.hpp>
+#include <TL/tuple>
+#include <TL/utility>
 
 /**
  * from Linux2.6.32.1
@@ -17,59 +19,6 @@ enum class ATA : u32 {
      * if it is confused, just throw away
      */
 	MAX_SECTORS_TAPE	= 65535,
-
-	ID_WORDS		= 256,
-	ID_CONFIG		= 0,
-	ID_CYLS		= 1,
-	ID_HEADS		= 3,
-	ID_SECTORS		= 6,
-	ID_SERNO		= 10,
-	ID_BUF_SIZE		= 21,
-	ID_FW_REV		= 23,
-	ID_PROD		= 27,
-	ID_MAX_MULTSECT	= 47,
-	ID_DWORD_IO		= 48,
-	ID_CAPABILITY	= 49,
-	ID_OLD_PIO_MODES	= 51,
-	ID_OLD_DMA_MODES	= 52,
-	ID_FIELD_VALID	= 53,
-	ID_CUR_CYLS		= 54,
-	ID_CUR_HEADS	= 55,
-	ID_CUR_SECTORS	= 56,
-	ID_MULTSECT		= 59,
-	ID_LBA_CAPACITY	= 60,
-	ID_SWDMA_MODES	= 62,
-	ID_MWDMA_MODES	= 63,
-	ID_PIO_MODES	= 64,
-	ID_EIDE_DMA_MIN	= 65,
-	ID_EIDE_DMA_TIME	= 66,
-	ID_EIDE_PIO		= 67,
-	ID_EIDE_PIO_IORDY	= 68,
-	ID_QUEUE_DEPTH	= 75,
-	ID_MAJOR_VER	= 80,
-	ID_COMMAND_SET_1	= 82,
-	ID_COMMAND_SET_2	= 83,
-	ID_CFSSE		= 84,
-	ID_CFS_ENABLE_1	= 85,
-	ID_CFS_ENABLE_2	= 86,
-	ID_CSF_DEFAULT	= 87,
-	ID_UDMA_MODES	= 88,
-	ID_HW_CONFIG	= 93,
-	ID_SPG		= 98,
-	ID_LBA_CAPACITY_2	= 100,
-	ID_DLST_LUN		= 126,
-	ID_DLF		= 128,
-	ID_CSFO		= 129,
-	ID_CFA_POWER	= 160,
-	ID_CFA_KEY_MGMT	= 162,
-	ID_CFA_MODES	= 163,
-	ID_DSET_MGMT	= 169,
-	ID_ROT_SPEED	= 217,
-	ID_PIO4		= (1 << 1),
-
-	ID_SERNO_LEN	= 20,
-	ID_FW_REV_LEN	= 8,
-	ID_PROD_LEN		= 40,
 
 	PCI_CTL_OFS		= 2,
 
@@ -568,3 +517,110 @@ inline u16 operator +(u16 u, CMDBlock c) {
 	return u + static_cast<u16>(c);
 }
 
+
+class IdentifyAnalysis {
+	enum {
+		WORDS		= 256,
+		CONFIG		= 0,
+		CYLS		= 1,
+		HEADS		= 3,
+		SECTORS		= 6,
+		SERNO		= 10,
+		BUF_SIZE		= 21,
+		FW_REV		= 23,
+		PROD		= 27,
+		MAX_MULTSECT	= 47,
+		DWORD_IO		= 48,
+		CAPABILITY	= 49,
+		OLD_PIO_MODES	= 51,
+		OLD_DMA_MODES	= 52,
+		FIELD_VALID	= 53,
+		CUR_CYLS		= 54,
+		CUR_HEADS	= 55,
+		CUR_SECTORS	= 56,
+		MULTSECT		= 59,
+		LBA_CAPACITY	= 60,
+		SWDMA_MODES	= 62,
+		MWDMA_MODES	= 63,
+		PIO_MODES	= 64,
+		EIDE_DMA_MIN	= 65,
+		EIDE_DMA_TIME	= 66,
+		EIDE_PIO		= 67,
+		EIDE_PIO_IORDY	= 68,
+		QUEUE_DEPTH	= 75,
+		MAJOR_VER	= 80,
+		COMMAND_SET_1	= 82,
+		COMMAND_SET_2	= 83,
+		CFSSE		= 84,
+		CFS_ENABLE_1	= 85,
+		CFS_ENABLE_2	= 86,
+		CSF_DEFAULT	= 87,
+		UDMA_MODES	= 88,
+		HW_CONFIG	= 93,
+		SPG		= 98,
+		LBA_CAPACITY_2	= 100,
+		DLST_LUN		= 126,
+		DLF		= 128,
+		CSFO		= 129,
+		CFA_POWER	= 160,
+		CFA_KEY_MGMT	= 162,
+		CFA_MODES	= 163,
+		DSET_MGMT	= 169,
+		ROT_SPEED	= 217,
+		PIO4		= (1 << 1),
+		SERNO_LEN	= 20,
+		FW_REV_LEN	= 8,
+		PROD_LEN		= 40,
+	};
+	u16 buf[256];
+public:
+	bool is_ata() { return ((buf[CONFIG] & (1 << 15))) == 0; }
+
+	rtl::tuple<bool, u16, u16, u16> chs_param() {
+		auto cur = (buf[FIELD_VALID] & 1) == 0;
+		if (cur) {
+			auto c = buf[CUR_CYLS], h = buf[CUR_HEADS], s = buf[CUR_SECTORS];
+			if (c == 0 || h == 0 || s == 0) {
+				return {
+					false, 0, 0, 0
+				};
+			}
+			return {
+				true, c, h, s
+			};
+		} else {
+			return {
+				true, buf[CYLS], buf[HEADS], buf[SECTORS]
+			};
+		}
+	}
+	rtl::pair<bool, u32> lba_valid() {
+		if (!((buf[CAPABILITY] >> 9) & 1)) return { false, 0 };
+		u32 size = as_u32(LBA_CAPACITY) & 0x0FFFFFFF;
+		return { true, size };
+	}
+	rtl::pair<bool, u64> lba48_valid() {
+		if ((buf[COMMAND_SET_2] & 0xC000) != 0x4000) return { false, u64(0) };
+		u64 size = as_u64(LBA_CAPACITY_2);
+		if (!size) return { false, u64(0) };
+		if (!(buf[COMMAND_SET_2] & (1 << 10))) return { false, u64(0) };
+		return { true, size };
+	}
+
+	u32 lba28_sec_count() { return as_u32(LBA_CAPACITY) & 0x0FFFFFFF; }
+	u64 lba48_sec_count() { return as_u64(LBA_CAPACITY_2); }
+
+	bool has_dma(){ return (buf[CAPABILITY] & (1 << 8)) != 0; }
+	bool has_ncq(){ return (buf[76] & (1 << 8)) != 0; }
+	u32 as_u32(size_t n) { return ((u32)buf[n + 1] << 16) | ((u32)buf[n]); }
+	u64 as_u64(size_t n) { return u64{as_u32(n + 2), as_u32(n)}; }
+	bool has_fua() 
+	{ if ((buf[CFSSE] & 0xC000) != 0x4000) return false;
+	return (buf[CFSSE] & (1 << 6)) != 0; }
+	bool has_flush(){
+		if ((buf[COMMAND_SET_2] & 0xC000) != 0x4000)return false;
+		return (buf[COMMAND_SET_2] & (1 << 12)) != 0;
+	}
+
+	u16 &operator [] (size_t id) { return buf[id]; }
+};

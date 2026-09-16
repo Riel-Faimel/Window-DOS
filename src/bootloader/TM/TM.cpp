@@ -53,8 +53,8 @@ void *exCOM_resolv(WinHandle &win) {
     exCOM_Header buf;
     driverletterspace->read(&buf, h, 0, sizeof(buf));
 
-    cout << buf.enter_point << ' ' << buf.text_offset << ' ' << buf.text_start << ' ' << buf.text_size << ' '\
-    << buf.data_offset << ' ' << buf.data_start << ' ' << buf.data_size << ' ';
+    LocalDebugInfo(cout << buf.enter_point << ' ' << buf.text_offset << ' ' << buf.text_start << ' ' << buf.text_size << ' '\
+    << buf.data_offset << ' ' << buf.data_start << ' ' << buf.data_size << ' ';)
     
     if (buf.magic[0] != 'E' || buf.magic[1] != 'C' || 
         buf.magic[2] != 'O' || buf.magic[3] != 'M') {
@@ -71,6 +71,8 @@ void *exCOM_resolv(WinHandle &win) {
     return buf.enter_point;
 }
 
+#undef LocalDebug
+#include <global/macro.hpp>
 unsigned TaskManager::exec(String filepath, size_t argc, void *argv) {
     WinHandle win{};
     
@@ -79,6 +81,7 @@ unsigned TaskManager::exec(String filepath, size_t argc, void *argv) {
     u8 *enter_point = (u8 *)exCOM_resolv(win);
     
     Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv, 1, 3);
-    for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);cout << ' '; }
+
+    LocalDebugInfo(for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);cout << ' '; })
     return 0;
 }

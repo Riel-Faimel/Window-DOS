@@ -6,6 +6,7 @@
 #include <port.h>
 #include <drv/screen/screen_srv.hpp>
 
+#pragma pack(push, 1)
 struct ActionTable {
     struct {
         void *addr = 0;
@@ -40,14 +41,24 @@ struct ActionTable {
     u8 head : 4 = 0;
     u8 if_need_CHS : 1 = false;
     u8 fill_addr : 1 = true;
-    u8 re : 6 = 0;
+    u8 fill_device : 1 = true;
+    u8 send_cmd : 1 = true;
+    u8 need_48_mode : 1 = false;
+    u8 force_dma : 1 = false;
+    u8 re : 2 = 0;
     // 64 bits till here
+
 };
 
 struct DetectTable {
     ATAerror error;
     ATAstatus status;
 };
+
+#pragma pack(pop)
+
+static_assert(sizeof(ActionTable) == 24);
+static_assert(sizeof(DetectTable) == 5);
 
 class ATADisk {
     virtual DetectTable act(const ActionTable &) = 0;
@@ -57,169 +68,72 @@ class ATADisk {
 
 public:
 
-    //__attribute__((optimize("O0")))
     DiskInfo *identify(u16 dev) {
-#pragma pack(push, 1)
-    union {
-        u16 id[256];
-        struct {
-                    u16 general_config;
-                    u16 CHS_cylinders;
-                    u16 _re;
-                    u16 CHS_heads;
-                    u16 __re[2];
-                    u16 CHS_sectors_per_track;
-                    u16 re_[3];
-                    u16 serial_number[10];
-                    u16 re__[3];
-                    u16 firmware_rev[4];
-                    u16 model[20];
-                    u16 rw_multiple;
-                    u16 re___;
-                    u16 support;
-                    u16 capabilities2;
-                    u16 pio_timing;
-                    u16 dma_timing;
-                    u16 fields_valid;
-                    u16 current_cylinders;
-                    u16 current_heads;
-                    u16 current_sectors;
-                    u32 current_chs_sectors;
-                    u16 rw_multiple_setting;
-                    u32 LBA28_sectors;
-                    u16 sw_dma_modes;
-                    u16 mw_dma_modes;
-                    u16 PIO_supported;
-                    u16 min_mw_dma_cycle;
-                    u16 min_mw_dma_cycle2;
-                    u16 min_pio_cycle;
-                    u16 min_pio_cycle_iordy;
-                    u16 re____[6];
-                    u16 queue_depth;
-                    u16 sata_cap[4];
-                    u16 major_version;
-                    u16 minor_version;
-                    u16 cmd_set1;
-                    u16 cmd_set2;
-                    u16 cmd_set3;
-                    u16 cmd_set4;
-                    u16 cmd_set5;
-                    u16 cmd_set6;
-                    u16 UDMA_modes;
-                    u16 secure_erase_time[4];
-                    u16 re_____[7];
-                    u32 LBA48_sectors_low;
-                    u32 LBA48_sectors_high;
-                    u16 stream_min_req;
-                    u16 stream_transfer_time;
-                    u16 logical_sector_size;
-                    u16 inter_seek_delay;
-                    u32 wwn[4];
-                    u16 re______[5];
-                    u32 words_per_sector;
-                    u16 cmd_set7;
-                    u16 cmd_set8;
-                    u16 re_______[6];
-                    u16 removable_status;
-                    u16 security_status;
-                    u16 vendor_specific[31];
-                    u16 cfa_power_mode;
-                    u16 cfa_key_mgmt;
-                    u16 cfa_modes;
-                    u16 cfa_trans;
-                    u16 cfa_mdata1;
-                    u16 cfa_mdata2;
-                    u16 cfa_mdata3;
-                    u16 cfa_mdata4;
-                    u16 cfa_reserved;
-                    u16 re__8[7];
-                    u16 media_serial[30];
-                    u16 sct_cmd_support[4];
-                    u16 re__9[7];
-                    u16 nominal_rotation_rate;
-                    u16 re__10[4];
-                    u16 transport_major;
-                    u16 transport_minor;
-                    u16 re__11[10];
-                    u16 min_prefetch;
-                    u16 max_prefetch;
-                    u16 re__12[19];
-                    u16 integrity_word;
-        } identify_info;
-    };
-#pragma pack(pop)
+        IdentifyAnalysis iden;
+
         ActionTable cmd {};
         cmd.cmd = ATAcmd::identify_ata;
         cmd.fill_addr = false;
         cmd.device_index = dev;
-        LocalDebugInfo(cout << "acting\n";)
+        DebugInfo(ASMLabelMark(identify_acting))
         DetectTable result = act(cmd);
-        LocalDebugInfo(cout << "act\n";)
-        if (result.status.error) return nullptr;
-        for(int i = 0;result.status.busy;i++) {
-            if (i > 1000) return nullptr;
-            io_wait();
-            result = detect(cmd.device_index);
+        if (result.status.busy || result.status.error) {
+            LocalDebugInfo(cout << "No such Disk\n";)
+            return nullptr;
         }
-        ASMLabelMark(start_move_identify_data)
+        for (u8 i = 0;!result.status.data_ready;i++) {
+            if (i > 128u) return nullptr;
+            result = detect(dev);
+        }
+        LocalDebugInfo(cout << "result " << result.status.buf << ", " << (u32)result.error << '\n';)
+        DebugInfo(ASMLabelMark(start_move_identify_data))
+
         for(u16 i = 0;i < 256;i++){
-            LocalDebugInfo(cout << i;)
-            id[i] = data_port_read(cmd.device_index);
+            iden[i] = data_port_read(cmd.device_index);
+        }
+        if (iden[0] == 0xFFFF) {
+            LocalDebugInfo(cout << "Invalid Disk\n";)
+            return nullptr;
         }
         auto re = new DiskInfo {};
-        re->LBA_support = (identify_info.support >> 9) & 1;
-        re->index_num = identify_info.LBA28_sectors;
-        re->PIO_supported = identify_info.PIO_supported;
-        for(int i = 0;i < 40;i++){
-            re->model[i] = reinterpret_cast<char *>(identify_info.model)[i];
+
+        /* set disk information */
+        if (auto [support, c, h, s] = iden.chs_param();support) {
+            re->address_mode |= 1;
+            re->CHS_cylinders = c;
+            re->CHS_heads = h;
+            re->CHS_sectors_per_track = s;
+
+            re->index_num = u64{(u32)c * (u32)h * (u32)s};
         }
-    /**
-     * from Linux2.6.32.1
-     * driver/ata/libata-core.c
-     */
-    /* ATA-specific feature tests */
-	if (
-        identify_info.general_config == 0x848A ||
-        identify_info.general_config == 0x844A ||
-        identify_info.general_config == 0x045A
-    ) { //兼容CF卡的小玩意
-		/* CPRM may make this media unusable */
-		//if (id[static_cast<u32>(ATA::ID_CFA_KEY_MGMT)] & 1)
-	} else {
-		/* Warn the user if the device has TPM extensions */
-		//if (identify_info.cmd_set2 & 0b0001)
-	}
-	re->index_num = identify_info.LBA28_sectors;
-
-    auto is_power_of_2 = [](u32 n) -> bool { return (n != 0) && ((n & (n - 1)) == 0); };
-	/* get current R/W Multiple count setting */
-	if ((id[47] >> 8) == 0x80 && (id[59] & 0x100)) {
-		unsigned int max = id[47] & 0xFF;
-		unsigned int cnt = id[59] & 0xFF;
-		/* only recognize/allow powers of two here */
-		if (is_power_of_2(max) && is_power_of_2(cnt)) 
-        if (cnt <= max)
-		re->multi_count = cnt;
-	}
-        if (identify_info.support & (1 << 9)) {
-            re->LBA_support = 1;
-            if (identify_info.cmd_set2 & (1 << 10)) {
-                re->LBA_support = 2;
+        if (auto [support, size28] = iden.lba_valid();support) {
+            re->address_mode |= 0b10;
+            if (auto [support, size48] = iden.lba48_valid();support) {
+                re->address_mode |= 0b100;
+                re->index_num = size48;
+            } else {
+                re->index_num = u64{size28};
             }
-        } else {
-            /* CHS */
-
-            /* Default translation */
-            re->CHS_cylinders	= identify_info.current_cylinders;
-            re->CHS_heads	= identify_info.current_heads;
-            re->CHS_sectors_per_track	= identify_info.current_sectors;
-
-            if (identify_info.fields_valid & 0b01) {
-                /* Current CHS translation is valid. */
-                re->CHS_cylinders = identify_info.CHS_cylinders;
-                re->CHS_heads = identify_info.CHS_heads;
-                re->CHS_sectors_per_track = identify_info.CHS_sectors_per_track;
+        }
+        LocalDebugInfo(cout << re->address_mode << '\n';
+        if (re->address_mode == 0) {
+            for (int i = 0;i < 256;i++) {
+                print_hex(iden[i], false);print_char(' ');
             }
+        })
+        //for(int i = 0;i < 40;i++){
+        //    re->model[i] = reinterpret_cast<char *>(iden.model)[i];
+        //}
+
+        auto is_power_of_2 = [](u32 n) -> bool { return (n != 0) && ((n & (n - 1)) == 0); };
+        /* get current R/W Multiple count setting */
+        if ((iden[47] >> 8) == 0x80 && (iden[59] & 0x100)) {
+            unsigned int max = iden[47] & 0xFF;
+            unsigned int cnt = iden[59] & 0xFF;
+            /* only recognize/allow powers of two here */
+            if (is_power_of_2(max) && is_power_of_2(cnt)) 
+            if (cnt <= max)
+            re->multi_count = cnt;
         }
         DebugInfo(ASMLabelMark(identify_exit_point))
         return re;
@@ -235,6 +149,7 @@ public:
         cmd.LBA.count = count;
         cmd.buffer.addr = buf;
         cmd.buffer.size = size;
+        cmd.force_dma = true;
         
         DetectTable result = act(cmd);
         return {result, 0};
@@ -242,7 +157,12 @@ public:
 
     rtl::pair<DetectTable, size_t> read_PIO_LBA(u16 *buf, u32 LBAl, u32 LBAh, u16 count, u16 dev) {
         ActionTable cmd = {};
-        cmd.cmd = (LBAh || LBAl & 0xF0000000)?ATAcmd::read_pio_ext:ATAcmd::read_pio;
+        if (LBAh || LBAl & 0xF0000000) {
+            cmd.cmd = ATAcmd::read_pio_ext;
+            cmd.need_48_mode = true;
+        } else {
+            cmd.cmd = ATAcmd::read_pio;
+        }
         cmd.device_index = dev;
         cmd.LBA.low = LBAl;
         cmd.LBA.high = LBAh;
@@ -266,15 +186,14 @@ public:
     }
 
     rtl::pair<DetectTable, size_t> PIO_read_data(u16 *buf, u16 count, DetectTable result, u8 device_index) {
+        u8 timeout_count = 0;
         unsigned bytes_deal = 0;
         for(u16 fan = 0;fan < count;fan++){
-            unsigned i = 0;
-            while (result.status.busy){
-                i++;
+            for (;result.status.busy || !result.status.data_ready;timeout_count++){
                 result = detect(device_index);
-                if(i > 10000) return {result, bytes_deal};
+                if(timeout_count > 128) return {result, bytes_deal};
             };
-            for(unsigned int i = 0;i < 256;i++){
+            for(u16 i = 0;i < 256;i++){
                 buf[i + fan * 256] = data_port_read(device_index);
                 bytes_deal += 2;
             }

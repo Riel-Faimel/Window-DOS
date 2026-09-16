@@ -12,6 +12,8 @@ void PM::include(LogicalDisk *disk){
 
 void PM::resolve(LogicalDisk *disk) {
     MBR mbr;
+    u8 try_times = 0;
+resolv_MBR:
     disk->read(mbr.buf, 0, 0, 1);
     if(mbr.sign == (unsigned short)0xAA55)
     for(unsigned char i = 0;i < 4;i++){
@@ -19,7 +21,7 @@ void PM::resolve(LogicalDisk *disk) {
         if(sysid){
             size_t start = mbr.part[i].start_LBA_high << 16 | mbr.part[i].start_LBA_low;
             size_t size = mbr.part[i].sector_count_high << 16 | mbr.part[i].sector_count_low;
-            auto part = new SingalPart{disk, start, size};
+            auto part = new SingalPart{disk, (u64)start, (u64)size};
             disk_stack.append(part);
 
             // try file system
@@ -34,7 +36,17 @@ void PM::resolve(LogicalDisk *disk) {
             }
         }
     }
-    else { 
+    else {
+        if (try_times > 4) return;
+        else {
+            try_times++;
+            goto resolv_MBR;
+        }
+        LocalDebugInfo(
+            for (auto ch : mbr.buf) {
+                print_hex(ch, false);print_char(' ');
+            }
+        );
         disk_stack.append(disk);
     } // MBR no found
 }

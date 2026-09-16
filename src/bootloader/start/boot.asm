@@ -15,14 +15,28 @@ boot:
     cli 
     
     ;read bootloader to 0x10000
+.LBA_read_loop:
     mov si, dap
     mov ah, 0x42
     int 0x13
-    mov si, dap_1
-    mov ah, 0x42
-    int 0x13
-    jnc .loader_done
+    jc .CHS_mode
 
+    push edx
+    mov edx, [total_sectors]
+    sub edx, 32
+    cmp edx, 0
+    jle .loader_done
+    mov dx, word [dap.segment]
+    add dx, 0x400
+    mov word [dap.segment], dx
+    mov edx, dword [dap.lba_low]
+    add edx, 32
+    mov dword [dap.lba_low], edx
+    pop edx
+
+    jmp .LBA_read_loop
+
+.CHS_mode:
     mov bx, 0x1000
 
     mov ah, 0x02
@@ -40,7 +54,9 @@ boot:
     mov cl, 33
     mov dh, 0
     int 0x13
+    push edx
 .loader_done:
+    pop edx
 
     ;VGA text mode
     mov ax, 0x0003
@@ -126,14 +142,8 @@ dap:
     .segment: dw 0x1000
     .lba_low: dd 1
     .lba_high: dd 0
-dap_1:
-    db 0x10
-    db 0
-    .count: dw 32
-    .offset: dw 0
-    .segment: dw 0x1400
-    .lba_low: dd 33
-    .lba_high: dd 0
+total_sectors:
+    dd 64
 
 times 512-48-($-$$) db 0
 PART:
