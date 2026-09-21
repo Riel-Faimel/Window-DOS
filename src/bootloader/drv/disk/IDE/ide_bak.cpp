@@ -7,6 +7,9 @@
 #include <intdis/intdis.hpp>
 #include "..\ATA\ATAcmd.hpp"
 #include <registry/registry.hpp>
+#include "..\ATA\linux_ata_def.hpp"
+
+#pragma GCC optimize ("Os")
 
 class IDE_Channal;
 
@@ -304,7 +307,6 @@ lock(c), info_{}, exist{true}{
     io_wait();
     auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status == 0xFF){
-        if(registry.do_IDE_controller_initialization_print_info)
         cout << "[ERROR] No disk found\n";
         exist = false;
         return;
@@ -405,7 +407,7 @@ lock(c), info_{}, exist{true}{
     while(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x80){
         i++;
         if(i > 0x10000){
-            if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] time out\n";
+            cout << "[NOTICE] time out\n";
             exist = false;
             return; //time out
         }
@@ -418,7 +420,6 @@ lock(c), info_{}, exist{true}{
     while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
         i++;
         if(i > 0x10000){
-            if(registry.do_IDE_controller_initialization_print_info)
             cout << "[NOTICE] time out\n";
             exist = false;
             return; //time out
@@ -426,13 +427,13 @@ lock(c), info_{}, exist{true}{
     }; 
     status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x01) {
-        if(registry.do_IDE_controller_initialization_print_info)
         cout << "[ERROR] IDENTIFY command failed\n";
         exist = false;
         return;
     }
     for(int i = 0;i < 256;i++){
         id[i] = inw(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_DATA));
+        //print_hex(id[i],false);print_char(' ');
     }
 
 //full_info_:
@@ -485,7 +486,6 @@ lock(c), info_{}, exist{true}{
         if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA\n");
 	} else {
 		/* CHS */
-        if(registry.do_IDE_controller_initialization_print_info)kprint("does not support LBA, using CHS\n");
         LBA_mode = 0;
 
 		/* Default translation */

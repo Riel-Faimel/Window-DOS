@@ -46,8 +46,8 @@ inline void PCI_space::probe(){
             pci_probe_device(bus, dev, print_info);
         }
     }
-    LocalDebugInfo(
-        cout << "[INFO] PCI probe done: " << config.get_size() << " devices found\n";
+    DebugInfo(
+        cout << "[INFO] " << (u16)config.get_size() << " PCI Devices Found\n";
     )
 }
 
@@ -62,7 +62,7 @@ inline unsigned int PCI_space::pci_read(int bus, int dev, int func, int reg){
     return inl(PCI_data);
 }
 
-inline void PCI_space::pci_probe_device(int bus, int dev, bool print_info){
+inline void PCI_space::pci_probe_device(int bus, int dev, bool){
     unsigned int id = pci_read(bus, dev, 0, 0);
     if (
         id == 0xffffffff || id == 0x00000000 ||
@@ -131,7 +131,7 @@ void PCI_space::set_driver(){
     for(auto &device : config) {
         auto &cf = construc(device, this);
         if (kmod->driver.exists(cf)) {
-            kmod->driver[cf](cf);
+            device.driver = kmod->driver[cf](cf);
         }
     };
 }

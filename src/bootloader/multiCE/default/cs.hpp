@@ -25,6 +25,7 @@ public:
 
     inline void ScheduleDecision();
     [[noreturn]] void resume();
+    __attribute__((optimize("O3"), used))
     inline void run(
         void *func, size_t argc, void *argv, size_t time, 
         size_t code_seg, size_t data_seg, size_t gs, size_t fs

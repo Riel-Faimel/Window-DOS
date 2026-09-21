@@ -10,7 +10,7 @@ struct attribute_choice {
 
     operator u8 () {
         return u8{
-read_only | (hidden << 1u) | (system << 2u) | (volume_ID << 3u) | (dir << 4u) | (archive << 5u)
+read_only | (hidden << u8{1}) | (system << u8{2}) | (volume_ID << u8{3}) | (dir << u8{4}) | (archive << u8{5})
         };
     }
 };
@@ -107,8 +107,27 @@ union DIR{
 #pragma pack(pop)
 
 
-enum class DirResolvError {
-    NoError,
-    NoSuchFile,
-    NotADir,
+enum class DirResolvException {
+    // done
+    NoException,
+
+    // exception
+    FindFileFailed,
+    AsDirectoryFailed,
+
+    // fault
+    DirBrokenFault,
+    ClusterMissFault,
+};
+    
+enum class ifMatch : u8 {
+    // done
+    MatchOne,
+
+    // exception
+    NotFound,
+
+    // fault
+    NoCluster,
+    BrokenDir,
 };

@@ -1,6 +1,6 @@
 #include "_phy.hpp"
 
-PhysicalPage::mem_list *__window_dos_loader_struct_0x1::start = (PhysicalPage::mem_list *)0x27000;
+PhysicalPage::mem_list *__window_dos_loader_struct_0x1::start = reinterpret_cast<PhysicalPage::mem_list *>(0x00027000);
 atomic<bool> physical_memory_lock{};
 
 PhysicalPage::PhysicalPage(){
@@ -47,7 +47,7 @@ PhysicalPage::PhysicalPage(){
 }
 PhysicalPage::~PhysicalPage() {}
 PhysicalPage::address_generator PhysicalPage::aloc(size_t page_nums, bool need_continuous) {
-    if (!physical_memory_lock.try_lock());
+    //if (!physical_memory_lock.try_lock());
     return address_generator{page_nums, need_continuous};
 }
 unsigned PhysicalPage::dloc(address_package addrpkg) {

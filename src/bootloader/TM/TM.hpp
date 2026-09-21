@@ -9,11 +9,22 @@
 #include <lib/string>
 #include <multiCE/Multi-Channel_exec.hpp>
 
+enum class FexecExceptionCode : u8 {
+    // done
+    NoException,
+
+    // exception
+    OpenFileFailed,
+
+    // fault
+    DLSFault,
+};
+
 class TaskManager {
 public:
     TaskManager();
 
-    unsigned exec(String, size_t, void *);
+    FexecExceptionCode exec(String, size_t, void *);
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include "_cpu.hpp"
+#pragma GCC optimize("Os")
 
 CPU *cpu_list_root;
 atomic<bool> countorlock{false};
@@ -68,6 +69,6 @@ void CPU::run(
 }
 
 extern "C" { 
-   extern constexpr int soff = sizeof(MemoryManager) + sizeof(IDT)
-   + sizeof(GDT) + sizeof(TSM) + sizeof(void *)*2;
+   extern constexpr int soff = sizeof(size_t) + sizeof(CPU *)+ sizeof(MemoryManager)
+   + sizeof(IDT) + sizeof(GDT) + sizeof(TSM) + sizeof(LDT);
 }

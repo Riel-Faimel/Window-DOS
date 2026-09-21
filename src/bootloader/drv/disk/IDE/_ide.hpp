@@ -2,6 +2,7 @@
 #include "..\ATA/ATActl.hpp"
 #include <interface/dev_cls/device.hpp>
 #include <interface/dev_cls/logicaldisk.hpp>
+#include <TL/utility>
 #undef LocalDebug
 #include <global/macro.hpp>
 #include <port.h>
@@ -10,20 +11,22 @@
 #include <intdis/intdis.hpp> 
 #include <drv/screen/screen_srv.hpp>
 
-class IDE_control final : public ATADisk {
-	DetectTable act(const ActionTable &at) override final;
-	DetectTable detect(u8 device_index) override final;
-	u16 data_port_read(u8 device_index) override final;
-	void data_port_write(u16 val, u8 device_index) override final;
+class IDE_control final : public ATADiskControl {
+	DetectTable act(const ActionTable &at) const override final;
+	DetectTable detect(DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> pio_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
 
-    static rtl::pair<u16, u8> diskID2chan_dev (u8);
+    static rtl::pair<u16, u8> diskID2chan_dev (DeviceIndex);
 
     struct Iterator {
         u8 count = 0;
 
         bool operator!= (const Iterator &) {
             for (;count < 4;count++) {
-                auto [chan, dev] = ::IDE_control::diskID2chan_dev(count);
+                auto [chan, dev] = ::IDE_control::diskID2chan_dev(DeviceIndex{count});
                 outb(dev, chan + CMDBlock::device);
                 io_wait();
                 if(inb(chan + CMDBlock::status) == 0xFF) continue;
@@ -32,7 +35,7 @@ class IDE_control final : public ATADisk {
             return false;
         }
         Iterator &operator++() { count++; return *this; }
-        u8 operator* () { return count; }
+        DeviceIndex operator* () { return DeviceIndex{count}; }
     };
     Iterator begin() { return Iterator{}; }
     Iterator end() { return Iterator{}; }
@@ -42,10 +45,10 @@ public:
 
 class IDE final : public LogicalDisk {
     DiskInfo diskinfo;
-    IDE_control &ctl;
-    u8 device;
+    const IDE_control &ctl;
+    DeviceIndex device;
 public:
-    IDE(DiskInfo &diskinfo, IDE_control &ctl, u8 device);
+    IDE(const DiskInfo &diskinfo, const IDE_control &ctl, DeviceIndex device);
 	unsigned read(void *, unsigned, unsigned, unsigned) override final;
 	unsigned write(void *, unsigned, unsigned, unsigned) override final;
     DiskInfo *info(unsigned = 0, String = {}) override final;

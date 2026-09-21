@@ -1,11 +1,14 @@
 #include "ahci.hpp"
 #include <port.h>
 
+#include "..\ATA\ATActl.hpp"
+#include <interface/dev_cls/cluster.hpp>
+
 struct FIS_to {};
 
 struct FIS_from {};
 
-class STAT_controller {
+class SATA_control : public ATADiskControl {
     volatile void *ctrl_reg_base;
     struct Global_group {
         u32 CAP;
@@ -43,11 +46,24 @@ class STAT_controller {
         u32 VS;
     };
 
-
-    STAT_controller(){}
+    DetectTable act(const ActionTable &) const override final;
+    DetectTable detect(u8) const override final;
+    size_t pio_data_in(u16 *buf, size_t size, u8 device_index) const override final;
+    size_t dma_data_in(u16 *buf, size_t size, u8 device_index) const override final;
+    size_t pio_data_out(u16 *buf, size_t size, u8 device_index) const override final;
+    size_t dma_data_out(u16 *buf, size_t size, u8 device_index) const override final;
+public:
+    SATA_control();
     /**
      * set GHC AE for AHCI(not IDE mode)
      * read PI registry to find all exist port
      * 
      */
+};
+
+
+class SATA : public Cluster {
+    void check();
+    void read_LBA(unsigned short *, unsigned, unsigned char);
+    void write_LBA(unsigned short *, unsigned int, unsigned char);
 };

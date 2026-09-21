@@ -1,4 +1,5 @@
 #include "_TM.hpp"
+import lib32;
 
 void caller(size_t n, void *v) {
     void *start_point = *(void **)v;
@@ -66,22 +67,33 @@ void *exCOM_resolv(WinHandle &win) {
         driverletterspace->read((void*)buf.data_start, h, buf.data_offset, buf.data_size);
     }
     if (buf.bss_size > 0) {
-        __builtin_memset((void*)(buf.data_start + buf.data_size), 0, buf.bss_size);
+        memset((void*)(buf.data_start + buf.data_size), 0, buf.bss_size);
     }
     return buf.enter_point;
 }
 
-#undef LocalDebug
-#include <global/macro.hpp>
-unsigned TaskManager::exec(String filepath, size_t argc, void *argv) {
+FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
     WinHandle win{};
     
     auto err = driverletterspace->open(win, filepath);
-    if (err) return err;
+    if (err) switch (err) {
+    case StorageSubSystemDefination_OpenErrorCode_NoSuchDisk:
+    case StorageSubSystemDefination_OpenErrorCode_NotCloseHandler: {
+        return FexecExceptionCode::OpenFileFailed;
+    } break;
+    default: {
+        return FexecExceptionCode::DLSFault;
+    } break;
+    }
     u8 *enter_point = (u8 *)exCOM_resolv(win);
+#undef LocalDebug
+#include <global/macro.hpp>
+    LocalDebugInfo(cout << enter_point;)
     
     Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv, 1, 3);
 
+#undef LocalDebug
+#include <global/macro.hpp>
     LocalDebugInfo(for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);cout << ' '; })
-    return 0;
+    return FexecExceptionCode::NoException;
 }

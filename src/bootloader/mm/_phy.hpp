@@ -32,6 +32,7 @@ extern "C" {
 struct __window_dos_loader_struct_0x1 {
     using mem_list = PhysicalPage::mem_list;
     static mem_list* start;
+    constexpr __window_dos_loader_struct_0x1() {}
 
     struct array {
         struct Iterator {
@@ -48,6 +49,6 @@ struct __window_dos_loader_struct_0x1 {
     inline mem_list &operator[] (size_t offset) { return start[offset]; }
     inline mem_list *&operator *() { return start; }
     constexpr array as_arr() { return {}; }
-    constexpr auto as_list() { return rtl::list_tranveser{start->next}; }
+    auto as_list() { return rtl::list_tranveser{start->next}; }
     constexpr mem_list *findspace();
 } mem_list_root;

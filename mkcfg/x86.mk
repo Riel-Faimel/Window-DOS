@@ -1,7 +1,7 @@
 CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding -MMD -MP\
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
-		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/ -Os -D_DEBUG -D_x86
+		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/ -O2 -D_DEBUG -D_x86
 
 CFLAGS32 = $(CBASE) -Werror=implicit-int
 CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts

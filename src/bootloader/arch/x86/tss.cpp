@@ -1,6 +1,7 @@
 #include "_tss.hpp"
 
 
+__attribute__((optimize("O0")))
 TSM::TSM(GDT &gdt, MemoryManager& mm) {
     auto tss_id = gdt.create_tss(new (mm) TSS32 {
         .esp0 = (physicalpage.aloc(512, true).begin()).operator*().address.low,

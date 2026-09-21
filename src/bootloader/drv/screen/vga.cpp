@@ -6,6 +6,7 @@ import lib32;
 #define LINE_SIZE 80
 #define LINE_NUM 25
 
+__attribute__((optimize("O0")))
 VGA_text_mode::VGA_text_mode(){ clear(); }
 
 void VGA_text_mode::_prt(char ch){

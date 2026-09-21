@@ -3,9 +3,14 @@
 #include <drv/screen/screen_srv.hpp>
 #include <global/new.hpp>
 
+#pragma GCC optimize("Os")
+
 import lib32;
 
-extern "C" void __attribute__((regparm(1)))fresh_gdt(void *gdt_ptr);
+extern "C" {
+    __attribute__((regparm(1)))
+    void fresh_gdt(void *gdt_ptr);
+}
 
 void NP_handler(){
     kprint("[ERROR] No segment present\n");
@@ -41,7 +46,6 @@ entries(entries_init), limit(limit_init) {
 #endif
 }
 
-__attribute__((optimize("O0")))
 unsigned GDT::regist(
     void *Segment_base, u32 Segment_limit, GDT::GDTType Type, u8 ring, 
     bool is1B_or_4K, bool is32_or16, bool is_64_long_mode, 
@@ -67,7 +71,6 @@ unsigned GDT::regist(
     return 0;
 }
 
-__attribute__((optimize("O0")))
 unsigned GDT::create_gate(
     void *offset, u16 Segment, GateType type, u8 params_count, u8 ring
 ) volatile {

@@ -1,4 +1,4 @@
-#pragma GCC optimize("Os")
+#pragma GCC optimize("O2")
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "_fat16.hpp"
 
@@ -44,7 +44,7 @@ status{RAW}, part{part_init}{
 unsigned FAT16::open(String filename) {
     auto [entry, err] = resolv_dir(filename);
     switch (err) {
-    case DirResolvError::NoError:
+    case DirResolvException::NoException: {
         return (unsigned) (new FileInfo{
             ClusterInfo{
                 .index_start {entry->_8_3FN.first_cluster_low},
@@ -58,10 +58,18 @@ unsigned FAT16::open(String filename) {
             entry->_8_3FN.Last_access_Date,
             entry->_8_3FN.attribute, 0
         });
-    case DirResolvError::NoSuchFile:
-    case DirResolvError::NotADir:
-    default:
-        return 1; // cluster 1 is always invalid cluster
+    } break;
+    case DirResolvException::FindFileFailed:
+    case DirResolvException::AsDirectoryFailed:
+    default: {
+        LocalDebugInfo(cout << "Failed\n";)
+        return (unsigned)-2;
+    } break;
+    case DirResolvException::ClusterMissFault:
+    case DirResolvException::DirBrokenFault: {
+        LocalDebugInfo(cout << "Fault\n";)
+        return (unsigned)-1;
+    } break;
     }    
 }
 
@@ -218,12 +226,12 @@ void format_fat_fs(
     bpb.reserved_sectors = 1;
     bpb.fat_table_count = 2;
     bpb.root_entry_num = 512; //fixed
-    bpb.total_sectors_16 = (info->index_num > 65536) ? 0 : info->index_num;
+    bpb.total_sectors_16 = (info->index_num > 65536u) ? 0 : info->index_num;
     bpb.medis_type_descriptor = 0xF8; //hdd
     bpb.sector_per_fat_table = 0;
     bpb.sectors_per_track = 63; //hdd
     bpb.num_heads = 16;
-    bpb.total_sectors_32 = (info->index_num < 65536) ? 0 : info->index_num;
+    bpb.total_sectors_32 = (info->index_num < 65536u) ? 0 : info->index_num;
     bpb.drive_number = 0x80;
     bpb.reserved2 = 0; //fixed
     bpb.boot_sign = 0x29; //extra, 0x28 for not extra
@@ -244,7 +252,7 @@ void format_fat_fs(
 
     unsigned S = cluster_size;
     unsigned T = info->index_num; // total sectors
-    unsigned R, F, D, C;
+    unsigned R, F, D, C; // Reserved, FAT, DataStart, ClusterNum
     R = 1;
     F = 1;
     unsigned F_ = F;
@@ -260,7 +268,7 @@ void format_fat_fs(
     }
     D = R + 2 * F + 32;
     C = (T - D) / S;
-    auto cluster0sector_id = D / S;
+    // auto cluster0sector_id = D / S;
     bpb.reserved_sectors = R;
     bpb.sector_per_fat_table = F;
     part->write(bpb.buf, 0, 0, 1);

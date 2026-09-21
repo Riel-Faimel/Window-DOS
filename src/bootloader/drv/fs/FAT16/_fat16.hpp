@@ -4,9 +4,9 @@
 #include <global/new.hpp>
 #include <lib/utility>
 
-#ifdef _DEBUG
+#define LocalDebug
+#include <global/macro.hpp>
 #include <drv/screen/screen_srv.hpp>
-#endif
 
 u8 calc_checksum(char *name) {
     u8 sum = 0;
@@ -228,21 +228,38 @@ class DirResolv : public ClusterView<DirResolv<T>> {
     size_t rootdir_sec_start = 0;
     size_t rootdir_sec_num = 0;
 
-    rtl::pair<DIR*, bool> find_dir_entry(u16 cluster, String &&filename) {
+    rtl::pair<DIR*, ifMatch> find_dir_entry(u16 cluster, String &&filename) {
         u16 index = 0;
+        LocalDebugInfo(cout << filename << ' ' << cluster << '\n';)
         while (cluster != 0 || index < 8) {
+            LocalDebugInfo(cout << '<' << cluster << ", " << index << ">\n";)
         // this condition means if root dir, only tranvese 512 entries, 
         // otherwise traverse until the end of cluster chain
-            if (!match_entry(cluster, index, filename)) {
-                return dirptr(cluster, index);
+            auto situation = match_entry(cluster, index, filename);
+            switch (situation) {
+            case ifMatch::MatchOne:{
+                auto [p, err] = dirptr(cluster, index);
+                if (err) return {p, ifMatch::NoCluster};
+                else return {p, ifMatch::MatchOne};
+            } break;
+            case ifMatch::NotFound: {
+                // loop
+            } break;
+            case ifMatch::BrokenDir: {
+                return {nullptr, situation};
+            } break;
+            case ifMatch::NoCluster:
+            default: {
+                return {nullptr, situation};
+            } break;
             }
         }
-        return {nullptr, true};
+        return {nullptr, ifMatch::NotFound};
     }
 
-    bool match_entry(u16 cluster, u16& index, const String &filename) {
+    ifMatch match_entry(u16 cluster, u16& index, const String &filename) {
         auto [entry, err] = dirptr(cluster, index);
-        if (err) return true;
+        if (err) return ifMatch::NoCluster;
 
         auto is_LFN_entry = [](DIR* e) {
             return (
@@ -260,7 +277,7 @@ class DirResolv : public ClusterView<DirResolv<T>> {
             
             while (true) {
                 auto [e, err] = dirptr(cluster, index);
-                if (err) return false;
+                if (err) return ifMatch::NoCluster;
                 if (e->_8_3FN.name[0] == 0xE5) {
                     index++;
                     continue;
@@ -288,21 +305,21 @@ class DirResolv : public ClusterView<DirResolv<T>> {
             }
             
             auto [sfn, err] = dirptr(cluster, index);
-            if (err) return true;
+            if (err) return ifMatch::NoCluster;
             
             if (calc_checksum(sfn->_8_3FN.name) != checksum) {
                 index++; // failed
-                return true;
+                return ifMatch::BrokenDir;
             }
             
-            if (long_name == filename) return false;
+            if (long_name == filename) return ifMatch::MatchOne;
             index++;
-            return true;
+            return ifMatch::NotFound;
         }
         
         if (entry->_8_3FN.name[0] == 0x00 || entry->_8_3FN.name[0] == 0xE5) {
             index++;
-            return true;
+            return ifMatch::NotFound;
         }
         
         String short_name;
@@ -317,9 +334,9 @@ class DirResolv : public ClusterView<DirResolv<T>> {
             }
         }
         
-        if (short_name == filename) return false;
+        if (short_name == filename) return ifMatch::MatchOne;
         index++;
-        return true;
+        return ifMatch::NotFound;
     }
 
 protected:
@@ -331,23 +348,51 @@ protected:
         ClusterView<DirResolv<T>>::init(cache_size);
     }
 
-    rtl::pair<DIR*, DirResolvError> resolv_dir(String path) {
+    rtl::pair<DIR*, DirResolvException> resolv_dir(String path) {
         path.get_word('\\');
-        if (path.empty()) return {dirptr(0u, 0u).key, DirResolvError::NoError};
+        if (path.empty()) {
+            LocalDebugInfo(cout << "Got!";)
+            auto [re, _] = dirptr(0u, 0u);
+            return {re, DirResolvException::NoException};
+        }
 
         auto [entry, err] = find_dir_entry(0u, path.get_word('\\'));
-        if (err) return {nullptr, DirResolvError::NoSuchFile};
+        switch (err) {
+        case ifMatch::MatchOne: {
+            // done
+        } break;
+        case ifMatch::NotFound: {
+            LocalDebugInfo(cout << "No Such File\n!";)
+            return {nullptr, DirResolvException::FindFileFailed};
+        } break;
+        case ifMatch::NoCluster: {
+            LocalDebugInfo(cout << "No Such Cluster\n";)
+            return {nullptr, DirResolvException::ClusterMissFault};
+        } break;
+        case ifMatch::BrokenDir:
+        default: {
+            return {nullptr, DirResolvException::DirBrokenFault};
+        } break;
+        }
 
         while (!path.empty()) {
-            if (!(entry->_8_3FN.attribute.dir)) return {nullptr, DirResolvError::NotADir};
+            LocalDebugInfo(cout << path << '\n';)
+            if (!(entry->_8_3FN.attribute.dir)) {
+                LocalDebugInfo(cout << "Not a Dir!";)
+                return {nullptr, DirResolvException::AsDirectoryFailed};
+            }
             auto [next_entry, next_err] = find_dir_entry(
                 entry->_8_3FN.first_cluster_low,
                 path.get_word('\\')
             );
-            if (next_err) return {nullptr, DirResolvError::NoSuchFile};
+            if (next_err != ifMatch::MatchOne) {
+                LocalDebugInfo(cout << "No Such File!";)
+                return {nullptr, DirResolvException::FindFileFailed};
+            }
             entry = next_entry;
         }
-        return {entry, DirResolvError::NoError};
+        LocalDebugInfo(cout << "Got!";)
+        return {entry, DirResolvException::NoException};
     }
 public:
     inline unsigned disk_read(void* b, u32 s, u32 c) { return static_cast<T *>(this)->disk_read(b, s, c); }

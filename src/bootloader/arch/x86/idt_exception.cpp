@@ -1,5 +1,7 @@
 #include "_idt.hpp"
 
+#pragma GCC optimize("Os")
+
 import exception;
 
 IDT::IDT(volatile IDT_item *tab):idt_base(tab){
@@ -82,20 +84,22 @@ void GP_handler_c(errcode_frame * frame){
     bool is_LDT = err & 4;
     u16 seg = err & 0xFFF8;
     if (is_extern) {
-        cout << "extern exception\n";
+        cout << "extern exception";
     } else {
         if (is_IDT) {
-            cout << "IDT err\n";
+            cout << "IDT";
             return;
         } else {
             if (is_LDT) {
-                cout << "LDT err\n";
+                cout << "LDT";
             } else {
-                cout << "GDT err\n";
+                cout << "GDT";
             }
-            catch_program();
         }
+        cout << " err ";
     }
+    cout << seg << '\n';
+    catch_program();
 }
 __attribute__((optimize("O0")))
 void basic_time_handler_c(){

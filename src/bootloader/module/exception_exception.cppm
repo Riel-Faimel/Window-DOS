@@ -33,7 +33,7 @@ __attribute__((used))
 void __cxa_free_exception(void *) noexcept {}
 
 __attribute__((used, noreturn))
-void eh_frame_tranveser(__cxa_exception *header, void *obj) {
+void eh_frame_tranveser(__cxa_exception *, void *obj) {
     cout << "start tranvesing\n";
     cout << "eh_frame in: " << __eh_frame_start << " : " << __eh_frame_end << '\n';
     cout << *(const char **)obj;
@@ -61,7 +61,7 @@ void _Unwind_Resume() {}
 
 }
 
-asm volatile (
+asm (
     ".globl _ZTIi\n"
     ".globl _ZTIPKc\n"
     ".globl _ZTIPc\n"

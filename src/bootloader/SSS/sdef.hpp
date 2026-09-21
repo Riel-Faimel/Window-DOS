@@ -1,0 +1,12 @@
+#ifndef __bootloader_SSS_sdef_hpp
+#define __bootloader_SSS_sdef_hpp
+
+#define StorageSubSystemDefination_OpenErrorCode_NotCloseHandler (unsigned)1
+#define StorageSubSystemDefination_OpenErrorCode_NoSuchDisk (unsigned)2
+//#define StorageSubSystemDefination_OpenErrorCode_
+//#define StorageSubSystemDefination_OpenErrorCode_
+//#define StorageSubSystemDefination_OpenErrorCode_
+//#define StorageSubSystemDefination_OpenErrorCode_
+
+
+#endif

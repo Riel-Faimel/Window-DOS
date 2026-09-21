@@ -8,6 +8,7 @@
 #include "gdt.hpp"
 #include "idt.hpp"
 #include "tss.hpp"
+#include "ldt.hpp"
 #include <multiCE/default/cs.hpp>
 #include <syscall/DOS/DOScall.hpp>
 
@@ -19,6 +20,7 @@ struct CPU {
     IDT idt;
     GDT gdt;
     TSM tss; // table
+    LDT ldt;
     DefaultScheduler scheduler; // schedule loop
     DOScall syscall;
     CPUInfo info;

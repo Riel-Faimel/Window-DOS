@@ -1,5 +1,8 @@
 #include "_mm.hpp"
 
+#pragma GCC optimize("Os")
+#pragma GCC diagnostic ignored "-Wmultichar"
+
 PhysicalPage physicalpage;
 MemoryManager *global_heap;
 
@@ -11,6 +14,7 @@ KernelHeapFormat::KernelHeapFormat(void *page_base){
         sb = static_cast<SuperBlock *>(page_base);
     }
 }
+__attribute__((optimize("O2")))
 KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
     u32 size_need = size_classes[level]+sizeof(ObjHeader)+sizeof(u16);
     //cout << "size need = " << size_need << '\n';
@@ -45,6 +49,7 @@ KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
     }
     return nullptr;
 }
+__attribute__((optimize("O2")))
 void KernelHeapFormat::PageHead::create_subzone(SubZone *free_sz, size_t size) {
     auto szbuf = *free_sz;
     auto count = ((u8 *)szbuf.end - (u8 *)(&szbuf+1))/size;
@@ -62,6 +67,7 @@ void KernelHeapFormat::PageHead::create_subzone(SubZone *free_sz, size_t size) {
 void KernelHeapFormat::deletezone(KernelHeapFormat::SubZone *zone) {
     zone->objsize = 0; // label of free
 }
+__attribute__((optimize("O2")))
 void KernelHeapFormat::format_subzone(SubZone *sz, u32 level) {
     ObjHeader buf{}, *lastptr = &buf;
     u32 objcount = 0;
@@ -144,6 +150,8 @@ inline MemoryManager::allocable::allocable(MemoryManager *mm) {
 
 MemoryManager::nopage::nopage(void* page_base, MemoryManager *mm):
 allocable{mm}, KernelHeapFormat{page_base} {}
+
+__attribute__((optimize("O2")))
 void *MemoryManager::nopage::alloc(size_t size) {
     KernelHeapFormat::ObjHeader *box = nullptr;
     auto level = size_to_level(size);
@@ -181,6 +189,7 @@ void *MemoryManager::nopage::alloc(size_t size) {
     //cout << "<addr=" << box+1 << ">";
     return box+1;
 }
+__attribute__((optimize("O2")))
 void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     auto objhead = static_cast<ObjHeader *>(ptr)-1;
     if (objhead->head_guard == ObjectSingalGuard) {

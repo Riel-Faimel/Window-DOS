@@ -5,3 +5,5 @@
 #include <multiCE/default/cs.hpp>
 #undef LocalDebug
 #include <global/macro.hpp>
+
+#include <SSS/sdef.hpp>

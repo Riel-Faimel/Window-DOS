@@ -1,4 +1,8 @@
+#ifndef __bootloader_drv_disk_ATA_ATActl_hpp
+#define __bootloader_drv_disk_ATA_ATActl_hpp
+
 #include "ATAcmd.hpp"
+#include "ATAdef.hpp"
 #include <interface/dev_cls/cluster.hpp>
 #include <global/type.hpp>
 #undef LocalDebug
@@ -10,7 +14,7 @@
 struct ActionTable {
     struct {
         void *addr = 0;
-        size_t size = 0;
+        byteCount size = byteCount{0};
     } buffer = {};
     
     // 64 bits till here
@@ -60,38 +64,35 @@ struct DetectTable {
 static_assert(sizeof(ActionTable) == 24);
 static_assert(sizeof(DetectTable) == 5);
 
-class ATADisk {
-    virtual DetectTable act(const ActionTable &) = 0;
-    virtual DetectTable detect(u8 device_index) = 0;
-    virtual inline u16 data_port_read(u8) = 0;
-    virtual inline void data_port_write(u16, u8) = 0;
+class ATADiskControl {
+    virtual DetectTable act(const ActionTable &) const = 0;
+    virtual DetectTable detect(DeviceIndex device_index) const = 0;
+    virtual rtl::pair<DetectTable, size_t> pio_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
+    virtual rtl::pair<DetectTable, size_t> dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
+    virtual rtl::pair<DetectTable, size_t> pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
+    virtual rtl::pair<DetectTable, size_t> dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
 
 public:
 
-    DiskInfo *identify(u16 dev) {
+    DiskInfo *identify(DeviceIndex dev) const {
         IdentifyAnalysis iden;
 
         ActionTable cmd {};
         cmd.cmd = ATAcmd::identify_ata;
         cmd.fill_addr = false;
-        cmd.device_index = dev;
+        cmd.device_index = static_cast<u8>(dev);
         DebugInfo(ASMLabelMark(identify_acting))
+#define LocalDebug
+#include <global/macro.hpp>
         DetectTable result = act(cmd);
         if (result.status.busy || result.status.error) {
             LocalDebugInfo(cout << "No such Disk\n";)
             return nullptr;
         }
-        for (u8 i = 0;!result.status.data_ready;i++) {
-            if (i > 128u) return nullptr;
-            result = detect(dev);
-        }
-        LocalDebugInfo(cout << "result " << result.status.buf << ", " << (u32)result.error << '\n';)
-        DebugInfo(ASMLabelMark(start_move_identify_data))
+        ASMLabelMark(start_move_identify_data)
 
-        for(u16 i = 0;i < 256;i++){
-            iden[i] = data_port_read(cmd.device_index);
-        }
-        if (iden[0] == 0xFFFF) {
+        auto [de, _] = pio_data_in(iden, SectorCount{(u16)1u}, DeviceIndex{cmd.device_index});
+        if (iden[0] == 0xFFFF || !de.status.data_ready) {
             LocalDebugInfo(cout << "Invalid Disk\n";)
             return nullptr;
         }
@@ -106,157 +107,112 @@ public:
 
             re->index_num = u64{(u32)c * (u32)h * (u32)s};
         }
-        if (auto [support, size28] = iden.lba_valid();support) {
+        if (auto [support, size28] = iden.lba_param();support) {
             re->address_mode |= 0b10;
-            if (auto [support, size48] = iden.lba48_valid();support) {
+            if (auto [support, size48] = iden.lba48_param();support) {
                 re->address_mode |= 0b100;
                 re->index_num = size48;
             } else {
                 re->index_num = u64{size28};
             }
         }
+        re->PIO_supported = iden.pio_valid();
+#undef LocalDebug
+#include <global/macro.hpp>
         LocalDebugInfo(cout << re->address_mode << '\n';
-        if (re->address_mode == 0) {
+        if (re->PIO_supported == 0) {
             for (int i = 0;i < 256;i++) {
                 print_hex(iden[i], false);print_char(' ');
             }
         })
-        //for(int i = 0;i < 40;i++){
-        //    re->model[i] = reinterpret_cast<char *>(iden.model)[i];
-        //}
-
-        auto is_power_of_2 = [](u32 n) -> bool { return (n != 0) && ((n & (n - 1)) == 0); };
-        /* get current R/W Multiple count setting */
-        if ((iden[47] >> 8) == 0x80 && (iden[59] & 0x100)) {
-            unsigned int max = iden[47] & 0xFF;
-            unsigned int cnt = iden[59] & 0xFF;
-            /* only recognize/allow powers of two here */
-            if (is_power_of_2(max) && is_power_of_2(cnt)) 
-            if (cnt <= max)
-            re->multi_count = cnt;
-        }
         DebugInfo(ASMLabelMark(identify_exit_point))
         return re;
     }
 
     __attribute__((error("Not yet")))
-    rtl::pair<DetectTable, size_t> read_DMA_LBA(void *buf, size_t size, u32 LBAl, u32 LBAh, u16 count, u16 dev) {
+    rtl::pair<DetectTable, size_t> read_DMA_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd = {};
         cmd.cmd = ATAcmd::read_dma;
-        cmd.device_index = dev;
-        cmd.LBA.low = LBAl;
-        cmd.LBA.high = LBAh;
-        cmd.LBA.count = count;
-        cmd.buffer.addr = buf;
-        cmd.buffer.size = size;
+        cmd.device_index = static_cast<u8>(dev);
+        cmd.LBA.low = LBA.low;
+        cmd.LBA.high = LBA.high;
+        cmd.LBA.count = static_cast<u16>(count);
+        cmd.buffer.addr = static_cast<void *>(buf);
+        cmd.buffer.size = static_cast<byteCount>(count);
         cmd.force_dma = true;
         
-        DetectTable result = act(cmd);
-        return {result, 0};
+        act(cmd);
+        return dma_data_in(buf, count, dev);
     }
 
-    rtl::pair<DetectTable, size_t> read_PIO_LBA(u16 *buf, u32 LBAl, u32 LBAh, u16 count, u16 dev) {
+    rtl::pair<DetectTable, size_t> read_PIO_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd = {};
-        if (LBAh || LBAl & 0xF0000000) {
+        if (LBA.high || LBA.low & 0xF0000000) {
             cmd.cmd = ATAcmd::read_pio_ext;
             cmd.need_48_mode = true;
         } else {
             cmd.cmd = ATAcmd::read_pio;
         }
-        cmd.device_index = dev;
-        cmd.LBA.low = LBAl;
-        cmd.LBA.high = LBAh;
-        cmd.LBA.count = count;
+        cmd.device_index = static_cast<u8>(dev);
+        cmd.LBA.low = LBA.low;
+        cmd.LBA.high = LBA.high;
+        cmd.LBA.count = static_cast<u16>(count);
         
-        DetectTable result = act(cmd);
-        return PIO_read_data(buf, count, result, cmd.device_index);
+        act(cmd);
+        return pio_data_in(buf, count, dev);
     }
 
-    rtl::pair<DetectTable, size_t> read_PIO_CHS(u16 *buf, u32 cyl, u32 head, u32 sect, u16 count, u16 dev) {
+    rtl::pair<DetectTable, size_t> read_PIO_CHS(bufAddr buf, u32 cyl, u32 head, u32 sect, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd = {};
         cmd.cmd = ATAcmd::read_pio;
-        cmd.device_index = dev;
+        cmd.device_index = static_cast<u8>(dev);
         cmd.if_need_CHS = true;
         cmd.head = head;
         cmd.CHS.cylinder = cyl;
         cmd.CHS.sector = sect;
 
-        auto result = act(cmd);
-        return PIO_read_data(buf, count, result, cmd.device_index);
-    }
-
-    rtl::pair<DetectTable, size_t> PIO_read_data(u16 *buf, u16 count, DetectTable result, u8 device_index) {
-        u8 timeout_count = 0;
-        unsigned bytes_deal = 0;
-        for(u16 fan = 0;fan < count;fan++){
-            for (;result.status.busy || !result.status.data_ready;timeout_count++){
-                result = detect(device_index);
-                if(timeout_count > 128) return {result, bytes_deal};
-            };
-            for(u16 i = 0;i < 256;i++){
-                buf[i + fan * 256] = data_port_read(device_index);
-                bytes_deal += 2;
-            }
-        }
-        return {detect(device_index), bytes_deal};
+        act(cmd);
+        return pio_data_in(bufAddr{buf}, SectorCount{count}, dev);
     }
 
     __attribute__((error("Not yet")))
-    rtl::pair<DetectTable, size_t> write_DMA_LBA(u16 *buf, u32 LBAl, u32 LBAh, u8 count, u16 dev) {
+    DetectTable write_DMA_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd{};
         cmd.cmd = ATAcmd::write_dma;
-        cmd.device_index = dev;
-        cmd.LBA.low = LBAl;
-        cmd.LBA.high = LBAh;
-        cmd.LBA.count = count;
-        cmd.buffer.addr = buf;
-        cmd.buffer.size = count * 512;
+        cmd.device_index = static_cast<u8>(dev);
+        cmd.LBA.low = LBA.low;
+        cmd.LBA.high = LBA.high;
+        cmd.LBA.count = static_cast<u16>(count);
+        cmd.buffer.addr = static_cast<void *>(buf);
+        cmd.buffer.size = static_cast<byteCount>(count);
         
-        DetectTable result = act(cmd);
+        return act(cmd);
     }
 
-    rtl::pair<DetectTable, size_t> write_PIO_LBA(u16 *buf, u32 LBAl, u32 LBAh, u8 count, u16 dev) {
+    rtl::pair<DetectTable, size_t> write_PIO_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd{};
-        cmd.cmd = (LBAh || LBAl & 0xF0000000)?ATAcmd::write_pio_ext:ATAcmd::write_pio_ext;
-        cmd.device_index = dev;
-        cmd.LBA.low = LBAl;
-        cmd.LBA.high = LBAh;
-        cmd.LBA.count = count;
-        cmd.buffer.addr = buf;
-        cmd.buffer.size = count * 512;
+        cmd.cmd = (LBA.high || LBA.low & 0xF0000000)?ATAcmd::write_pio_ext:ATAcmd::write_pio_ext;
+        cmd.device_index = static_cast<u8>(dev);
+        cmd.LBA.low = LBA.low;
+        cmd.LBA.high = LBA.high;
+        cmd.LBA.count = static_cast<u16>(count);
+        cmd.buffer.size = static_cast<byteCount>(count);
         
-        DetectTable result = act(cmd);
-        return PIO_write_data(buf, count, result, cmd.device_index);
+        act(cmd);
+        return pio_data_out(buf, count, dev);
     }
 
-    rtl::pair<DetectTable, size_t> write_PIO_CHS(u16 *buf, u32 cyl, u32 head, u32 sect, u8 count, u16 dev) {
+    rtl::pair<DetectTable, size_t> write_PIO_CHS(bufAddr buf, u32 cyl, u32 head, u32 sect, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd = {};
         cmd.cmd = ATAcmd::write_pio;
-        cmd.device_index = dev;
+        cmd.device_index = static_cast<u8>(dev);
         cmd.if_need_CHS = true;
         cmd.head = head;
         cmd.CHS.cylinder = cyl;
         cmd.CHS.sector = sect;
 
-        auto result = act(cmd);
-        return PIO_write_data(buf, count, result, cmd.device_index);
-    }
-
-    rtl::pair<DetectTable, size_t> PIO_write_data(u16 *buf, u16 count, DetectTable result, u8 device_index) {
-        unsigned bytes_deal = 0;
-        for(u16 fan = 0;fan < count;fan++){
-            unsigned i = 0;
-            while (result.status.busy){
-                i++;
-                result = detect(device_index);
-                if(i > 10000) return {result, bytes_deal};
-            };
-            for(unsigned int i = 0;i < 256;i++){
-                data_port_write(buf[i + fan * 256], device_index);
-                bytes_deal += 2;
-            }
-        }
-        return {detect(device_index), bytes_deal};
+        act(cmd);
+        return pio_data_out(buf, count, dev);
     }
 
     DetectTable flush_cache(u16 dev) {
@@ -288,7 +244,9 @@ public:
         cmd.device_index = dev;
         cmd.feature = 0xD0;  // READ DATA
         cmd.buffer.addr = buf;
-        cmd.buffer.size = 512;
+        cmd.buffer.size = static_cast<byteCount>(512);
         return act(cmd);
     }
 };
+
+#endif

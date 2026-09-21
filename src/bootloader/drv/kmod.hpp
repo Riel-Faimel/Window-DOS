@@ -11,7 +11,7 @@ struct KernelModule{
     template<hashable k, typename v>
     using map = rtl::map<k, v>;
 
-    map<DeviceConfig, void (*)(DeviceConfig &)> driver;
+    map<DeviceConfig, void *(*)(DeviceConfig &)> driver;
     map<size_t, Cluster *(*)(LogicalDisk *)> fs;
     KernelModule();
 };

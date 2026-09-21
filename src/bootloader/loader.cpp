@@ -27,15 +27,21 @@ void LoaderMain(){
     pds.set_driver();
     TaskManager taskmgr;
     cout << "[INFO] start INIT.COM\n";
+    ASMLabelMark(LoaderMain_StartB_INIT_EXE)
     auto err = taskmgr.exec("B:\\INIT.COM", 0, nullptr);
-    if (err != 0) switch (err) {
-    case (unsigned)-1:{
-        cout << "[FAILED] \"B:\\INIT.COM\" not found\n";
-    }
-    case (unsigned)-2:{
-        cout << "[FAILED] No \"B:\"!\n";
-    }
-    default: {}
+    switch (err) {
+    case FexecExceptionCode::NoException: {
+        // done
+    } break;
+    case FexecExceptionCode::OpenFileFailed: {
+        cout << "[Exception] \"B:\\INIT.COM\" not found\n";
+    } break;
+    case FexecExceptionCode::DLSFault: {
+        cout << "[Fault] File System Fault\n";
+    } break;
+    default: {
+        cout << "[Fault] Bad Fault\n";
+    } break;
     }
     _Sexit(); // init thread sleep
 }

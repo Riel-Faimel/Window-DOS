@@ -43,6 +43,24 @@ struct pair {
     M value;
 }; 
 
+template<typename T>
+class range {
+    T from, to;
+public:
+    range(T to_): from {}, to{to_}{}
+    range(T from_, T to_): from{from_}, to{to_}{}
+
+    struct it {
+        T v;
+        T operator *() const { return v; }
+        it &operator++() { ++v; return *this; }
+        bool operator!= (const it &oth) const { return v != oth.v; }
+    };
+
+    it begin() const { return {from}; }
+    it end() const { return {to}; }
+};
+
 }
 
 #endif

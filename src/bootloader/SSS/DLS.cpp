@@ -2,6 +2,10 @@
 
 DLS* driverletterspace;
 
+static void FSInfoPrint(String letter) {
+    cout << "set [" << letter << ":]\n";
+}
+
 DLS::DLS(){ driverletterspace = this; }
 
 void DLS::regist(Cluster *clu, String le){
@@ -19,7 +23,7 @@ void DLS::regist(Cluster *clu, String le){
 
     space.append(DriveInfo{clu, did_count, letter});
     did_count++;
-    cout << "[INFO] Get one FS [" << letter << ":], ID = " << (u8)clu->info(0)->type << '\n';
+    DebugInfo(FSInfoPrint(letter);)
 }
 
 unsigned DLS::start(WinHandle &win, String driver_letter) {
@@ -32,15 +36,10 @@ unsigned DLS::start(WinHandle &win, String driver_letter) {
     }
     if (hptr) {
         // need to close
-        Cluster *disk = nullptr;
         unsigned new_id = 0;
-        for (auto [driver, id, letter] : space) {
-            if (hptr->ID == id) {
-                disk = driver;
-            }
-            if (letter == path) {
-                new_id = id;
-            }
+        for (auto [_, id, letter] : space)
+        if (letter == path) {
+            new_id = id;
         }
         if (new_id == hptr->ID) {
             return 0;
@@ -60,18 +59,18 @@ unsigned DLS::start(WinHandle &win, String driver_letter) {
 }
 
 unsigned DLS::open(WinHandle &win, String file_path){
-    if(win.extra) { return -1; }
+    if(win.extra) { return StorageSubSystemDefination_OpenErrorCode_NotCloseHandler; }
     // win.extra has other handle
     auto path_part = file_path.split(':');
     for (auto [driver, id, letter] : space) {
         if (letter == path_part[0]) {
             auto handle = driver->open(path_part[1]);
-            if (handle == (unsigned)-1) return -1; // not found
+            if (handle > (unsigned)-64) return handle; // FS error
             win.extra = new Handle { .ID=id, .file_handle=handle, };
             return 0;
         }
     }
-    return -2; // no such disk
+    return StorageSubSystemDefination_OpenErrorCode_NoSuchDisk; // no such disk
 }
 
 unsigned DLS::close(WinHandle &win){

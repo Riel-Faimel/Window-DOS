@@ -40,6 +40,7 @@ struct PCI_device_config{
     u8 Min_grant;
     u8 Max_latency;
     //=== odinary PCI config end line ===
+    void *driver = nullptr;
 };
 #pragma pack(pop)
 

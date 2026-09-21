@@ -1,3 +1,7 @@
+module;
+
+#include <global/type.hpp>
+
 export module lib32;
 extern "C" { extern void print_hex(unsigned short, bool = false); }
 
@@ -70,4 +74,45 @@ export extern "C" {
             outb(val[i], 0x3F8);
         }
     }; //QEMU print string
+    
+    __attribute__((used))
+    void *memset(void *ptr, int value, size_t num) {
+        unsigned char *p = (unsigned char *)ptr;
+        unsigned char byte = (unsigned char)value; 
+
+        for (size_t i = 0; i < num; i++) {
+            p[i] = byte;
+        }
+
+        return ptr;
+    }
+
+    __attribute__((used))
+    void *memcpy(void *dst, const void *src, size_t num) {
+        unsigned char *d = (unsigned char *)dst;
+        const unsigned char *s = (const unsigned char *)src;
+
+        size_t *dw;
+        const size_t *sw;
+
+        while (num > 0 && ((size_t)d & (sizeof(size_t) - 1)) != 0) {
+            *d++ = *s++;
+            num--;
+        }
+
+        dw = (size_t *)d;
+        sw = (const size_t *)s;
+        while (num >= sizeof(size_t)) {
+            *dw++ = *sw++;
+            num -= sizeof(size_t);
+        }
+
+        d = (unsigned char *)dw;
+        s = (const unsigned char *)sw;
+        while (num--) {
+            *d++ = *s++;
+        }
+
+        return dst;
+    }
 }

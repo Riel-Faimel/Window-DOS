@@ -50,4 +50,4 @@ clean:
 	del boot.img
 
 debug:
-	qemu-system-i386 -s -S $(QEMUFLAGS)
+	start "" gdb -ex "set architecture i386" -ex "target remote 127.0.0.1:1234" & qemu-system-i386 -s -S $(QEMUFLAGS)
