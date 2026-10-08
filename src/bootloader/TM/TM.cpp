@@ -77,8 +77,8 @@ FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
     
     auto err = driverletterspace->open(win, filepath);
     if (err) switch (err) {
-    case StorageSubSystemDefination_OpenErrorCode_NoSuchDisk:
-    case StorageSubSystemDefination_OpenErrorCode_NotCloseHandler: {
+    case ClusterDeviceManagerDefination_OpenErrorCode_NoSuchDisk:
+    case ClusterDeviceManagerDefination_OpenErrorCode_NotCloseHandler: {
         return FexecExceptionCode::OpenFileFailed;
     } break;
     default: {

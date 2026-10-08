@@ -1,5 +1,5 @@
-#ifndef __bootloader_DLS_DLS_hpp
-#define __bootloader_DLS_DLS_hpp
+#ifndef __bootloader_CDM_DLS_hpp
+#define __bootloader_CDM_DLS_hpp
 
 /**
  * DLS (Driver Letter Space) is a space for all  file systems

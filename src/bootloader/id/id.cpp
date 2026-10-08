@@ -1,4 +1,4 @@
-#include "_intdis.hpp"
+#include "_id.hpp"
 
 InterruptDistributor interrupt_distributor;
 

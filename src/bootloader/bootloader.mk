@@ -2,12 +2,12 @@ include $(MK_DIR)x86.mk
 
 include $(SRC_DIR)bootloader/mm/mm.mk
 include $(SRC_DIR)bootloader/arch/arch.mk
-include $(SRC_DIR)bootloader/intdis/intdis.mk
+include $(SRC_DIR)bootloader/id/id.mk
 include $(SRC_DIR)bootloader/drv/drv.mk
 include $(SRC_DIR)bootloader/module/module.mk
 include $(SRC_DIR)bootloader/registry/registry.mk
 include $(SRC_DIR)bootloader/syscall/syscall.mk
-include $(SRC_DIR)bootloader/SSS/DLS.mk
+include $(SRC_DIR)bootloader/CDM/DLS.mk
 include $(SRC_DIR)bootloader/PDS/pds.mk
 include $(SRC_DIR)bootloader/multiCE/multiCE.mk
 include $(SRC_DIR)bootloader/TM/TM.mk
@@ -33,7 +33,7 @@ $(BUILD_DIR)bootloader.bin: $(OBJECTS)\
 	$(BUILD_DIR)bootloader/syscall.o\
 	$(BUILD_DIR)bootloader/TM.o\
 	$(BUILD_DIR)bootloader/arch.o\
-	$(BUILD_DIR)bootloader/intdis.o\
+	$(BUILD_DIR)bootloader/id.o\
 	$(BUILD_DIR)bootloader/GEH.o\
 
 #

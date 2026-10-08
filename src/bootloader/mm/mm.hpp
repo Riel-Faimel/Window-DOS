@@ -2,16 +2,22 @@
 #define __bootloader_mm_mm_hpp
 
 #include "phy.hpp"
-#include <global/type.hpp>
+#include "mm_def.hpp"
 #include <global/new.hpp>
 
 #define __window_dos_define_0x1_SIZE_CLASS_COUNT 17
+
+namespace mm {
 
 class KernelHeapFormat {
 protected:
 #pragma pack(push, 1)
     struct ObjHeader {
-        ObjHeader* next;
+        union {
+            Pointer<ObjHeader> next; // in list
+            BoxLevel level; // box allocated
+            SegmentSize pages; // signal allocated
+        };
         u16 head_guard;
     };/**
      * with u16 tail_guard behand object
@@ -32,8 +38,8 @@ protected:
 
     struct ObjZone {
         ObjHeader *obj_start = nullptr;
-        u32 obj_count = 0;
-        u32 free_count = 0;
+        BoxNum obj_count = 0;
+        BoxNum free_count = 0;
         u32 level = 0;
     };
 
@@ -80,7 +86,7 @@ protected:
         u32 magic;
         PageHead* page_head = nullptr;
         ObjZone free_zones[__window_dos_define_0x1_SIZE_CLASS_COUNT] = {};
-        u32 total_pages = 0;
+        PageNum total_pages = PageNum{0u};
     };
 #pragma pack(pop)
 
@@ -94,8 +100,8 @@ protected:
      * include: input one L_Page, format and
      * regist into super block(need formated)
      */
-    void format(address_package);
-    PageHead *include(address_package);
+    void format(PagePackage);
+    PageHead *include(PagePackage);
 
     static int size_to_level(u32 size);
 
@@ -113,6 +119,8 @@ protected:
     KernelHeapFormat(void* page_base);
 };
 
+}
+
 struct MemoryManager {
     class allocable {
     public:
@@ -129,13 +137,13 @@ private:
          * all of them offered alloc/dlloc function
          * and called by operator new/delete
          */
-    struct nopage : public allocable, KernelHeapFormat{
+    struct nopage : public allocable, mm::KernelHeapFormat {
         nopage(void* page_base, MemoryManager *);
         
         void *alloc(size_t);
         void dlloc(void *, size_t);
     };
-    struct inpage : public allocable, KernelHeapFormat{
+    struct inpage : public allocable, mm::KernelHeapFormat {
         inpage(void* page_base, MemoryManager *);
 
         void *alloc(size_t);
@@ -150,7 +158,7 @@ private:
 
 
 public:
-    MemoryManager(bool print = true);
+    MemoryManager(bool = true);
 
     void *alloc(size_t size) {
         return _->alloc(size);

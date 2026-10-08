@@ -1,0 +1,87 @@
+#ifndef __include_TL_condi_tranv
+#define __include_TL_condi_tranv
+
+#include <global/type.hpp>
+
+namespace rtl {
+
+template<typename U, typename V>
+struct is_same_type {
+    static constexpr bool result = false;
+};
+
+template<typename U>
+struct is_same_type<U, U> {
+    static constexpr bool result = true;
+};
+
+template<typename T>
+concept tranv_able = requires(T t) {
+    t.begin();
+    t.end();
+};
+
+// ======
+
+template<int N, tranv_able S, template<typename>class I, typename... Args>
+class ct_frame : ct_frame<N-1, S, I, Args...> {
+    using Condi_t = ct_frame<N, S, I, Args...>;
+    using MatchFunc = bool (*)(const Args&...);
+    MatchFunc mf;
+public:
+    constexpr ct_frame(ct_frame<N-1, S, I, Args...> oth, const MatchFunc &mf_):
+    ct_frame<N-1, S, I, Args...>{oth}, mf{mf_} {}
+
+    ct_frame<N+1, S, I, Args...> with(const MatchFunc &mf) const { return {*this, mf}; }
+    bool match(const Args&... args) const { return ac(args...) && ct_frame<N-1, S, I, Args...>::match(args...); }
+
+    class iterator : I<Condi_t> {
+        Condi_t condition;
+    public:
+        iterator(Condi_t condition_): condition{condition_} {}
+
+        bool match (const Args &... args) const { condition.match(args...); }
+    };
+
+    iterator begin() const { return {this->get_begin(), this->get_end(), *this}; }
+    iterator end() const { return {this->get_end(), this->get_end(), *this}; }
+};
+
+template<template<typename>class I, tranv_able S>
+class condi_trav {
+    const S &space;
+public:
+    condi_trav(const S &space_): space{space_} {}
+
+    template<typename... Args>
+    using MatchFunc = bool (*)(const Args &...);
+    template<typename... Args>
+    auto with(const MatchFunc<Args...> &);
+
+    auto begin() { return space.begin(); }
+    auto end() { return space.end(); }
+};
+
+template<template<typename>class I, tranv_able S, typename... Args>
+class ct_frame<0, S, I, Args...> {
+    using MatchFunc = bool (*)(const Args&...);
+    condi_trav<I, S> ct_base;
+    MatchFunc mf;
+public:
+    ct_frame(const MatchFunc &mf_): mf{mf_} {}
+
+    ct_frame<1, S, Args...> with(const MatchFunc &mf) const { return {*this, mf}; }
+    bool match(const Args&... args) const { return mf(args...); }
+};
+
+template<template<typename>class I, tranv_able S>
+template<typename... Args>
+auto condi_trav<I, S>::with(const MatchFunc<Args...> &) { return ct_frame<0, S, it, Args...>{}; }
+    
+} // namespace rtl 
+
+auto tranv() {
+    for (auto a : rtl::condi_trav{});
+}
+
+#endif

@@ -17,14 +17,11 @@ void LoaderMain(){
     cout << "============\n";
     cout << "FROM: Riel Faimel\n\n";
 
-
     // init work running on CPU0
     KernelModule kernelmodule;
-    StorageSubSystem sss{};
-    cout << "[INFO] DLS is ok\n";
+    ClusterDeviceManager cdm{};
     PeripheralDeviceSpace pds{};
     pds.probe();
-    pds.set_driver();
     TaskManager taskmgr;
     cout << "[INFO] start INIT.COM\n";
     ASMLabelMark(LoaderMain_StartB_INIT_EXE)

@@ -232,7 +232,7 @@ public:
 	bool is_ata() { return ((buf[CONFIG] & (1 << 15))) == 0; }
 
 	rtl::tuple<bool, u16, u16, u16> chs_param() {
-		auto cur = (buf[FIELD_VALID] & 1) == 0;
+		auto cur = (buf[FIELD_VALID] & 1) != 0;
 		if (cur) {
 			auto c = buf[CUR_CYLS], h = buf[CUR_HEADS], s = buf[CUR_SECTORS];
 			if (c == 0 || h == 0 || s == 0) {

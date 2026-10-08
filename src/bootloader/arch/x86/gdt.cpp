@@ -2,6 +2,7 @@
 #include "IDNT.hpp"
 #include <drv/screen/screen_srv.hpp>
 #include <global/new.hpp>
+#include <TL/utility>
 
 #pragma GCC optimize("Os")
 
@@ -29,7 +30,7 @@ entries(entries_init), limit(limit_init) {
     idt.regist(&SS_handler, static_cast<unsigned>(IDNT::_SS));
     GDTPtr gdt_ptr;
 
-    for(unsigned i = 0;i < 8;i++){
+    for(auto i : rtl::range{8u}){
         reinterpret_cast<volatile unsigned char *>(entries)[i] = 0;
     }
     regist(nullptr, 0xFFFFF, GDTType::Execute_read, 0); //must 0x08
@@ -50,8 +51,8 @@ unsigned GDT::regist(
     void *Segment_base, u32 Segment_limit, GDT::GDTType Type, u8 ring, 
     bool is1B_or_4K, bool is32_or16, bool is_64_long_mode, 
     bool isnot_System_segment, bool AVL
-) volatile {
-    for(unsigned i = 1; i < limit; i++){
+) {
+    for(auto i : rtl::range{(u16)1, limit}){
         if(entries[i].Segment_Descript.exist_segment)continue;
         entries[i].Segment_Descript.Segment_limit_low = reinterpret_cast<u32>(Segment_limit) & 0xFFFF;
         entries[i].Segment_Descript.Base_address_low = reinterpret_cast<u32>(Segment_base) & 0xFFFF;

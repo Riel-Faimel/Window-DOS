@@ -1,49 +1,54 @@
 #include "_pci.hpp"
 
-DeviceConfig &construc(PCI_device_config &pcf, PCI_space *enumer) {
-    auto re = new DeviceConfig{ 
-        .bus_type = DeviceConfig::BUS_TYPE::PCI,
-        .class_type = DeviceConfig::CLASS_TYPE::nul, 
+DeviceInfo &construc(PCI_device_config &pcf, PCI_space *enumer) {
+    auto re = new DeviceInfo{ 
+        .bus_type = DeviceInfo::BUS_TYPE::PCI,
+        .class_type = DeviceInfo::CLASS_TYPE::nul, 
         .device_type = 0, .config = &pcf, .enumer = enumer 
     };
-    switch (pcf.Class_code[2]){
-    case 0x01: // stroage controller
-        re->class_type = DeviceConfig::CLASS_TYPE::storage;
-        break;
-        switch (pcf.Class_code[1]) {
-        case 0x06:
-            if (pcf.Class_code[0] == 0x01)
-            re->device_type = _GD_storage_AHCI;
-            break;
-        default:
-            break;
+    switch (pcf.class_code){
+    case StorageController: {
+        re->class_type = DeviceInfo::CLASS_TYPE::storage;
+        switch (pcf.subclass_code) {
+        case IDE: {
+            // let PCI native support ISA
+            re->device_type = {_GM_DeviceType_PATA};
+            re->programinterface = _GM_ProgramInterface_IDE;
+        } break; 
+        case SATA: {
+            re->device_type = {_GM_DeviceType_SATA};
+            if (pcf.prog_interface == SATApi_AHCI || true) {
+                re->programinterface = _GM_ProgramInterface_AHCI;
+            } else {
+                re->programinterface = _GM_ProgramInterface_IDE;
+            }
+        } break;
+        default: {} break;
+        } 
+    } break;
+    case NetworkController: {
+        switch (pcf.subclass_code){
+        case 0x00: {} break;
+        default: {} break;
         }
-        break;
-    case 0x02: //network controller
-        switch (pcf.Class_code[1]){
-        case 0x00:
-        default:
-            break;
-        }
-        break;
-    case 0x03:
-    case 0x06:
-    default:
-        break;
+    } break;
+    case 0x03: {} break;
+    case 0x06: {} break;
+    default: {} break;
     }
     return *re;
 }
 
-PCI_space::PCI_space(bool print_info): print_info(print_info){};
+PCI_space::PCI_space(){};
 
 inline void PCI_space::probe(){
     for(int dev = 0;dev < 32;dev++){
-        pci_probe_device(0, dev, print_info);
+        pci_probe_device(0, dev);
     }
     for (int bus = 1;bus < 256;bus++){
         if(pci_read(bus, 0, 0, 0) == 0xFFFF)continue;
         for (int dev = 0; dev < 32;dev++){
-            pci_probe_device(bus, dev, print_info);
+            pci_probe_device(bus, dev);
         }
     }
     DebugInfo(
@@ -62,7 +67,7 @@ inline unsigned int PCI_space::pci_read(int bus, int dev, int func, int reg){
     return inl(PCI_data);
 }
 
-inline void PCI_space::pci_probe_device(int bus, int dev, bool){
+inline void PCI_space::pci_probe_device(int bus, int dev){
     unsigned int id = pci_read(bus, dev, 0, 0);
     if (
         id == 0xffffffff || id == 0x00000000 ||
@@ -125,13 +130,4 @@ inline void PCI_space::pci_probe_device(int bus, int dev, bool){
             )
         }
     }
-}
-
-void PCI_space::set_driver(){
-    for(auto &device : config) {
-        auto &cf = construc(device, this);
-        if (kmod->driver.exists(cf)) {
-            device.driver = kmod->driver[cf](cf);
-        }
-    };
 }

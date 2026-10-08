@@ -1,13 +1,13 @@
-#ifndef __bootloader_DLS_PM_hpp
-#define __bootloader_DLS_PM_hpp
+#ifndef __bootloader_CDM_PM_hpp
+#define __bootloader_CDM_PM_hpp
 
 /**
  * PM (Partition Manager) is a space for logical drivers
  * it is create more logical drivers from physical drivers and try to give file system to them
  */
 
+#include "PM_.hpp"
 #include <global/type.hpp>
-#include <SSS/PM_.hpp>
 #include <interface/dev_cls/logicaldisk.hpp>
 #include <TL/container>
 

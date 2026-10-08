@@ -4,7 +4,6 @@
 class Enumerator {
 public:
     virtual void probe() = 0;
-    virtual void set_driver() = 0;
     //virtual void set_config(void *config) = 0;
 };
 

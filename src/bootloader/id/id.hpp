@@ -1,5 +1,5 @@
-#ifndef __bootloader_DescripTable_intdis_hpp
-#define __bootloader_DescripTable_intdis_hpp
+#ifndef __bootloader_DescripTable_id_hpp
+#define __bootloader_DescripTable_id_hpp
 
 #include <global/type.hpp>
 

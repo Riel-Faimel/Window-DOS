@@ -3,6 +3,8 @@
 
 #include "..\ATA\ATActl.hpp"
 #include <interface/dev_cls/cluster.hpp>
+#define LocalDebug
+#include <global/macro.hpp>
 
 struct FIS_to {};
 
@@ -46,12 +48,12 @@ class SATA_control : public ATADiskControl {
         u32 VS;
     };
 
-    DetectTable act(const ActionTable &) const override final;
-    DetectTable detect(u8) const override final;
-    size_t pio_data_in(u16 *buf, size_t size, u8 device_index) const override final;
-    size_t dma_data_in(u16 *buf, size_t size, u8 device_index) const override final;
-    size_t pio_data_out(u16 *buf, size_t size, u8 device_index) const override final;
-    size_t dma_data_out(u16 *buf, size_t size, u8 device_index) const override final;
+	DetectTable act(const ActionTable &at) const override final;
+	DetectTable detect(DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> pio_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
 public:
     SATA_control();
     /**

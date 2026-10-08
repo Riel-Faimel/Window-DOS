@@ -68,7 +68,4 @@ void CPU::run(
     }
 }
 
-extern "C" { 
-   extern constexpr int soff = sizeof(size_t) + sizeof(CPU *)+ sizeof(MemoryManager)
-   + sizeof(IDT) + sizeof(GDT) + sizeof(TSM) + sizeof(LDT);
-}
+extern "C" { extern constexpr int soff = __builtin_offsetof(CPU, scheduler); }

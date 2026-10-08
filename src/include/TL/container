@@ -129,11 +129,7 @@ struct list {
         Node(const T &val): data{val}{}
         Node(T &&val): data{move(val)}{}
     };
-protected:
-    Node* head = nullptr;
-    Node* tail = nullptr;
-    size_t size = 0;
-
+    
     class Iterator {
         Node* ptr;
     public:
@@ -152,6 +148,11 @@ protected:
             return ptr != other.ptr;
         }
     };
+
+protected:
+    Node* head = nullptr;
+    Node* tail = nullptr;
+    size_t size = 0;
 
     void tpend(Node *new_node) {
         if (!head) {

@@ -5,7 +5,7 @@
 #include <interface/enumer.hpp>
 
 #pragma pack(push, 1)
-struct PCI_device_config{
+struct PCI_device_config {
     //===
     u16 vender_ID;
     u16 Device_ID;
@@ -14,7 +14,9 @@ struct PCI_device_config{
     u16 Status;
     //===
     u8 Revision_ID;
-    u8 Class_code[3];
+    u8 prog_interface;
+    u8 subclass_code;
+    u8 class_code;
     //===
     u8 Cache_line_size;
     u8 Latency_timer;
@@ -45,12 +47,9 @@ struct PCI_device_config{
 #pragma pack(pop)
 
 class PCI_space : public Enumerator {
-
     /**
      * this type is static
      */
-
-    bool print_info;
 
     enum class Commmand_bits {
         command_IO_space = 1 << 0,
@@ -61,11 +60,10 @@ class PCI_space : public Enumerator {
     
     void pci_lookfor_addr(int, int, int, int);
     unsigned pci_read(int, int, int, int);
-    void pci_probe_device(int, int, bool);
+    void pci_probe_device(int, int);
 public:
-    PCI_space(bool print_info = false);
+    PCI_space();
     void probe() override;
-    void set_driver();
     rtl::list<PCI_device_config> config{};
 };
 

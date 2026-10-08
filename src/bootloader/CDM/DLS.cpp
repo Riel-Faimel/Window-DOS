@@ -59,7 +59,7 @@ unsigned DLS::start(WinHandle &win, String driver_letter) {
 }
 
 unsigned DLS::open(WinHandle &win, String file_path){
-    if(win.extra) { return StorageSubSystemDefination_OpenErrorCode_NotCloseHandler; }
+    if(win.extra) { return ClusterDeviceManagerDefination_OpenErrorCode_NotCloseHandler; }
     // win.extra has other handle
     auto path_part = file_path.split(':');
     for (auto [driver, id, letter] : space) {
@@ -70,7 +70,7 @@ unsigned DLS::open(WinHandle &win, String file_path){
             return 0;
         }
     }
-    return StorageSubSystemDefination_OpenErrorCode_NoSuchDisk; // no such disk
+    return ClusterDeviceManagerDefination_OpenErrorCode_NoSuchDisk; // no such disk
 }
 
 unsigned DLS::close(WinHandle &win){

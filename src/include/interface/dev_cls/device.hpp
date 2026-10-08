@@ -5,27 +5,38 @@
 #include <interface/enumer.hpp>
 
 // global defination
-#define _GD_storage_IDE 0
-#define _GD_storage_AHCI 1
-#define _GD_storage_NVMe_disk 2
-#define _GD_network 0
+#define _GM_DeviceType_PATA 0
+#define _GM_DeviceType_SATA 1
+#define _GM_ProgramInterface_IDE 0
+#define _GM_ProgramInterface_AHCI 1
 
 struct DeviceConfig {
-    enum class BUS_TYPE : unsigned {
+    void *config = nullptr;
+    void *drv = nullptr;
+};
+
+struct DeviceInfo {
+    using ProgramInterface = u32;
+
+    enum class BUS_TYPE : u32 {
+        ISA,
         PCI,
         USB,
-        nul = (unsigned)-1,
+        nul = (u32)-1,
     } bus_type = BUS_TYPE::nul;
-    enum class CLASS_TYPE : unsigned {
+    enum class CLASS_TYPE : u32 {
         storage,
         network,
         graph,
         caculate,
         input,
         output,
-        nul = (unsigned)-1,
+        nul = (u32)-1,
     } class_type = CLASS_TYPE::nul;
-    size_t device_type = -1;
+    struct DeviceType {
+        u32 type = {(u32)-1};
+    } device_type;
+    ProgramInterface programinterface = (ProgramInterface)-1;
     void *config = nullptr;
     Enumerator *enumer = nullptr;
 };

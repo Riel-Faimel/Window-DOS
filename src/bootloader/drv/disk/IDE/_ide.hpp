@@ -7,8 +7,8 @@
 #include <global/macro.hpp>
 #include <port.h>
 #include <utility>
-#include <SSS/PM.hpp>
-#include <intdis/intdis.hpp> 
+#include <CDM/PM.hpp>
+#include <id/id.hpp> 
 #include <drv/screen/screen_srv.hpp>
 
 class IDE_control final : public ATADiskControl {

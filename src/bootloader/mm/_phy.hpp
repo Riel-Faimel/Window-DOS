@@ -23,14 +23,30 @@ struct mmap_struc {
         bad = 5,
     } type;
 };
+
+struct address_package {
+    mm::Address address;
+    mm::ByteNum len;
+};
+
+struct mem_list {
+    address_package mem;
+    mem_list *next;
+    u8 exist;
+    u8 r1;
+    u8 r2;
+    u8 r3;
+
+    mem_list *next_node() { return next; }
+};
 #pragma pack(pop)
 extern "C" {
     inline mmap_struc *mmap_struc_base = (mmap_struc *)0x5000;
-    extern PhysicalPage::mem_list* __boot_loader_end;
+    extern mem_list* __boot_loader_end;
 }
 
 struct __window_dos_loader_struct_0x1 {
-    using mem_list = PhysicalPage::mem_list;
+    using mem_list = mem_list;
     static mem_list* start;
     constexpr __window_dos_loader_struct_0x1() {}
 

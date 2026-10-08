@@ -1,7 +1,7 @@
 #include "cs.hpp"
 #include <drv/screen/screen_srv.hpp>
 #include <arch/cpu.hpp>
-#include <intdis/intdis.hpp>
+#include <id/id.hpp>
 #include <mm/mm.hpp>
 //#include <DescripTable/idt.hpp>
 

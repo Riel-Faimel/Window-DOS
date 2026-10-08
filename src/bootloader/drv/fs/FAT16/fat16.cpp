@@ -7,6 +7,14 @@ FATTable{}, DirResolv{},
 status{RAW}, part{part_init}{
     BPB bpb;
     part->read(bpb.buf, 0, 0, 1);
+    #undef LocalDebug
+    #include <global/macro.hpp>
+    LocalDebugInfo(
+        for (auto i : rtl::range{256}) {
+            print_hex(bpb.buf[i], false);print_char(' ');
+        }
+        while(1);
+    )
     if(
         bpb.boot_sector_sign == 0xAA55 &&
         bpb.root_entry_num == 512

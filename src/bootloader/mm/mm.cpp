@@ -1,4 +1,5 @@
 #include "_mm.hpp"
+using namespace mm;
 
 #pragma GCC optimize("Os")
 #pragma GCC diagnostic ignored "-Wmultichar"
@@ -8,7 +9,7 @@ MemoryManager *global_heap;
 
 KernelHeapFormat::KernelHeapFormat(void *page_base){
     if (page_base == nullptr) {
-        auto pkg = *physicalpage.aloc(4096, true).begin();
+        auto pkg = *physicalpage.aloc(PageNum{4096u}, true).begin();
         format(pkg);
     } else if (static_cast<SuperBlock *>(page_base)->magic == SuperBlockMagic) {
         sb = static_cast<SuperBlock *>(page_base);
@@ -38,8 +39,8 @@ KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
         }
     }
     // not found
-    for (auto addrpkg : physicalpage.aloc(512, true)) {
-        if (addrpkg.address == u64{0}) addrpkg = *physicalpage.aloc(2, true).begin();
+    for (auto addrpkg : physicalpage.aloc(PageNum{512}, true)) {
+        if (addrpkg.base == Address{0u}) addrpkg = *physicalpage.aloc(PageNum{2}, true).begin();
         auto page = include(addrpkg);
         for (auto &subzone : page->subzone_tranveser()) {
             page->create_subzone(&subzone, size_need);
@@ -70,8 +71,11 @@ void KernelHeapFormat::deletezone(KernelHeapFormat::SubZone *zone) {
 __attribute__((optimize("O2")))
 void KernelHeapFormat::format_subzone(SubZone *sz, u32 level) {
     ObjHeader buf{}, *lastptr = &buf;
-    u32 objcount = 0;
-    for(u8 *objptr = (u8 *)(sz+1);objptr < sz->end;lastptr = (ObjHeader *)objptr, objptr+=sz->objsize) {
+    BoxNum objcount = 0;
+    for(
+        u8 *objptr = (u8 *)(sz+1);objptr < sz->end;
+        lastptr = (ObjHeader *)objptr, objptr+=sz->objsize
+    ) {
         ((ObjHeader *)objptr)->head_guard = 0;
         lastptr->next = (ObjHeader *)objptr;
         objcount++;
@@ -81,18 +85,19 @@ void KernelHeapFormat::format_subzone(SubZone *sz, u32 level) {
     sb->free_zones[level].free_count += objcount;
     //cout << "level(C): " << level << ", start: " << sb->free_zones[level].obj_start << '\n';
 }
-void KernelHeapFormat::format(address_package addrpkg) {
-    sb = (SuperBlock *)new (reinterpret_cast<void *>(addrpkg.address.low)) SuperBlock {
-        .magic = SuperBlockMagic, .total_pages = addrpkg.len.low
+void KernelHeapFormat::format(PagePackage addrpkg) {
+    sb = (SuperBlock *)new (Pointer<ObjHeader>{addrpkg.base}) SuperBlock {
+        .magic = SuperBlockMagic, .total_pages = addrpkg.pages
     };
-    sb->page_head = (PageHead *) new (sb+1) PageHead { 
-        (void *)((addrpkg.address+addrpkg.len).low) 
+    sb->page_head = (PageHead *) new (sb+1) PageHead {
+        Pointer<int>(addrpkg.base+static_cast<ByteNum>(addrpkg.pages))
     };
 }
-KernelHeapFormat::PageHead *KernelHeapFormat::include(address_package addrpkg) {
-    PageHead *page = new (reinterpret_cast<void *>(addrpkg.address.low)) PageHead {
-        (void *)((addrpkg.address+addrpkg.len).low)
+KernelHeapFormat::PageHead *KernelHeapFormat::include(PagePackage addrpkg) {
+    PageHead *page = new (static_cast<void *>(Pointer<int>{addrpkg.base})) PageHead {
+        (void *)(Pointer<int>{addrpkg.base+static_cast<ByteNum>(addrpkg.pages)})
     };
+    page->next = sb->page_head;
     sb->page_head = page;
     return page;
 }
@@ -127,7 +132,7 @@ KernelHeapFormat::PageHead::tran::iterator::operator++() {
 int KernelHeapFormat::size_to_level(u32 size) {
     u32 label = 0;
     for (auto l : size_classes) {
-        if (l > size) return label;
+        if (l >= size) return label;
         label++;
     }
     return (u32)-1;
@@ -147,25 +152,25 @@ KernelHeapFormat::SubZone *KernelHeapFormat::search_zone(void *obj, KernelHeapFo
 inline MemoryManager::allocable::allocable(MemoryManager *mm) {
     mm->_ = this;
 }
-
 MemoryManager::nopage::nopage(void* page_base, MemoryManager *mm):
 allocable{mm}, KernelHeapFormat{page_base} {}
 
 __attribute__((optimize("O2")))
 void *MemoryManager::nopage::alloc(size_t size) {
-    KernelHeapFormat::ObjHeader *box = nullptr;
     auto level = size_to_level(size);
     if (level == -1) {
         // alloc as page
-        unsigned need_page = (size + sizeof(ObjHeader) - 1)/4096 + 1;
-        for(auto addrpkg : physicalpage.aloc(need_page, true))
-        box = (ObjHeader *)addrpkg.address.low;
+        for(auto [base, pages] : physicalpage.aloc(
+            static_cast<PageNum>(ByteNum{size + sizeof(ObjHeader)}), true
+        )) {
+            auto box = Pointer<ObjHeader>{base};
 
-        if(box == (void *)-1) return nullptr;
-        box->next = (ObjHeader *)need_page;
-        box->head_guard = ObjectSingalGuard;
-        //cout << "<addr=" << box+1 << ">\n";
-        return box+1;
+            if(box == (void *)-1) return nullptr;
+            box->pages = pages;
+            box->head_guard = ObjectSingalGuard;
+            //cout << "<addr=" << box+1 << ">\n";
+            return box+1;
+        }
     }
 
     auto &objzone = sb->free_zones[level];
@@ -175,10 +180,10 @@ void *MemoryManager::nopage::alloc(size_t size) {
         //cout << "level(P): " << level << ", objzone start: " << objzone.obj_start << '\n';
     }
 
-    box = objzone.obj_start;
+    auto box = objzone.obj_start;
     objzone.free_count--;
     objzone.obj_start = box->next;
-    box->next = (ObjHeader *)level;
+    box->level = level;
 
     // set head and guard
     new (box) ObjHeader{.next = nullptr, .head_guard = ObjectHeadGuard};
@@ -194,27 +199,23 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     auto objhead = static_cast<ObjHeader *>(ptr)-1;
     if (objhead->head_guard == ObjectSingalGuard) {
         objhead->head_guard = 0;
-        physicalpage.dloc({(u64)(u32)objhead, (u64)(u32)objhead->next});
+        physicalpage.dloc({Address{objhead}, static_cast<PageNum>(objhead->pages)});
     } else if (objhead->head_guard == ObjectHeadGuard) {
         objhead->head_guard = 0;
-        auto &zone = sb->free_zones[(u32)objhead->next];
+        auto &zone = sb->free_zones[objhead->level];
         objhead->next = zone.obj_start;
         zone.obj_start = objhead;
         zone.free_count++;
     }
 }
+__attribute__((error("Not yet!")))
 MemoryManager::inpage::inpage(void* page_base, MemoryManager *mm):
-allocable{mm}, KernelHeapFormat{page_base} {
-    while(1);
-}
+allocable{mm}, KernelHeapFormat{page_base} {}
 void *MemoryManager::inpage::alloc(size_t) { return nullptr; }
 void MemoryManager::inpage::dlloc(void *, size_t) {}
 MemoryManager::MemoryManager(bool print):
 reserved_space{._rn{nullptr, this}} {
-#ifdef _DEBUG
-if(print)
-cout << "< heap: " << *(void **)(&reserved_space._rn);
-#endif
+    DebugInfo(if (print) cout << "< heap: " << *(void **)(&reserved_space._rn);)
 }
 
 //======

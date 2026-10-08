@@ -37,9 +37,12 @@ boot.img: $(BUILD_DIR)bootloader/start/boot.bin $(BUILD_DIR)bootloader.bin
 	copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
 kernel.exe:
 result: boot.img kernel.exe
-mod:
-QEMUFLAGS = -serial stdio -drive format=raw,index=0,file=boot.img,media=disk \
-	-drive format=raw,index=1,file=flp.vhd,media=disk
+
+QEMUFLAGS = -serial stdio \
+	-device ich9-ahci,id=sata\
+	-drive format=raw,index=0,file=boot.img,media=disk \
+	-drive format=raw,id=disk1,file=flp.vhd,if=none\
+	-device ide-hd,drive=disk1,bus=sata.1
 
 run: 
 	$(QEMU) $(QEMUFLAGS)

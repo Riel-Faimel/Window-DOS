@@ -3,8 +3,8 @@
 #include <port.h>
 #include <drv/screen/screen_srv.hpp>
 #include <interface/dev_cls/device.hpp>
-#include <SSS/PM.hpp>
-#include <intdis/intdis.hpp>
+#include <CDM/PM.hpp>
+#include <id/id.hpp>
 #include "..\ATA\ATAcmd.hpp"
 #include <registry/registry.hpp>
 #include "..\ATA\linux_ata_def.hpp"
@@ -166,26 +166,11 @@ void IDE_Channal::effect_ctlpkg(IDE_Channal::ctlpkg &cp){
 }
 
 unsigned IDE_Channal::read(unsigned short *buf, unsigned LBA, unsigned count, DiskInfo *info){
-    /*
-    cout << '<' << LBA << ',' << count << '>';
-    //*/
     if(info->address_mode & 0b10) return read_PIO_LBA(buf, LBA, count, info->device);
     else return read_PIO_CHS(buf, LBA, count, info->device);
 }
 
 unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned count, u8 dev){
-    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
-    if(status & 0x80){
-        unsigned i = 0;
-        while ((inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x80)){
-            i++;
-            if(i > 0x10000){
-                if(registry.do_IDE_controller_initialization_print_info)
-                cout << "[NOTICE] time out\n";
-                return -1; //time out
-            }
-        };    
-    }
     ctlpkg cp {
         .flags = static_cast<u32>(ATA::TFLAG_ISADDR) | 
         static_cast<u32>(ATA::TFLAG_DEVICE) | 
@@ -200,6 +185,16 @@ unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned c
         .device = (u8)(dev | ((LBA >> 24) & 0x0F)),
         .cmd_stat = static_cast<u8>(ATA::CMD_PIO_READ)
     };
+    unsigned char status = inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS));
+    if(status & 0x80){
+        unsigned i = 0;
+        while ((inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x80)){
+            i++;
+            if(i > 0x10000){
+                return -1; //time out
+            }
+        };    
+    }
     send_ctlpkg(cp);
     effect_ctlpkg(cp);
 
@@ -209,8 +204,6 @@ unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned c
         while (!(inb(static_cast<u16>(chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
             i++;
             if(i > 10000){
-                if(registry.do_IDE_controller_initialization_print_info)
-                cout << "[NOTICE] Time out\n";
                 return -1;
             }
         };
@@ -222,8 +215,7 @@ unsigned IDE_Channal::read_PIO_LBA(unsigned short *buf, unsigned LBA, unsigned c
     return re;
 }
 
-unsigned IDE_Channal::read_PIO_CHS(unsigned short */*buf*/, unsigned /*LBA*/, unsigned /*count*/, u8 /*dev*/){
-    kprint("[NOTICE] CHS read not implemented yet\r\n");
+unsigned IDE_Channal::read_PIO_CHS(unsigned short *, unsigned, unsigned, u8){
     return -1;
 }
 
@@ -275,7 +267,6 @@ inline unsigned IDE_Channal::write_PIO_LBA(unsigned short *buf, unsigned int LBA
 }
 
 inline unsigned IDE_Channal::write_PIO_CHS(unsigned short */*buf*/, unsigned int /*LBA*/, unsigned char /*count*/, u8 /*dev*/){
-    kprint("[NOTICE] CHS write not implemented yet\r\n");
     return -1;
 }
 
@@ -307,7 +298,6 @@ lock(c), info_{}, exist{true}{
     io_wait();
     auto status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status == 0xFF){
-        cout << "[ERROR] No disk found\n";
         exist = false;
         return;
     }
@@ -407,7 +397,6 @@ lock(c), info_{}, exist{true}{
     while(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x80){
         i++;
         if(i > 0x10000){
-            cout << "[NOTICE] time out\n";
             exist = false;
             return; //time out
         }
@@ -420,14 +409,12 @@ lock(c), info_{}, exist{true}{
     while(!(inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS)) & 0x08)){
         i++;
         if(i > 0x10000){
-            cout << "[NOTICE] time out\n";
             exist = false;
             return; //time out
         }
     }; 
     status = inb(static_cast<u16>(c->chan) + static_cast<u8>(ATA::REG_STATUS));
     if(status & 0x01) {
-        cout << "[ERROR] IDENTIFY command failed\n";
         exist = false;
         return;
     }
@@ -505,10 +492,9 @@ lock(c), info_{}, exist{true}{
 };
 
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
-    /*
-    cout << '{' << (unsigned)(&lock) << '}';
-    cout << '<' << LBA << ", " << sectors_read << '>';
-    //*/
+#define LocalDebug
+#include <global/macro.hpp>
+    LocalDebugInfo(cout << '[' << LBA << ", " << sectors_read << "]\n";)
     if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
     else while(1);//return -1;
 }
@@ -518,29 +504,7 @@ unsigned IDE_DISK::write(void *buf, unsigned LBA, unsigned, unsigned sectors_wri
     else return -1;
 }
 
-void IDE_DISK::check(){
-    outb(info_.device, static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_DEVICE));
-    io_wait();
-    
-    auto status = inb(static_cast<u16>(lock->chan) + static_cast<u16>(ATA::REG_STATUS));
-    
-    if(status == 0xFF) {
-        kprint("-- No Device --\n");
-        return;
-    }
-    
-    if(status & 0x80) kprint("-- Device Busy --\n");
-    if(status & 0x40) kprint("-- Device Ready --\n");
-    if(status & 0x20) kprint("-- Device Fault --\n");
-    if(status & 0x10) kprint("-- Data Request Ready --\n");
-    if(status & 0x08) kprint("-- Device Error --\n");
-    
-    if(!(status & 0x80) && !(status & 0x08) && !(status & 0x10)) {
-        kprint("-- Device idle --\n");
-    }
-    
-    print_hex(status);
-}
+void IDE_DISK::check(){}
 
 DiskInfo *IDE_DISK::info(unsigned, String){
     return &info_;

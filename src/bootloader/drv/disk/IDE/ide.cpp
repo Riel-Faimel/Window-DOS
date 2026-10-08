@@ -41,15 +41,15 @@ IDE_control::IDE_control() {
 #undef LocalDebug
 #include <global/macro.hpp>
             LocalDebugInfo(
-                bool a = true;
+                static bool a = false;
+                cout << "enter" << a << '\n';
                 if (a) {
                     u16 buf[256];
-                    disk->read(buf, 0, 0, 1);
+                    disk->read(buf, 0x80, 0, 1);
                     for (auto ch : buf) {
                         print_hex(ch, false);print_char(' ');
                     }
-                    cout << "===\n";
-                    //while(1);
+                    while(1);
                 } else {
                     a = true;
                 }
@@ -147,7 +147,7 @@ rtl::pair<DetectTable, size_t> IDE_control::pio_data_in(bufAddr buf, SectorCount
             if (timeout_count > 512) return {result, 0};
         }
         for (size_t i = 0;i < 256;i++) {
-            buf[i] = inw(chan + CMDBlock::data);
+            buf[i + static_cast<byteCount>(sec).to_size_t() / 2] = inw(chan + CMDBlock::data);
             bytes_read+=2;
         }
     }
@@ -162,12 +162,15 @@ rtl::pair<DetectTable, size_t> IDE_control::pio_data_out(bufAddr buf, SectorCoun
     DetectTable result;
     auto [chan, _] = diskID2chan_dev(device);
 
-    for (result = detect(device);result.status.busy || !result.status.data_ready;timeout_count++, result = detect(device)) {
-        if (timeout_count > 512) return {result, 0};
-    }
-    for (size_t i = 0;i < static_cast<byteCount>(count).to_size_t() / 512;i++) {
-        outw(buf[i], chan);
-        bytes_write+=2;
+    for (auto sec : rtl::range{count}) {
+        for (;result.status.busy || !result.status.data_ready;
+            timeout_count++, result = detect(device)) {
+            if (timeout_count > 512) return {result, 0};
+        }
+        for (size_t i = 0;i < 256;i++) {
+            outw(buf[i + static_cast<byteCount>(sec).to_size_t() / 2], chan + CMDBlock::data);
+            bytes_write+=2;
+        }
     }
     return {result, bytes_write};
 }
@@ -200,16 +203,19 @@ diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}
 
 
 unsigned IDE::read(void *buf, unsigned LBA, unsigned LBAh, unsigned count) {
+#undef LocalDebug
+#include <global/macro.hpp>
+    LocalDebugInfo(cout << '[' << LBA << ", " << count << "]\n";)
     DetectTable detect{};
     size_t bytes = 0;
     if (diskinfo.address_mode & 0b10) {
         LocalDebugInfo(cout << "PIO mode: " << diskinfo.PIO_supported << '\n';)
         if (false) { // DMA no yet
-            auto [d_, b_] = ctl.read_DMA_LBA(bufAddr{buf}, LBAaddr{LBA, LBAh}, SectorCount{(u16)count}, device);
+            auto [d_, b_] = ctl.read_DMA_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
             detect = d_; bytes = b_;
             goto DONE;
         } else if (diskinfo.PIO_supported || true) { // use PIO
-            auto [d_, b_] = ctl.read_PIO_LBA(bufAddr{buf}, LBAaddr{LBA, LBAh}, SectorCount{(u16)count}, device);
+            auto [d_, b_] = ctl.read_PIO_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
             detect = d_; bytes = b_;
             goto DONE;
         }

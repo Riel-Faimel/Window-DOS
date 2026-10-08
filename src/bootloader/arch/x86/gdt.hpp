@@ -27,7 +27,7 @@ public:
         void *Segment_base, u32 Segment_limit, GDTType Type, u8 ring, 
         bool is1B_or_4K = true, bool is32_or16 = true, 
         bool is_64_long_mode = false, bool isnot_System_segment = true, bool AVL = false
-    ) volatile;
+    );
 
     unsigned create_gate(
         void *offset, u16 Segment, GateType type,

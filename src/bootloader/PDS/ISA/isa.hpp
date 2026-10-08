@@ -6,7 +6,6 @@
 class ISA_space : public Enumerator {
 public:
     void probe() override;
-    void set_driver() override;
 };
 
 

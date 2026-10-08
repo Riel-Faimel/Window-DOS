@@ -3,8 +3,8 @@ import changestack;
 char _stack[128];
 extern "C" void keyboard_handler();
 
-namespace KeyBoard
-{
+namespace KeyBoard {
+
 char buffer[1024];
 bool click;
 unsigned read;
@@ -19,12 +19,9 @@ inline void deal_main(){
 }
 
 void keyboard_handler_c(){
-    {
-        ChangeStack s(_stack);
-        {
-            deal_main();
-        }
-    }
+    { ChangeStack s(_stack);{
+        deal_main();
+    }}
     /*
     mov al, 0x20
     out 0x20, al

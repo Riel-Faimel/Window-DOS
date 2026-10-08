@@ -4,7 +4,7 @@
 #include <global/new.hpp>
 #include <lib/utility>
 
-#define LocalDebug
+#undef LocalDebug
 #include <global/macro.hpp>
 #include <drv/screen/screen_srv.hpp>
 
@@ -83,6 +83,7 @@ class SectorView : public SectorCache<T> {
     u32 sector_at (size_t offset) {
         return offset / 512u + sector_start;
     }
+protected:
     rtl::pair<u8 *, bool>ptr(size_t offset) {
         auto sec = sector_at(offset);
         if (sec >= sector_start + sector_count) return {nullptr, true};
@@ -115,6 +116,9 @@ template<typename T>
 class FATTable : public SectorView<FATTable<T>> {
     using SectorView<FATTable<T>>::get;
     using SectorView<FATTable<T>>::set;
+    LocalDebugInfo(
+        using SectorView<FATTable<T>>::ptr;
+    )
     size_t sector_count;
     
 protected:
@@ -126,12 +130,27 @@ protected:
     }
     void init(u16 start, u16 max_cluster, size_t max_cache = 4) {
         SectorView<FATTable<T>>::init(start, max_cluster, max_cache);
+        #undef LocalDebug
+        #include <global/macro.hpp>
+        LocalDebugInfo(
+            auto [p, err] = ptr(0);
+            if (err) cout << "[Fault] ptr err\n";
+            for (auto i : rtl::range{512}) {
+                print_hex(p[i], false);print_char(' ');
+            }
+            while (1);
+        )
     }
     
     rtl::pair<u16, bool> get_fat(u16 cluster) {
         if (cluster == 0) return {0, true};
         auto [high, err1] = get(cluster * 2u + 1u);
         auto [low, err2] = get(cluster * 2u); // cluster as offset in FAT
+        LocalDebugInfo(
+            if (err1 || err2) cout << "[Fault] ptr error\n";
+            cout << u16{(high << 8) | low};
+            while(1);
+        )
         if (err1 || err2) return {0, true};
         return {static_cast<u16>((high << 8) | low), false};
     }

@@ -82,7 +82,7 @@ public:
         cmd.fill_addr = false;
         cmd.device_index = static_cast<u8>(dev);
         DebugInfo(ASMLabelMark(identify_acting))
-#define LocalDebug
+#undef LocalDebug
 #include <global/macro.hpp>
         DetectTable result = act(cmd);
         if (result.status.busy || result.status.error) {
@@ -146,6 +146,11 @@ public:
     }
 
     rtl::pair<DetectTable, size_t> read_PIO_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
+        #undef LocalDebug
+        #include <global/macro.hpp>
+        LocalDebugInfo(
+            cout << '[' << LBA.high;print_hex(LBA.low, false);cout << ", " << static_cast<u16>(count) << "]\n";
+        )
         ActionTable cmd = {};
         if (LBA.high || LBA.low & 0xF0000000) {
             cmd.cmd = ATAcmd::read_pio_ext;
