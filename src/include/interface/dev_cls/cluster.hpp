@@ -6,6 +6,7 @@
 
 class Cluster : public LogicalDisk {
 public:
+    virtual ~Cluster() = default;
     virtual unsigned open(String) = 0;
     virtual unsigned close(unsigned) = 0;
     virtual unsigned create(String) = 0;

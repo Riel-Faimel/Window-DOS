@@ -1,0 +1,21 @@
+#ifndef __include_TL_concept
+#define __include_TL_concept
+
+
+namespace rtl {
+    
+template<typename U, typename V>
+struct is_same { constexpr static bool result = false; };
+
+template<typename T>
+struct is_same<T, T> { constexpr static bool result = true; };
+
+template<typename U, typename V>
+constexpr inline bool is_same_t = is_same<U, V>::result;
+
+} // namespace rtl 
+
+
+
+
+#endif

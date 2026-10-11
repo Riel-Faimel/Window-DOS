@@ -1,7 +1,7 @@
 CFLAGS64 = -m64 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding \
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
-		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)bootloader/
+		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/
 
 CPPFLAGS64 = $(CFLAGS64) -nodefaultlibs -fno-rtti -fno-exceptions -fno-use-cxa-atexit
 LDFLAGS_B64 = -nostdlib -m i386pep

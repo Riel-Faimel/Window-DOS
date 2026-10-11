@@ -46,6 +46,7 @@ public:
      * if File system realize
      * read/write(buffer, handle, byte_offset, byte_deal)
      */
+    virtual ~LogicalDisk() = default;
     virtual unsigned read(void *, unsigned, unsigned, unsigned) = 0;
     virtual unsigned write(void *, unsigned, unsigned, unsigned) = 0;
     virtual ClusterInfo* info(unsigned = 0, String = {}) = 0;

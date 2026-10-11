@@ -21,8 +21,8 @@ endef
 
 export MKDIR_F MOD
 
-include $(SRC_DIR)bootloader/bootloader.mk
 include $(SRC_DIR)kernel/kernel.mk
+include $(SRC_DIR)ext/kernel.mk
 include $(SRC_DIR)lib/lib.mk
 #include $(ROOT_DIR)/app/app.mk
 
@@ -33,7 +33,7 @@ libs: libos.a
 module: module_32
 
 MBR.bin: 
-boot.img: $(BUILD_DIR)bootloader/start/boot.bin $(BUILD_DIR)bootloader.bin
+boot.img: $(BUILD_DIR)bootloader/x86/boot.bin $(BUILD_DIR)kernel.bin
 	copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
 kernel.exe:
 result: boot.img kernel.exe

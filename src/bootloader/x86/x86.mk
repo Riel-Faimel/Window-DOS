@@ -1,0 +1,1 @@
+$(BUILD_DIR)bootloader/x86/boot.bin: $(SRC_DIR)bootloader/x86/boot.asm

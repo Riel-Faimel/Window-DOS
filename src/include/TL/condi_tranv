@@ -2,86 +2,175 @@
 #define __include_TL_condi_tranv
 
 #include <global/type.hpp>
+#include <TL/concept>
 
 namespace rtl {
 
-template<typename U, typename V>
-struct is_same_type {
-    static constexpr bool result = false;
+template<typename T, typename R>
+concept AccordCondition = requires (T t, const R &r) {
+    rtl::is_same_t<decltype(t(r)), bool>;
 };
+    
+template<typename Record, template <typename> typename Container>
+class Filter {
+    template<typename C>
+    class Iterator;
+    Container<Record> data;
 
-template<typename U>
-struct is_same_type<U, U> {
-    static constexpr bool result = true;
-};
-
-template<typename T>
-concept tranv_able = requires(T t) {
-    t.begin();
-    t.end();
-};
-
-// ======
-
-template<int N, tranv_able S, template<typename>class I, typename... Args>
-class ct_frame : ct_frame<N-1, S, I, Args...> {
-    using Condi_t = ct_frame<N, S, I, Args...>;
-    using MatchFunc = bool (*)(const Args&...);
-    MatchFunc mf;
+    template<u32 N, typename... AC>
+    class CondiView;
+    class it;
 public:
-    constexpr ct_frame(ct_frame<N-1, S, I, Args...> oth, const MatchFunc &mf_):
-    ct_frame<N-1, S, I, Args...>{oth}, mf{mf_} {}
-
-    ct_frame<N+1, S, I, Args...> with(const MatchFunc &mf) const { return {*this, mf}; }
-    bool match(const Args&... args) const { return ac(args...) && ct_frame<N-1, S, I, Args...>::match(args...); }
-
-    class iterator : I<Condi_t> {
-        Condi_t condition;
-    public:
-        iterator(Condi_t condition_): condition{condition_} {}
-
-        bool match (const Args &... args) const { condition.match(args...); }
-    };
-
-    iterator begin() const { return {this->get_begin(), this->get_end(), *this}; }
-    iterator end() const { return {this->get_end(), this->get_end(), *this}; }
+    template<AccordCondition<Record> AC>
+    CondiView<0u, AC> filter(AC);
+    it begin() const;
+    it end() const;
 };
 
-template<template<typename>class I, tranv_able S>
-class condi_trav {
-    const S &space;
+// === iterator template ===
+
+template<class Record, template<class> class Container> 
+template<typename C> 
+class Filter<Record, Container>::Iterator {
+protected:
+    using RIt = Container<Record>::Iterator;
+    bool match(const Record &prog) const 
+    { return static_cast<const C *>(this)->match(prog); }
+private:
+    RIt pif_this;
 public:
-    condi_trav(const S &space_): space{space_} {}
-
-    template<typename... Args>
-    using MatchFunc = bool (*)(const Args &...);
-    template<typename... Args>
-    auto with(const MatchFunc<Args...> &);
-
-    auto begin() { return space.begin(); }
-    auto end() { return space.end(); }
+    Iterator(const RIt &pit_): pif_this{pit_} {}
+    bool operator != (const Iterator &oth) const 
+    { return (pif_this != oth.pif_this); }
+    Record &operator * () const { return *pif_this; }
+    Iterator &operator ++ () { 
+        match(*pif_this); // not yet
+        return *this;
+    }
 };
 
-template<template<typename>class I, tranv_able S, typename... Args>
-class ct_frame<0, S, I, Args...> {
-    using MatchFunc = bool (*)(const Args&...);
-    condi_trav<I, S> ct_base;
-    MatchFunc mf;
+// === conditions ===
+
+template<class Record, template<typename> typename Container>
+template<u32 N, typename AC, typename... Before> 
+class Filter<Record, Container>::CondiView<N, AC, Before...> : CondiView<N-1, Before...> {
+    AC ac;
+    class it;
 public:
-    ct_frame(const MatchFunc &mf_): mf{mf_} {}
+    CondiView(CondiView<N-1, AC> oth, AC ac_):
+    CondiView<N-1, Before...>{oth}, ac{ac_} {}
 
-    ct_frame<1, S, Args...> with(const MatchFunc &mf) const { return {*this, mf}; }
-    bool match(const Args&... args) const { return mf(args...); }
+    template<AccordCondition<Record> Ac_>
+    CondiView<N+1, Ac_> filter(Ac_ ac) { return {*this, ac}; }
+    bool match(const Record &prog) const
+    { return ac(prog) && CondiView<N-1, Before>::match(prog); }
+
+    it begin() const;
+    it end() const;
 };
 
-template<template<typename>class I, tranv_able S>
-template<typename... Args>
-auto condi_trav<I, S>::with(const MatchFunc<Args...> &) { return ct_frame<0, S, it, Args...>{}; }
+template<class Record, template<typename> typename Container>
+template<AccordCondition<Record> AC> 
+class Filter<Record, Container>::CondiView<0u, AC> {
+    Container<Record> &space;
+protected:
+    auto get_begin() const { return space.begin(); }
+    auto get_end() const { return space.end(); }
+private:
+    AC ac;
+    class it;
+public:
+    CondiView(Container<Record> &s, AC ac_): space{s}, ac{ac_} {}
+
+    CondiView<1u, AC> filter(AC ac) { return {*this, ac}; }
+    bool match(const Record &pid) const { return ac(pid); }
+
+    it begin() const;
+    it end() const;
+};
+
+// === Iterators ===
+
+template<class Record, template<class> class Container> 
+class Filter<Record, Container>::it : public Filter<Record, Container>::Iterator<it> {
+    friend class Filter<Record, Container>::Iterator<it>;
+    bool match(const Record &) const { return true; }
+public:
+    it(const Iterator<it>::RIt &rit_): Iterator<it>{rit_} {}
+};
+
+template<class Record, template<typename> typename Container> 
+template<u32 N, AccordCondition<Record> AC> 
+class Filter<Record, Container>::CondiView<N, AC>::it : public Filter<Record, Container>::Iterator<it> {
+    CondiView<N, AC> condition;
+    friend class Filter<Record, Container>::Iterator<it>;
+    bool match(const Record &pid) const { return condition.match(pid); }
+public:
+    it(const Iterator<it>::RIt &rit_, const CondiView<N, AC> &condition_):
+    Iterator<it>{rit_}, condition{condition_} {}
+};
+
+template<class Record, template<typename> typename Container> 
+template<AccordCondition<Record> AC> 
+class Filter<Record, Container>::CondiView<0U, AC>::it : public Filter<Record, Container>::Iterator<it> {
+    CondiView<0, AC> condition;
+    friend class Filter<Record, Container>::Iterator<it>;
+    bool match(const Record &pid) const { return condition.match(pid); }
+public:
+    it(const Iterator<it>::RIt &rit_, const CondiView<0, AC> &condition_):
+    Iterator<it>{rit_}, condition{condition_} {}
+};
+
+template<typename Record, template <typename> typename Container>
+Filter<Record, Container>::it Filter<Record, Container>::begin()
+const 
+{ return {data.begin()}; }
+template<typename Record, template <typename> typename Container>
+Filter<Record, Container>::it 
+Filter<Record, Container>::end() 
+const 
+{ return {data.end()}; }
+template<typename Record, template <typename> typename Container>
+template<AccordCondition<Record> AC>
+Filter<Record, Container>::CondiView<0U, AC> 
+Filter<Record, Container>::filter(AC ac)
+{ return {data, ac}; }
+
+template<typename Record, template <typename> typename Container>
+template<u32 N, AccordCondition<Record> AC> 
+Filter<Record, Container>::CondiView<N, AC>::it 
+Filter<Record, Container>::CondiView<N, AC>::begin() 
+const 
+{ return {CondiView<0u, AC>::space.begin(), *this}; }
+template<typename Record, template <typename> typename Container>
+template<u32 N, AccordCondition<Record> AC> 
+Filter<Record, Container>::CondiView<N, AC>::it 
+Filter<Record, Container>::CondiView<N, AC>::end() 
+const 
+{ return {CondiView<0u, AC>::space.end(), *this}; }
+
+template<typename Record, template <typename> typename Container>
+template<AccordCondition<Record> AC> 
+Filter<Record, Container>::CondiView<0u, AC>::it 
+Filter<Record, Container>::CondiView<0u, AC>::begin() 
+const 
+{ return {space.begin(), *this}; }
+template<typename Record, template <typename> typename Container>
+template<AccordCondition<Record> AC> 
+Filter<Record, Container>::CondiView<0u, AC>::it 
+Filter<Record, Container>::CondiView<0u, AC>::end() 
+const 
+{ return {space.end(), *this}; }
+
     
 } // namespace rtl 
 
+#include <TL/container>
 auto tranv() {
-    for (auto a : rtl::condi_trav{});
+    for (auto a : rtl::Filter<int, rtl::list>{}
+        .filter([](int)->bool{return true;})
+        .filter([](int)->bool{return true;})
+    );
 }
 
 #endif

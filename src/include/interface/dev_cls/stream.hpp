@@ -1,15 +1,17 @@
-#ifndef __include_interface_bootloader_stream_hpp
-#define __include_interface_bootloader_stream_hpp
+#ifndef __include_interface_kernel_stream_hpp
+#define __include_interface_kernel_stream_hpp
 #include <global/type.hpp>
 
 class Stream {
+public:
+    virtual ~Stream() = default;
     virtual Stream &operator<<(u8) = 0;
     virtual Stream &operator>>(u8&) = 0;
 
-    virtual void send();
-    virtual void get();
-    virtual void control();
-    virtual void status();
+    virtual void send() = 0;
+    virtual void get() = 0;
+    virtual void control() = 0;
+    virtual void status() = 0;
 };
 
 #endif

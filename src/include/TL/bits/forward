@@ -1,5 +1,5 @@
-#ifndef __bootloader_src_include_TL_bits_forward
-#define __bootloader_src_include_TL_bits_forward
+#ifndef __kernel_src_include_TL_bits_forward
+#define __kernel_src_include_TL_bits_forward
 
 #include <TL/bits/utility>
 

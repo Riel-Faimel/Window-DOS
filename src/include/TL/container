@@ -134,7 +134,7 @@ struct list {
         Node* ptr;
     public:
         Iterator(Node* p) : ptr{p} {}
-        T& operator*() { return ptr->data; }
+        T& operator*() const { return ptr->data; }
         auto operator->() { return &ptr->data; }
         Iterator& operator++() {
             ptr = ptr->next;
@@ -144,9 +144,7 @@ struct list {
             ptr = ptr->prev;
             return *this;
         }
-        bool operator!=(Iterator& other) {
-            return ptr != other.ptr;
-        }
+        bool operator!=(const Iterator& other) const { return ptr != other.ptr; }
     };
 
 protected:
@@ -325,8 +323,8 @@ public:
     } 
     size_t get_size() { return size; } 
     bool empty() { return size == 0; }
-    Iterator begin() { return Iterator{head}; } 
-    Iterator end() { return Iterator{nullptr}; }
+    Iterator begin() const { return Iterator{head}; } 
+    Iterator end() const { return Iterator{nullptr}; }
 
     list(list&& other): head(other.head), tail(other.tail), size(other.size) {
         other.head = nullptr;
@@ -345,8 +343,12 @@ public:
         return *this;
     }
 
-    list(list& other) = delete;
-    list& operator=(list& other) = delete;
+    list(const list &other): size{other.size}, head{nullptr}, tail{nullptr} {
+        for (auto node : other) {
+            tpend(new Node{node});
+        }
+    }
+    list& operator=(const list &other) = default;
 };
 
 }

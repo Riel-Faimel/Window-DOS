@@ -1,0 +1,127 @@
+#include "_idt.hpp"
+
+#pragma GCC optimize("Os")
+
+import exception;
+
+namespace arch {
+
+IDT::IDT(volatile IDT_item *tab):idt_base(tab){
+    static_assert(sizeof(IDT_item) == 8, "error");
+    struct {
+        unsigned short _1;
+        unsigned _2;
+    }__attribute__((packed)) idtr;
+    idtr._1 = 256 * sizeof(IDT_item) - 1;
+    idtr._2 = (unsigned )idt_base;
+    asm volatile (
+        "lidt %0"
+        : 
+        : "m"(idtr)
+        : "memory"
+    );
+
+    regist(&DE_handler, static_cast<unsigned>(IDNT::_DE)); //除零异常
+    regist(&OF_handler, static_cast<unsigned>(IDNT::_OF)); //溢出
+    regist(&UD_handler, static_cast<unsigned>(IDNT::_UD)); //无效指令
+    regist(&NM_handler, static_cast<unsigned>(IDNT::_NM)); //设备不可用
+    regist(&DF_handler, static_cast<unsigned>(IDNT::_DF), 0x08, 0); //双重错误
+    regist(&GP_handler, static_cast<unsigned>(IDNT::_GP)); //通用保护错误
+    regist(&basic_time_handler, 48); //基本时钟中断
+
+#ifdef _DEBUG
+    cout << ", IDT: " << (void *)tab;
+#endif
+};
+
+void IDT::regist(
+    void (*handler)(void), unsigned internum, unsigned short sec, 
+    unsigned char DPL, bool _32_or_16
+) volatile {
+    //cout << "reg:" << internum << '\n';
+    new ((void *)&idt_base[internum]) descrptor::IDTEntry::IG {
+        .addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF),
+        .selector = sec, .is_32_bits_or_16_bits = (unsigned char)(_32_or_16?1:0),
+        .zero = 0, .DPL = DPL, 
+        .addr_high = (unsigned short)((reinterpret_cast<unsigned>(handler) >> 16) & 0xFFFF),
+    };
+}
+
+bool IDT::had_handler(unsigned i) const{
+    if(idt_base[i].Int_Gate.exist)return true;
+    else return false;
+}
+
+unsigned long long _time_count = 0;
+
+extern "C" {
+
+void DE_handler_c(no_errcode_frame* frame){
+    cout << "#DE" << frame->eip;
+    throw "#DE";
+}
+void OF_handler_c(){
+    kprint("#OF: Overflaw!\n");
+    while (true){ asm volatile ("hlt"); }
+}
+__attribute__((optimize("O0")))
+void UD_handler_c(no_errcode_frame *frame){
+    kprint("=== #UD ===\n");
+    no_errcode_frame_status(frame);
+    catch_program();
+}
+void NM_handler_c(){
+    kprint("#NM fault!\n");
+    catch_program();
+}
+void DF_handler_c(){
+    kprint("#DF: Double fault!\n");
+    while (true){ asm volatile ("hlt"); }
+}
+void GP_handler_c(errcode_frame * frame){
+    cout << "=== #GP ===\n";
+    auto err = errorcode_frame_status(frame);
+    bool is_extern = err & 1;
+    bool is_IDT = err & 2;
+    bool is_LDT = err & 4;
+    u16 seg = err & 0xFFF8;
+    if (is_extern) {
+        cout << "extern exception";
+    } else {
+        if (is_IDT) {
+            cout << "IDT";
+            return;
+        } else {
+            if (is_LDT) {
+                cout << "LDT";
+            } else {
+                cout << "GDT";
+            }
+        }
+        cout << " err ";
+    }
+    cout << seg << '\n';
+    catch_program();
+}
+__attribute__((optimize("O0")))
+void basic_time_handler_c(){
+    //cout << "cut ";
+    _time_count++;
+};
+
+}
+    
+} // namespace arch 
+
+static void no_errcode_frame_status(no_errcode_frame *frame) {
+    cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
+}
+
+static u32 errorcode_frame_status (errcode_frame *frame) {
+    cout << "Error Code: ";
+    cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
+    if ((frame->errcode & 0b0100) == 0)goto Done;
+    cout << "< SS = " << frame->ss << ", ESP = " << frame->esp << " >\n";
+    Done:
+    return frame->errcode;
+}
