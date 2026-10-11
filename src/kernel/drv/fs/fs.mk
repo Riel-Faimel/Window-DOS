@@ -11,4 +11,4 @@ $(BUILD_DIR)kernel/drv/fs.o:\
 	$(BUILD_DIR)kernel/part-fs/MBR.o\
 	$(BUILD_DIR)kernel/part-fs/minfs.o\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

@@ -18,4 +18,4 @@ $(BUILD_DIR)kernel/arch/x86/cpu.o: \
 	$(B_R)cpu.o\
 	$(B_R)ldt.o\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

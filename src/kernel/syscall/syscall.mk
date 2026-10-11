@@ -7,4 +7,4 @@ $(BUILD_DIR)kernel/syscall.o:\
 	$(BUILD_DIR)kernel/syscall/re.o\
 	$(BUILD_DIR)kernel/syscall/DOS.o\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

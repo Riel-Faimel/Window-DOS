@@ -5,4 +5,4 @@ $(BUILD_DIR)kernel/drv/disk/AHCI.o:\
 	$(BUILD_DIR)kernel/drv/disk/AHCI/ahci.o\
 
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

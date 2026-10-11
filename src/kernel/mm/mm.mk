@@ -7,4 +7,4 @@ $(BUILD_DIR)kernel/mm.o: \
 	$(BUILD_DIR)kernel/mm/mm.o\
 	$(BUILD_DIR)kernel/mm/mem.o\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

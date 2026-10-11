@@ -9,8 +9,8 @@ $(BUILD_DIR)kernel/drv.o: \
 	$(BUILD_DIR)kernel/drv/screen.o\
 	$(BUILD_DIR)kernel/drv/fs.o\
 	$(BUILD_DIR)kernel/drv/kmod.o\
-
-#$(BUILD_DIR)kernel/drv/keyboard.o\
 	$(BUILD_DIR)kernel/drv/disk.o\
 
-	$(LDCMD32) $@ $^
+#$(BUILD_DIR)kernel/drv/keyboard.o\
+
+	$(LDCMD) $@ $^

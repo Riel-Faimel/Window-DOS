@@ -8,4 +8,4 @@ $(BUILD_DIR)kernel/arch/x86/sche.o:\
 	$(B_R)ds.o\
 	$(B_R)ds_asm.o\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

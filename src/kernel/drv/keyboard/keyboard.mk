@@ -7,4 +7,4 @@ $(BUILD_DIR)kernel/drv/keyboard.o: \
 	$(BUILD_DIR)kernel/drv/keyboard/keyboard_asm.o\
 	$(BUILD_DIR)kernel/drv/keyboard/keyboard_c.o
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

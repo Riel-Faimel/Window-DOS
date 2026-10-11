@@ -3,9 +3,11 @@ module;
 #include <global/type.hpp>
 
 export module lib32;
+
 extern "C" { extern void print_hex(unsigned short, bool = false); }
 
 export extern "C" {
+#ifdef _x86
     __attribute__((noinline, regparm(2))) 
     void outb(char data, unsigned short port){
         asm volatile (
@@ -74,6 +76,7 @@ export extern "C" {
             outb(val[i], 0x3F8);
         }
     }; //QEMU print string
+#endif
     
     __attribute__((used))
     void *memset(void *ptr, int value, size_t num) {

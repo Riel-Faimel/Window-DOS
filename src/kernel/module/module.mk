@@ -14,4 +14,4 @@ $(BUILD_DIR)kernel/module.o:\
 	
 #$(BUILD_DIR)kernel/CenterShell/cs_m.o
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

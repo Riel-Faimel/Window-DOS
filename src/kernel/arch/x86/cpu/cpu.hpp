@@ -15,7 +15,6 @@
 
 namespace arch {
     
-#pragma pack(push, 1)
 struct CPU {
     size_t cpuid = 0;
     CPU *next = nullptr;
@@ -54,7 +53,6 @@ struct CPU {
     // segmention control
     const GDT &get_gdt() const { return gdt; }
 };
-#pragma pack(pop)
 
 } // namespace arch
 

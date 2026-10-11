@@ -7,4 +7,4 @@ $(BUILD_DIR)kernel/drv/disk/IDE.o:\
 	$(BUILD_DIR)kernel/drv/disk/IDE/ide_asm.o\
 
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

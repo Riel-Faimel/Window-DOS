@@ -10,4 +10,4 @@ $(BUILD_DIR)kernel/PDS.o:\
 	$(BUILD_DIR)kernel/PDS/usb.o\
 	$(BUILD_DIR)kernel/PDS/isa.o
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

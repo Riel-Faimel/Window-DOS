@@ -1,3 +1,8 @@
+CC = gcc
+CPP = g++
+LD = ld
+AS = nasm
+
 CFLAGS64 = -m64 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding \
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \

@@ -9,4 +9,4 @@ $(BUILD_DIR)kernel/arch/x86.o:\
 
 #\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

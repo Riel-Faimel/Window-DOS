@@ -7,4 +7,4 @@ $(BUILD_DIR)kernel/drv/disk.o:\
 	
 #\
 
-	$(LDCMD32) $@ $^
+	$(LDCMD) $@ $^

@@ -43,9 +43,9 @@ struct remove_const<const T>{
 };
 
 template<typename T>
-using remove_reference_t = remove_reference<T>::type;
+using remove_reference_t = typename remove_reference<T>::type;
 template<typename T>
-using remove_const_t = remove_const<T>::type;
+using remove_const_t = typename remove_const<T>::type;
 
 template<typename T>
 struct decay {
@@ -54,7 +54,7 @@ struct decay {
     >;
 };
 template<typename T>
-using decay_t = decay<T>::type;
+using decay_t = typename decay<T>::type;
     
 } // namespace bits
 
