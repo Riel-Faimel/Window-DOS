@@ -1,0 +1,177 @@
+#ifndef ___Using_pointer_system
+#define ___Using_pointer_system
+
+#include <HL/bits/callable>
+#include <HL/bits/forward>
+#include <global/type.hpp>
+
+namespace rtl {
+
+template<typename T>
+class sheath {
+    T obj;
+public:
+    sheath(T &&obj_):obj{bits::forward(obj_)} {}
+    sheath &operator= (T &&obj_) {
+        obj.~T();
+        new (&obj) T{move(obj_)};
+        obj_.~T();
+        return *this;
+    }
+    sheath(sheath &&sh):obj{move(sh.obj)} {}
+    sheath &operator= (sheath &&sh) {
+        if (this == &sh) return *this;
+        obj.~T();
+        new (&obj) T{move(sh.obj)};
+        return *this;
+    }
+
+    sheath(T &) = delete;
+    sheath &operator= (T &) = delete;
+    sheath(sheath &) = delete;
+    sheath &operator= (sheath &) = delete;
+
+    ~sheath(){ obj.~T(); }
+
+    T &operator* () & { return obj; }
+    T *operator-> () & { return &obj; }
+    const T &operator* () const & { return obj; }
+    const T *operator-> () const & { return &obj; }
+};
+
+// A pointer build from address
+template<typename T, typename State>
+class pointer;
+
+struct _uninitial_pointer_label{};
+struct _obinitial_pointer_label{};
+
+template<typename T>
+class pointer<T *, _uninitial_pointer_label>;
+
+template<typename T>
+class pointer<T *, _obinitial_pointer_label>{
+    T *address;
+    pointer(T *ptr):address(ptr){}
+    friend class pointer<T *, _uninitial_pointer_label>;
+public:
+    pointer() = delete;
+    
+    pointer &operator=(pointer &) = delete;
+    pointer &operator=(const pointer &) = delete;
+    
+    void *operator new(size_t, pointer<T *, _uninitial_pointer_label> *place){
+        return static_cast<void *>(place);
+    };
+
+    operator T *(){
+        return address;
+    }
+};
+
+template<typename T>
+class pointer<T *, _uninitial_pointer_label> {
+    T *address;
+public:
+    constexpr pointer():address(nullptr){}
+
+    pointer &operator=(pointer &) = delete;
+    pointer &operator=(const pointer &) = delete;
+
+    inline constexpr pointer<T *, _obinitial_pointer_label> operator()(T *ptr) {
+        //static_assert(ptr, "null pointer");
+        new (this) pointer<T *, _obinitial_pointer_label>(ptr);
+    }
+};
+
+template<typename T>
+using sited_ptr = pointer<T *, _obinitial_pointer_label>;
+template<typename T>
+using unsited_ptr = pointer<T *, _uninitial_pointer_label>;
+
+template<typename T>
+class dummy_ptr;
+
+template<typename T, typename D>
+concept deleter = requires(D *ptr) {
+    T::del(ptr);
+};
+
+template<typename T>
+struct default_delete {
+    static inline void del(T *ptr){ delete ptr; }
+};
+struct no_delete {
+    static inline void del(void *){}
+};
+
+// the pointer, no address
+template<typename T, deleter<T> D = ::rtl::default_delete<T>>
+class vested_ptr {
+    T *ptr;
+public:
+    vested_ptr(T &obj_):ptr(&obj_){} // obj
+
+    vested_ptr(vested_ptr &&vp_):
+    ptr(vp_.ptr){
+        vp_.ptr = nullptr;
+    }
+    vested_ptr &operator= (vested_ptr &&vp_) noexcept {
+        if(this != &vp_){
+            D::del(ptr);
+            ptr = vp_.ptr;
+            vp_.ptr = nullptr;
+        }
+        return *this;
+    } // move
+
+    ~vested_ptr(){ D::del(ptr); }
+
+    vested_ptr(T *) = delete;
+    vested_ptr operator= (T *) = delete; // ptr
+
+    vested_ptr() = delete;
+
+    T *get() const & { return ptr; }
+    void del(){ D::del(ptr); }
+
+    T &operator *() { return *ptr; }
+    const T &operator *() const { return *ptr; }
+    T *operator->() { return ptr; }
+    T *operator->() const { return ptr; }
+
+    void *operator new(size_t, dummy_ptr<T> *place){
+        return place;
+    }
+};
+
+template<typename T>
+class dummy_ptr {
+    T *space___all_right_so_anyway_this_object_will_not_be_used;
+public:
+    dummy_ptr() = default;
+    T &operator *() = delete;
+    T &operator ->() = delete;
+};
+
+template<typename Return>
+class amorphous_ptr{
+    void *ptr;
+public:
+    template<typename T>
+    amorphous_ptr(T value){
+        static_assert(sizeof(T) <= sizeof(void *), "T too big, can't use as address");
+        static_assert(alignof(T) <= alignof(void *), "aliggnment doesn't match");
+
+        ptr = reinterpret_cast<void *>(value);
+    };
+
+    template<typename ...Args>
+    Return operator()(Args&& ...args) const {
+        return bits::_callable<Return, Args ...>(ptr)(bits::forward<Args>(args)...);
+    }
+};
+
+}
+
+#endif

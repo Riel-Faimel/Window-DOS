@@ -1,8 +1,8 @@
 #include "id.hpp"
 
 #include <arch/cpu.hpp>
-#include <TL/generator>
-#include <drv/screen/screen_srv.hpp>
+#include <HL/generator>
+#include <stdio>
 
 #define PIC1_CMD 0x20
 #define PIC1_DATA 0x21

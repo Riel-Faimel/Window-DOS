@@ -1,0 +1,24 @@
+#ifndef __kernel_src_include_HL_bits_forward
+#define __kernel_src_include_HL_bits_forward
+
+#include <HL/bits/utility>
+
+namespace rtl {
+
+namespace bits {
+
+// append && back of T, because &&&->& and &&&&->&&, so it keep & nums
+template<typename T>
+constexpr remove_reference_t<T> & forward(T &t)noexcept{
+    return t;
+}
+template<typename T>
+constexpr remove_reference_t<T> && forward(T &&t)noexcept{
+    return t;
+}
+
+};
+
+};
+
+#endif

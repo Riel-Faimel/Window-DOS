@@ -17,7 +17,7 @@ enum class IRQ : unsigned char {
 class InterruptDistributor {
 public:
     InterruptDistributor();
-    void reg_irq(void (*handler)(), IRQ irq_num, size_t cpuid = 0);
+    void reg_irq(void (*handler)(), IRQ irq_num, CPUIndex cpuid = {});
     void reg_idt(arch::IDT idt);
 };
 

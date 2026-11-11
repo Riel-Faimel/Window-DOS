@@ -2,10 +2,10 @@
 
 #include <arch/start.hpp>
 #include <global/new.hpp>
-#include <TL/generator>
-#include <TL/utility>
-#include <atomic>
-#include <drv/screen/screen_srv.hpp>
+#include <HL/generator>
+#include <HL/utility>
+#include <HL/atomic>
+#include <stdio>
 
 #define StackSize 4096
 
@@ -46,20 +46,19 @@ extern "C" {
 }
 
 struct __window_dos_loader_struct_0x1 {
-    using mem_list = mem_list;
     static mem_list* start;
     constexpr __window_dos_loader_struct_0x1() {}
 
     struct array {
-        struct Iterator {
+        struct iterator {
             unsigned count = 1;
             bool done = false;
             inline mem_list *operator* () { return start+count; }
-            constexpr bool operator!= (Iterator&) { return !done; }
-            Iterator& operator++ ();
+            constexpr bool operator!= (iterator&) { return !done; }
+            iterator& operator++ ();
         };
-        constexpr Iterator begin() { return Iterator{}; }
-        constexpr Iterator end() { return Iterator{}; }
+        constexpr iterator begin() { return iterator{}; }
+        constexpr iterator end() { return iterator{}; }
     };
 
     inline mem_list &operator[] (size_t offset) { return start[offset]; }

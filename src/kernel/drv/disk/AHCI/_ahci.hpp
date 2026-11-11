@@ -10,6 +10,8 @@ struct FIS_to {};
 
 struct FIS_from {};
 
+namespace ATAdev {
+
 class SATA_control : public ATADiskControl {
     volatile void *ctrl_reg_base;
     struct Global_group {
@@ -18,10 +20,10 @@ class SATA_control : public ATADiskControl {
         u32 IS;
         u32 PI;
         u32 VS;
-        u32 CCC_CTL;
+        u32 CCC_CHL;
         u32 CCC_PORTS;
         u32 EM_LOC;
-        u32 EM_CTL;
+        u32 EM_CHL;
         u32 CAP2;
         u32 BOHC;
     };
@@ -37,7 +39,7 @@ class SATA_control : public ATADiskControl {
         u32 TFD;
         u32 SIG;
         u32 SSTS;
-        u32 SCTL;
+        u32 SCHL;
         u32 SERR;
         u32 SACT;
         u32 CI;
@@ -69,3 +71,5 @@ class SATA : public Cluster {
     void read_LBA(unsigned short *, unsigned, unsigned char);
     void write_LBA(unsigned short *, unsigned int, unsigned char);
 };
+    
+} // namespace ATADev 

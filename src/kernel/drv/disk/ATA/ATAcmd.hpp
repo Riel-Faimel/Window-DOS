@@ -1,7 +1,10 @@
+#ifndef __kernel_drv_disk_ATA_ATAcmd_hpp
+#define __kernel_drv_disk_ATA_ATAcmd_hpp
+
 #include "ATAdef.hpp"
 #include <global/type.hpp>
-#include <TL/tuple>
-#include <TL/utility>
+#include <HL/tuple>
+#include <HL/utility>
 
 /**
  * Thanks for Deepseek
@@ -106,6 +109,8 @@ enum class ATAcmd : u8 {
     restore           = 0x10,   // 恢复（ATA-1遗留命令，已废弃）
     initialize_params = 0x91,   // 初始化设备参数（用于老式CHS寻址）
 };
+
+namespace ATAdev {
 
 #pragma pack(push, 1)
 union ATAstatus {
@@ -283,3 +288,7 @@ public:
 	u16 &operator [] (size_t id) { return buf[id]; }
 	operator bufAddr () { return bufAddr{(void *)buf}; }
 };
+	
+} // namespace ATAdev 
+
+#endif

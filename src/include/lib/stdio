@@ -1,0 +1,53 @@
+#ifndef __include_lib_stdio
+#define __include_lib_stdio
+
+#include <global/type.hpp>
+
+class IOBackend {
+public:
+    virtual IOBackend &operator<< (char *) = 0;
+    virtual IOBackend &operator<< (const char *) = 0;
+    virtual IOBackend &operator<< (char) = 0;
+    virtual IOBackend &operator<< (unsigned char) = 0;
+    virtual IOBackend &operator<< (unsigned short) = 0;
+    virtual IOBackend &operator<< (unsigned) = 0;
+    virtual IOBackend &operator<< (int) = 0;
+    virtual IOBackend &operator<< (unsigned long long) = 0;
+    virtual IOBackend &operator<< (u64) = 0;
+    virtual IOBackend &operator<< (void *) = 0;
+    virtual IOBackend &operator<< (bool) = 0;
+    virtual void ch(char) = 0;
+    virtual void hex(unsigned char) = 0;
+    virtual void hex(unsigned short) = 0;
+    virtual void hex(unsigned) = 0;
+    virtual void hex(int) = 0;
+};
+
+class iostream {
+    IOBackend *backend;
+public:
+    iostream &operator<< (char *s) { *backend << s;return *this; }
+    iostream &operator<< (const char *s) { *backend << s;return *this; }
+    iostream &operator<< (char c) { *backend << c;return *this; }
+    iostream &operator<< (unsigned char i) { *backend << i;return *this; }
+    iostream &operator<< (unsigned short i) { *backend << i;return *this; }
+    iostream &operator<< (unsigned i) { *backend << i;return *this; }
+    iostream &operator<< (int i) { *backend << (unsigned)i;return *this; }
+    iostream &operator<< (unsigned long long i) { *backend << (unsigned)i;return *this; }
+    iostream &operator<< (u64 i) { *backend << i;return *this; }
+    iostream &operator<< (void *p) { *backend << (u32)p;return *this; }
+    iostream &operator<< (bool b) { *backend << b; return *this; }
+    void ch(char c) { backend->ch(c); }
+    void hex(unsigned char i) { backend->hex(i); }
+    void hex(unsigned short i) { backend->hex(i); }
+    void hex(unsigned i) { backend->hex(i); }
+    void hex(int i) { backend->hex(i); }
+
+    iostream();
+    void change(IOBackend *be_) { backend = be_; }
+};
+
+extern iostream kout;
+
+
+#endif

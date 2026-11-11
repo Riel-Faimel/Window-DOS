@@ -3,7 +3,6 @@
 
 #include <global/type.hpp>
 #include <arch/arch_type>
-#include <TL/utility>
 #include <mm/mm.hpp>
 
 #include "gdt.hpp"
@@ -16,7 +15,7 @@
 namespace arch {
     
 struct CPU {
-    size_t cpuid = 0;
+    CPUIndex cpuid{};
     CPU *next = nullptr;
     ::MemoryManager mm;// first
     IDT idt;

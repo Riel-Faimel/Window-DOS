@@ -9,9 +9,11 @@ struct attribute_choice {
     u8 reserve : 2 = 0;
 
     operator u8 () {
-        return u8{
-read_only | (hidden << u8{1}) | (system << u8{2}) | (volume_ID << u8{3}) | (dir << u8{4}) | (archive << u8{5})
-        };
+        return static_cast<u8>(
+            read_only | (hidden << 1) | 
+            (system << 2) | (volume_ID << 3) | 
+            (dir << 4) | (archive << 5)
+        );
     }
 };
 

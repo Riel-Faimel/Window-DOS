@@ -2,6 +2,7 @@
 extern MemoryManager *global_heap;
 
 extern void f(int);
+iostream kout;
 
 __attribute__((optimize("O0"), noreturn))
 void LoaderMain(){
@@ -12,17 +13,19 @@ void LoaderMain(){
     asm volatile ("sti");
 
     //===INFO===
-    cout << "============\n";
-    cout << "renew-DOS v0.2\n";
-    cout << "============\n";
-    cout << "FROM: Riel Faimel\n\n";
+    kout << "============\n";
+    kout << "renew-DOS v0.2\n";
+    kout << "============\n";
+    kout << "FROM: Riel Faimel\n";
 
     // init work running on CPU0
-    KernelModule kernelmodule;
     ClusterDeviceManager cdm{};
     PeripheralDeviceSpace pds{};
+    KernelModule kernelmodule;
+    while(1);
+    pds["kernel module"] = &kernelmodule;
     TaskManager taskmgr;
-    cout << "[INFO] start INIT.COM\n";
+    kout << "[INFO] start INIT.COM\n";
     ASMLabelMark(LoaderMain_StartB_INIT_EXE)
     auto err = taskmgr.exec("B:\\INIT.COM", 0, nullptr);
     switch (err) {
@@ -30,13 +33,13 @@ void LoaderMain(){
         // done
     } break;
     case FexecExceptionCode::OpenFileFailed: {
-        cout << "[Exception] \"B:\\INIT.COM\" not found\n";
+        kout << "[Exception] \"B:\\INIT.COM\" not found\n";
     } break;
     case FexecExceptionCode::DLSFault: {
-        cout << "[Fault] File System Fault\n";
+        kout << "[Fault] File System Fault\n";
     } break;
     default: {
-        cout << "[Fault] Bad Fault\n";
+        kout << "[Fault] Bad Fault\n";
     } break;
     }
     _Sexit(); // init thread sleep

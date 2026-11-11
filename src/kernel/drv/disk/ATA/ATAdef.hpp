@@ -3,6 +3,8 @@
 
 #include <global/type.hpp>
 
+namespace ATAdev {
+
 struct LBAaddr : u64 {
     LBAaddr() : u64{} {}
     explicit LBAaddr(u32 l) : u64{l, 0} {}
@@ -48,5 +50,7 @@ public:
     explicit operator void *() { return buf; }
     u16 &operator [] (size_t index) { return static_cast<u16 *>(buf)[index]; }
 };
+    
+} // namespace ATAdef 
 
 #endif

@@ -1,0 +1,803 @@
+// ===========================================================================
+// ds/TL/container —— rtl::array / rtl::list 的第二版（建议稿）
+// ===========================================================================
+//
+// 这是 src/include/TL/container 的重写版，**不是**内核主树的一部分。
+// 落地方式：整个文件覆盖到 src/include/TL/container（include guard 同名，
+// 所以新旧两份同时存在于包含路径上时，先被找到的那份生效，不会重定义）。
+//
+// 与原版的接口保持兼容 —— 内核里现有的用法原样编译：
+//
+//   rtl::array<char> hex_string(2);      hex_string.append(c); get_size(); [i]
+//   rtl::array<String> re;               re.append(rtl::move(s));
+//   rtl::array<DriveInfo> space;         space.append(DriveInfo{...}); space[id]
+//   for (auto [driver, id, letter] : space)            // 结构化绑定
+//   rtl::list<CacheObj> m_cache;         space_append(); remove(&ref); begin()
+//   rtl::list<PCI_device_config> config{};
+//   rtl::Filter<ProgramInFace, rtl::list> database;    // 要求 list::iterator 存在
+//
+// ---------------------------------------------------------------------------
+// 与原版的差异（每一条都是 bug 修复，详见 ds/TL/README.md 的对照表）
+// ---------------------------------------------------------------------------
+// 1. 元素生命周期：原版用 `new T[capacity]`（全部默认构造）+ 赋值，
+//    本版用 `::operator new(bytes)` 拿裸内存 + 定位 new 构造、逐个析构。
+//    因此：不再要求 T 可默认构造；capacity 与真实分配严格一致。
+// 2. 原版 `~array` 是 `delete ptr`，而内存来自 `new T[]` —— 标准里是 UB。
+//    本版 new/delete 严格配对（::operator new / ::operator delete）。
+// 3. 原版 `array::clean()` 只把 ptr 置空（内存泄漏），此后再 append 会写空指针。
+//    本版 clean() == clear() + 释放缓冲区。
+// 4. 原版 `array::init(ptr, n)` 把"别人给的缓冲区"和 capacity 绑错
+//    （capacity 按 x4 增长到 >= n，但实际只有 n 个元素的空间）→ 越界写。
+//    本版删除 init()，需要接管外部缓冲区用 array(T*, size_t, adopt_t)。
+// 5. 原版 `array::remove(const T&)` 删除后 i++，会跳过紧随其后的元素。
+//    本版删除全部匹配项并返回删除个数。
+// 6. 原版 array 没有拷贝构造/赋值 → 隐式浅拷贝 → 双重释放。
+//    本版深拷贝 + 移动语义。
+// 7. 原版 `list::operator=(const list&) = default` → 浅拷贝，双重释放（真 bug）。
+//    本版深拷贝。
+// 8. 原版 `list::remove(T*)` 依赖"Node 的第一个成员就是 T"这个布局假设
+//    （reinterpret_cast<Node*>(data)）。本版按地址扫描，不再依赖布局。
+// 9. 原版 `list::space_append()` 先 `new Node{}`（默认构造 T）再让调用方
+//    在上面定位 new —— 对活对象二次构造。本版返回真正的裸内存。
+// 10. 原版 `list::remove(index)` 在 size==0 或 index==size-1 的边界上
+//    没有把 tail 收干净；本版统一走 unlink()。
+//
+// 唯一需要改调用点的地方（README 里有 patch）：
+//   src/kernel/module/string.cpp 的 String::split(const String&) 用
+//   `result[index++] = ...` 直接写 raw slot，从不改 size —— 在正确的容器上
+//   这是"往未构造的对象赋值"。改成 append() 即可（该函数目前无人调用）。
+//
+// 还有一个可选的开关：一旦按 ds/README.md 第 4 步接入 ds_assert.hpp
+// （即 KASSERT 可见），下面的 RTL_CHECK 会自动变成真断言 ——
+// 届时上面那类误用会在现场停下，而不是静默踩坏内存。
+// ---------------------------------------------------------------------------
+
+#ifndef ___Using_template_container_protect
+#define ___Using_template_container_protect
+
+#define RTL_CONTAINER_VERSION 2
+
+#include <HL/utility>       // rtl::move / remove_reference / bits::*
+#include <global/type.hpp>  // size_t / intptr_t
+#include <global/new.hpp>   // ::operator new / delete + 定位 new
+
+#ifndef RTL_CHECK
+#  ifdef KASSERT
+#    define RTL_CHECK(cond) KASSERT(cond)
+#  else
+#    define RTL_CHECK(cond) ((void)0)
+#  endif
+#endif
+
+namespace rtl {
+
+namespace bits {
+
+// 标准语义的完美转发。
+// 注意不要在这里复用 bits::forward：它那两个重载在"显式指定模板实参"时
+// 的折叠规则不直观，而 construct_at 需要 std::forward 那样明确的语义。
+template<typename T>
+constexpr T &&fwd(remove_reference_t<T> &t) noexcept {
+    return static_cast<T &&>(t);
+}
+template<typename T>
+constexpr T &&fwd(remove_reference_t<T> &&t) noexcept {
+    return static_cast<T &&>(t);
+}
+
+// 在裸内存上构造 / 就地析构（等价于 std::construct_at / destroy_at，
+// 但 <memory> 在本工具链里不存在）
+template<typename T, typename... Args>
+inline void construct_at(T *p, Args &&...args) {
+    ::new (static_cast<void *>(p)) T(bits::fwd<Args>(args)...);
+}
+template<typename T>
+inline void destroy_at(T *p) noexcept {
+    p->~T();
+}
+
+// 定位 new 之后再取回对象指针，严格来说要 launder 一下（const/引用成员、
+// 或同一块存储被复用成别的对象时，标准要求它）。GCC 7+ 有内建，没有就退化成
+// 普通 reinterpret_cast（本项目的用法下两者等价）。
+template<typename T>
+inline T *launder_at(T *p) noexcept {
+#if defined(__GNUC__) && __GNUC__ >= 7
+    return __builtin_launder(p);
+#else
+    return p;
+#endif
+}
+
+} // namespace bits
+
+// ===========================================================================
+// array —— 动态数组（size/capacity 语义）
+// ===========================================================================
+template<typename T>
+class array {
+public:
+    using value_type = T;
+
+    // -----------------------------------------------------------------------
+    // 迭代器：随机访问。Filter/CondiView 只要求 * / ++ / !=，
+    // 但既然是指针语义就一次给全，省得以后再改。
+    // -----------------------------------------------------------------------
+    class iterator {
+        T *p = nullptr;
+    public:
+        using value_type = T;
+        using difference_type = intptr_t;
+
+        iterator() = default;
+        explicit iterator(T *p_) : p{p_} {}
+
+        T &operator*() const { return *p; }
+        T *operator->() const { return p; }
+        T *base() const { return p; }
+
+        iterator &operator++() { ++p; return *this; }
+        iterator operator++(int) { iterator t{*this}; ++p; return t; }
+        iterator &operator--() { --p; return *this; }
+        iterator operator--(int) { iterator t{*this}; --p; return t; }
+        iterator &operator+=(difference_type n) { p += n; return *this; }
+        iterator &operator-=(difference_type n) { p -= n; return *this; }
+        iterator operator+(difference_type n) const { return iterator{p + n}; }
+        iterator operator-(difference_type n) const { return iterator{p - n}; }
+        difference_type operator-(const iterator &o) const { return p - o.p; }
+
+        friend bool operator==(const iterator &a, const iterator &b) { return a.p == b.p; }
+        friend bool operator!=(const iterator &a, const iterator &b) { return a.p != b.p; }
+        friend bool operator<(const iterator &a, const iterator &b) { return a.p < b.p; }
+        friend bool operator>(const iterator &a, const iterator &b) { return a.p > b.p; }
+        friend bool operator<=(const iterator &a, const iterator &b) { return a.p <= b.p; }
+        friend bool operator>=(const iterator &a, const iterator &b) { return a.p >= b.p; }
+    };
+
+    class const_iterator {
+        const T *p = nullptr;
+    public:
+        using value_type = T;
+        using difference_type = intptr_t;
+
+        const_iterator() = default;
+        explicit const_iterator(const T *p_) : p{p_} {}
+        const_iterator(const iterator &it) : p{it.base()} {}
+
+        const T &operator*() const { return *p; }
+        const T *operator->() const { return p; }
+        const T *base() const { return p; }
+
+        const_iterator &operator++() { ++p; return *this; }
+        const_iterator operator++(int) { const_iterator t{*this}; ++p; return t; }
+        const_iterator &operator--() { --p; return *this; }
+        const_iterator operator--(int) { const_iterator t{*this}; --p; return t; }
+        const_iterator &operator+=(difference_type n) { p += n; return *this; }
+        const_iterator &operator-=(difference_type n) { p -= n; return *this; }
+        const_iterator operator+(difference_type n) const { return const_iterator{p + n}; }
+        const_iterator operator-(difference_type n) const { return const_iterator{p - n}; }
+        difference_type operator-(const const_iterator &o) const { return p - o.p; }
+
+        friend bool operator==(const const_iterator &a, const const_iterator &b) { return a.p == b.p; }
+        friend bool operator!=(const const_iterator &a, const const_iterator &b) { return a.p != b.p; }
+        friend bool operator<(const const_iterator &a, const const_iterator &b) { return a.p < b.p; }
+        friend bool operator>(const const_iterator &a, const const_iterator &b) { return a.p > b.p; }
+        friend bool operator<=(const const_iterator &a, const const_iterator &b) { return a.p <= b.p; }
+        friend bool operator>=(const const_iterator &a, const const_iterator &b) { return a.p >= b.p; }
+    };
+
+protected:
+    T *m_ptr = nullptr;
+    size_t m_size = 0;
+    size_t m_capacity = 0;
+
+    // 增长策略：空表起步 4，之后翻倍（原版是 capacity*2，capacity 为 0 时
+    // 会算出 0 然后越界写 —— 这里给出下限并做溢出保护）
+    static size_t grown_capacity(size_t current, size_t need) {
+        size_t cap = current ? current : 4;
+        while (cap < need) {
+            const size_t doubled = cap * 2;
+            if (doubled <= cap) { cap = need; break; }
+            cap = doubled;
+        }
+        return cap;
+    }
+
+    // 把 m_size 个元素搬到 new_capacity 的新缓冲区并释放旧的
+    void reallocate(size_t new_capacity) {
+        T *fresh = new_capacity
+                 ? static_cast<T *>(::operator new(sizeof(T) * new_capacity))
+                 : nullptr;
+        size_t built = 0;
+        for (; built < m_size; ++built) {
+            bits::construct_at(fresh + built, rtl::move(m_ptr[built]));
+        }
+        for (size_t i = 0; i < built; ++i) bits::destroy_at(m_ptr + i);
+        if (m_ptr) ::operator delete(m_ptr);
+        m_ptr = fresh;
+        m_capacity = new_capacity;
+    }
+
+    void ensure(size_t need) {
+        if (need > m_capacity) reallocate(grown_capacity(m_capacity, need));
+    }
+
+    // 析构全部元素并释放缓冲区（size / capacity 归零）
+    void release() {
+        if (m_ptr) {
+            for (size_t i = 0; i < m_size; ++i) bits::destroy_at(m_ptr + i);
+            ::operator delete(m_ptr);
+        }
+        m_ptr = nullptr;
+        m_size = 0;
+        m_capacity = 0;
+    }
+
+    template<typename... Args>
+    T &emplace_at(size_t index, Args &&...args) {
+        bits::construct_at(m_ptr + index, bits::fwd<Args>(args)...);
+        return m_ptr[index];
+    }
+
+public:
+    // --- 构造 / 析构 / 拷贝 / 移动 -------------------------------------
+    array() = default;
+
+    // 原版语义：参数是**容量**（不是 size）。保留这个含义，
+    // 因为 `rtl::array<char> hex_string(2)` 这类调用已经这么用了。
+    array(size_t capacity_) {
+        reserve(capacity_);
+    }
+
+    // 要 n 个"活的"元素用这个
+    array(size_t n, const T &value) {
+        reserve(n);
+        for (size_t i = 0; i < n; ++i) append(value);
+    }
+
+    array(const array &other) {
+        reserve(other.m_size);
+        for (size_t i = 0; i < other.m_size; ++i) append(other.m_ptr[i]);
+    }
+
+    array(array &&other) noexcept
+    : m_ptr{other.m_ptr}, m_size{other.m_size}, m_capacity{other.m_capacity} {
+        other.m_ptr = nullptr;
+        other.m_size = 0;
+        other.m_capacity = 0;
+    }
+
+    ~array() { release(); }
+
+    array &operator=(const array &other) {
+        if (this != &other) {
+            array tmp{other};
+            swap(tmp);
+        }
+        return *this;
+    }
+
+    array &operator=(array &&other) noexcept {
+        if (this != &other) {
+            release();
+            m_ptr = other.m_ptr;
+            m_size = other.m_size;
+            m_capacity = other.m_capacity;
+            other.m_ptr = nullptr;
+            other.m_size = 0;
+            other.m_capacity = 0;
+        }
+        return *this;
+    }
+
+    // --- 容量 / 状态 ---------------------------------------------------
+    size_t size() const { return m_size; }
+    size_t get_size() const { return m_size; }        // 原版名字
+    size_t capacity() const { return m_capacity; }
+    bool empty() const { return m_size == 0; }
+
+    T *data() { return m_ptr; }
+    const T *data() const { return m_ptr; }
+    T *get_ptr() { return m_ptr; }                    // 原版名字
+    const T *get_ptr() const { return m_ptr; }
+
+    void reserve(size_t new_capacity) {
+        if (new_capacity > m_capacity) reallocate(new_capacity);
+    }
+
+    void resize(size_t n) {
+        if (n < m_size) {
+            for (size_t i = n; i < m_size; ++i) bits::destroy_at(m_ptr + i);
+            m_size = n;
+        } else if (n > m_size) {
+            ensure(n);
+            for (; m_size < n; ++m_size) bits::construct_at(m_ptr + m_size);
+        }
+    }
+
+    void resize(size_t n, const T &value) {
+        if (n < m_size) {
+            for (size_t i = n; i < m_size; ++i) bits::destroy_at(m_ptr + i);
+            m_size = n;
+        } else {
+            ensure(n);
+            for (; m_size < n; ++m_size) bits::construct_at(m_ptr + m_size, value);
+        }
+    }
+
+    void shrink_to_fit() {
+        if (m_capacity > m_size) reallocate(m_size);
+    }
+
+    // 原版 clean() 只置空指针，之后 append 会写空指针 —— 这里是真的清空
+    void clear() {
+        for (size_t i = 0; i < m_size; ++i) bits::destroy_at(m_ptr + i);
+        m_size = 0;
+    }
+    void clean() {
+        release();
+    }
+
+    void swap(array &other) noexcept {
+        T *p = m_ptr; m_ptr = other.m_ptr; other.m_ptr = p;
+        size_t s = m_size; m_size = other.m_size; other.m_size = s;
+        size_t c = m_capacity; m_capacity = other.m_capacity; other.m_capacity = c;
+    }
+
+    // --- 元素访问 ------------------------------------------------------
+    T &operator[](size_t index) {
+        RTL_CHECK(index < m_size);
+        return m_ptr[index];
+    }
+    const T &operator[](size_t index) const {
+        RTL_CHECK(index < m_size);
+        return m_ptr[index];
+    }
+    T &at(size_t index) {
+        RTL_CHECK(index < m_size);
+        return m_ptr[index];
+    }
+    const T &at(size_t index) const {
+        RTL_CHECK(index < m_size);
+        return m_ptr[index];
+    }
+    T &front() { RTL_CHECK(m_size); return m_ptr[0]; }
+    const T &front() const { RTL_CHECK(m_size); return m_ptr[0]; }
+    T &back() { RTL_CHECK(m_size); return m_ptr[m_size - 1]; }
+    const T &back() const { RTL_CHECK(m_size); return m_ptr[m_size - 1]; }
+
+    // --- 追加 / 插入 / 删除 --------------------------------------------
+    void append(const T &obj) { emplace_back(obj); }
+    void append(T &&obj) { emplace_back(rtl::move(obj)); }
+    void push_back(const T &obj) { emplace_back(obj); }
+    void push_back(T &&obj) { emplace_back(rtl::move(obj)); }
+
+    template<typename... Args>
+    T &emplace_back(Args &&...args) {
+        ensure(m_size + 1);
+        T &slot = emplace_at(m_size, bits::fwd<Args>(args)...);
+        ++m_size;
+        return slot;
+    }
+
+    void pop_back() {
+        if (m_size) {
+            --m_size;
+            bits::destroy_at(m_ptr + m_size);
+        }
+    }
+
+    void insert(size_t index, const T &obj) {
+        if (index > m_size) { RTL_CHECK(index <= m_size); return; }
+        ensure(m_size + 1);
+        for (size_t i = m_size; i > index; --i) {
+            bits::construct_at(m_ptr + i, rtl::move(m_ptr[i - 1]));
+            bits::destroy_at(m_ptr + i - 1);
+        }
+        bits::construct_at(m_ptr + index, obj);
+        ++m_size;
+    }
+
+    void insert(size_t index, T &&obj) {
+        if (index > m_size) { RTL_CHECK(index <= m_size); return; }
+        ensure(m_size + 1);
+        for (size_t i = m_size; i > index; --i) {
+            bits::construct_at(m_ptr + i, rtl::move(m_ptr[i - 1]));
+            bits::destroy_at(m_ptr + i - 1);
+        }
+        bits::construct_at(m_ptr + index, rtl::move(obj));
+        ++m_size;
+    }
+
+    // 原版语义：删掉 index 处一个元素，后面的整体前移
+    void remove(size_t index) {
+        if (index >= m_size) { RTL_CHECK(index < m_size); return; }
+        for (size_t i = index; i + 1 < m_size; ++i) {
+            m_ptr[i] = rtl::move(m_ptr[i + 1]);
+        }
+        --m_size;
+        bits::destroy_at(m_ptr + m_size);
+    }
+
+    // 原版是"删全部匹配项"，但有跳过元素的 bug；这里修好并返回删除个数
+    size_t remove(const T &obj) {
+        size_t removed = 0;
+        for (size_t i = 0; i < m_size;) {
+            if (m_ptr[i] == obj) {
+                for (size_t j = i; j + 1 < m_size; ++j) {
+                    m_ptr[j] = rtl::move(m_ptr[j + 1]);
+                }
+                --m_size;
+                bits::destroy_at(m_ptr + m_size);
+                ++removed;
+            } else {
+                ++i;
+            }
+        }
+        return removed;
+    }
+
+    bool erase(size_t index) {
+        if (index >= m_size) return false;
+        remove(index);
+        return true;
+    }
+
+    // --- 迭代 ----------------------------------------------------------
+    iterator begin() { return iterator{m_ptr}; }
+    iterator end() { return iterator{m_ptr + m_size}; }
+    const_iterator begin() const { return const_iterator{m_ptr}; }
+    const_iterator end() const { return const_iterator{m_ptr + m_size}; }
+    const_iterator cbegin() const { return const_iterator{m_ptr}; }
+    const_iterator cend() const { return const_iterator{m_ptr + m_size}; }
+};
+
+// ===========================================================================
+// list —— 双向链表
+// ===========================================================================
+//
+// 布局：Node 里存 T 的**裸内存**（不是 `T data;`）。
+// 这样 space_append() 才能给出真正的未初始化空间（原版是先默认构造再让
+// 调用方定位 new，对活对象二次构造）。地址同一性由 remove(T*) 的按地址
+// 扫描保证，不再依赖"T 必须是 Node 的第一个成员"这个布局假设。
+//
+template<typename T>
+class list {
+public:
+    struct Node {
+        Node *prev = nullptr;
+        Node *next = nullptr;
+        alignas(T) unsigned char storage[sizeof(T)];
+
+        T *data() noexcept {
+            return bits::launder_at(reinterpret_cast<T *>(storage));
+        }
+        const T *data() const noexcept {
+            return bits::launder_at(reinterpret_cast<const T *>(storage));
+        }
+    };
+
+    class iterator {
+        Node *n = nullptr;
+    public:
+        using value_type = T;
+
+        iterator() = default;
+        explicit iterator(Node *n_) : n{n_} {}
+
+        T &operator*() const { return *n->data(); }
+        T *operator->() const { return n->data(); }
+        Node *node() const { return n; }
+
+        iterator &operator++() { n = n->next; return *this; }
+        iterator operator++(int) { iterator t{*this}; n = n->next; return t; }
+        iterator &operator--() { n = n->prev; return *this; }
+        iterator operator--(int) { iterator t{*this}; n = n->prev; return t; }
+
+        friend bool operator==(const iterator &a, const iterator &b) { return a.n == b.n; }
+        friend bool operator!=(const iterator &a, const iterator &b) { return a.n != b.n; }
+    };
+
+    class const_iterator {
+        const Node *n = nullptr;
+    public:
+        using value_type = T;
+
+        const_iterator() = default;
+        explicit const_iterator(const Node *n_) : n{n_} {}
+        const_iterator(const iterator &it) : n{it.node()} {}
+
+        const T &operator*() const { return *n->data(); }
+        const T *operator->() const { return n->data(); }
+
+        const_iterator &operator++() { n = n->next; return *this; }
+        const_iterator operator++(int) { const_iterator t{*this}; n = n->next; return t; }
+        const_iterator &operator--() { n = n->prev; return *this; }
+        const_iterator operator--(int) { const_iterator t{*this}; n = n->prev; return t; }
+
+        friend bool operator==(const const_iterator &a, const const_iterator &b) { return a.n == b.n; }
+        friend bool operator!=(const const_iterator &a, const const_iterator &b) { return a.n != b.n; }
+    };
+
+protected:
+    Node *m_head = nullptr;
+    Node *m_tail = nullptr;
+    size_t m_size = 0;
+
+    static Node *make_node() {
+        return new Node;
+    }
+
+    // 把 new_node 接到尾部
+    void tpend(Node *new_node) {
+        new_node->prev = m_tail;
+        new_node->next = nullptr;
+        if (m_tail) m_tail->next = new_node;
+        else m_head = new_node;
+        m_tail = new_node;
+        ++m_size;
+    }
+
+    // 把 new_node 接到头部
+    void ppend(Node *new_node) {
+        new_node->prev = nullptr;
+        new_node->next = m_head;
+        if (m_head) m_head->prev = new_node;
+        else m_tail = new_node;
+        m_head = new_node;
+        ++m_size;
+    }
+
+    // 摘链（不析构、不释放）
+    void unlink(Node *node) {
+        if (node->prev) node->prev->next = node->next;
+        else m_head = node->next;
+        if (node->next) node->next->prev = node->prev;
+        else m_tail = node->prev;
+        node->prev = node->next = nullptr;
+        --m_size;
+    }
+
+    // 析构元素 + 释放节点
+    void destroy_node(Node *node) {
+        bits::destroy_at(node->data());
+        delete node;
+    }
+
+    template<typename... Args>
+    T &emplace_back_impl(Args &&...args) {
+        Node *node = make_node();
+        tpend(node);
+        bits::construct_at(node->data(), bits::fwd<Args>(args)...);
+        return *node->data();
+    }
+
+    template<typename... Args>
+    T &emplace_front_impl(Args &&...args) {
+        Node *node = make_node();
+        ppend(node);
+        bits::construct_at(node->data(), bits::fwd<Args>(args)...);
+        return *node->data();
+    }
+
+    Node *node_of(size_t index) const {
+        Node *current = m_head;
+        for (size_t i = 0; i < index && current; ++i) current = current->next;
+        return current;
+    }
+
+public:
+    // --- 构造 / 析构 / 拷贝 / 移动 -------------------------------------
+    list() = default;
+
+    // 变参构造：按顺序把每个实参 append 进来
+    //   rtl::list<int> l(1, 2, 3);
+    //   rtl::list<DeviceNode> dev(DeviceNode{...}, DeviceNode{...});
+    // 两个要知道的点：
+    //   1) 模板参数**推不出** braced-init-list，所以元素得写成 T{...} 或者已有对象
+    //      （`list<Rec> l{Rec{1,2}, Rec{3,4}}` 可以，`l{{1,2},{3,4}}` 不行）；
+    //   2) 同类型的拷贝/移动仍然走下面那两个非模板构造函数（重载决议里非模板优先），
+    //      所以它不会抢 list(const list&) / list(list&&) 的活。
+    template<typename... Args>
+    list(Args... args) {
+        (append(rtl::move(args)), ...);   // 空参数包时展开为 void()，所以 list<T> x{} 也没问题
+    }
+
+    list(const list &other) {
+        for (const T &obj : other) append(obj);
+    }
+
+    list(list &&other) noexcept
+    : m_head{other.m_head}, m_tail{other.m_tail}, m_size{other.m_size} {
+        other.m_head = nullptr;
+        other.m_tail = nullptr;
+        other.m_size = 0;
+    }
+
+    ~list() { clear(); }
+
+    list &operator=(const list &other) {
+        if (this != &other) {
+            clear();
+            for (const T &obj : other) append(obj);
+        }
+        return *this;
+    }
+
+    list &operator=(list &&other) noexcept {
+        if (this != &other) {
+            clear();
+            m_head = other.m_head;
+            m_tail = other.m_tail;
+            m_size = other.m_size;
+            other.m_head = nullptr;
+            other.m_tail = nullptr;
+            other.m_size = 0;
+        }
+        return *this;
+    }
+
+    // --- 追加 / 前插 ---------------------------------------------------
+    void append(const T &obj) { emplace_back_impl(obj); }
+    void append(T &&obj) { emplace_back_impl(rtl::move(obj)); }
+    void prepend(const T &obj) { emplace_front_impl(obj); }
+    void prepend(T &&obj) { emplace_front_impl(rtl::move(obj)); }
+
+    template<typename... Args>
+    T &emplace_back(Args &&...args) { return emplace_back_impl(bits::fwd<Args>(args)...); }
+    template<typename... Args>
+    T &emplace_front(Args &&...args) { return emplace_front_impl(bits::fwd<Args>(args)...); }
+
+    // 原版接口：拿到一段**未构造**的存储，调用方负责立刻定位 new。
+    //   CacheObj *e = m_cache.space_append();
+    //   new (e) CacheObj{sector, {}, false};
+    // 返回之后容器就认为该槽是活的（析构时会调用 ~T()），所以必须构造。
+    T *space_append() {
+        Node *node = make_node();
+        tpend(node);
+        return node->data();
+    }
+    T *space_prepend() {
+        Node *node = make_node();
+        ppend(node);
+        return node->data();
+    }
+
+    // --- 取首尾（原版语义：只返回指针，不摘链）-------------------------
+    T *pop_front() { return m_head ? m_head->data() : nullptr; }
+    T *pop_back() { return m_tail ? m_tail->data() : nullptr; }
+    T &front() { RTL_CHECK(m_head); return *m_head->data(); }
+    T &back() { RTL_CHECK(m_tail); return *m_tail->data(); }
+    const T &front() const { RTL_CHECK(m_head); return *m_head->data(); }
+    const T &back() const { RTL_CHECK(m_tail); return *m_tail->data(); }
+
+    // 真的摘掉首尾（原版没有，pop_* 名字被上面的"只读"占用了）
+    void erase_front() {
+        if (m_head) { Node *node = m_head; unlink(node); destroy_node(node); }
+    }
+    void erase_back() {
+        if (m_tail) { Node *node = m_tail; unlink(node); destroy_node(node); }
+    }
+
+    // --- 插入 ----------------------------------------------------------
+    void insert(size_t index, const T &obj) {
+        if (index > m_size) { RTL_CHECK(index <= m_size); return; }
+        if (index == 0) { prepend(obj); return; }
+        if (index == m_size) { append(obj); return; }
+        Node *current = node_of(index);
+        Node *node = make_node();
+        bits::construct_at(node->data(), obj);
+        node->prev = current->prev;
+        node->next = current;
+        current->prev->next = node;
+        current->prev = node;
+        ++m_size;
+    }
+
+    void insert(size_t index, T &&obj) {
+        if (index > m_size) { RTL_CHECK(index <= m_size); return; }
+        if (index == 0) { prepend(rtl::move(obj)); return; }
+        if (index == m_size) { append(rtl::move(obj)); return; }
+        Node *current = node_of(index);
+        Node *node = make_node();
+        bits::construct_at(node->data(), rtl::move(obj));
+        node->prev = current->prev;
+        node->next = current;
+        current->prev->next = node;
+        current->prev = node;
+        ++m_size;
+    }
+
+    // --- 删除 ----------------------------------------------------------
+    void remove(size_t index) {
+        if (index >= m_size) { RTL_CHECK(index < m_size); return; }
+        Node *node = node_of(index);
+        unlink(node);
+        destroy_node(node);
+    }
+
+    // 原版是按 `(Node*)data` 强转 + 指针相等来找的（依赖布局）；
+    // 这里改成按元素地址扫描，布局怎么变都不会错，代价同样是 O(n)。
+    void remove(T *data) {
+        if (!data) return;
+        for (Node *current = m_head; current; current = current->next) {
+            if (current->data() == data) {
+                unlink(current);
+                destroy_node(current);
+                return;
+            }
+        }
+    }
+
+    void remove(Node *node) {
+        if (!node) return;
+        unlink(node);
+        destroy_node(node);
+    }
+
+    // 删除所有 == obj 的元素，返回删除个数（原版返回 void，忽略返回值即兼容）
+    size_t remove(const T &obj) {
+        size_t removed = 0;
+        Node *current = m_head;
+        while (current) {
+            Node *next = current->next;
+            if (*current->data() == obj) {
+                unlink(current);
+                destroy_node(current);
+                ++removed;
+            }
+            current = next;
+        }
+        return removed;
+    }
+
+    void clear() {
+        Node *current = m_head;
+        while (current) {
+            Node *next = current->next;
+            destroy_node(current);
+            current = next;
+        }
+        m_head = nullptr;
+        m_tail = nullptr;
+        m_size = 0;
+    }
+
+    // --- 访问 ----------------------------------------------------------
+    T &operator[](size_t index) {
+        Node *node = node_of(index);
+        RTL_CHECK(node);
+        return *node->data();
+    }
+    const T &operator[](size_t index) const {
+        const Node *node = node_of(index);
+        RTL_CHECK(node);
+        return *node->data();
+    }
+
+    size_t size() const { return m_size; }
+    size_t get_size() const { return m_size; }        // 原版名字
+    bool empty() const { return m_size == 0; }
+
+    // --- 迭代 ----------------------------------------------------------
+    iterator begin() { return iterator{m_head}; }
+    iterator end() { return iterator{nullptr}; }
+    const_iterator begin() const { return const_iterator{m_head}; }
+    const_iterator end() const { return const_iterator{nullptr}; }
+    const_iterator cbegin() const { return const_iterator{m_head}; }
+    const_iterator cend() const { return const_iterator{nullptr}; }
+
+    void swap(list &other) noexcept {
+        Node *h = m_head; m_head = other.m_head; other.m_head = h;
+        Node *t = m_tail; m_tail = other.m_tail; other.m_tail = t;
+        size_t s = m_size; m_size = other.m_size; other.m_size = s;
+    }
+};
+
+template<typename T>
+inline void swap(array<T> &a, array<T> &b) noexcept { a.swap(b); }
+template<typename T>
+inline void swap(list<T> &a, list<T> &b) noexcept { a.swap(b); }
+
+} // namespace rtl
+
+#endif

@@ -1,8 +1,8 @@
 #include "gdt.hpp"
 #include "IDNT.hpp"
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 #include <global/new.hpp>
-#include <TL/utility>
+#include <HL/utility>
 
 #pragma GCC optimize("Os")
 
@@ -16,12 +16,12 @@ extern "C" {
 }
 
 void NP_handler(){
-    kprint("[ERROR] No segment present\n");
+    kout << "[ERROR] No segment present\n";
     while(1){asm volatile ("hlt");}
 };
 
 void SS_handler(){
-    kprint("[ERROR] Stack segment fault\n");
+    kout << "[ERROR] Stack segment fault\n";
     while(1){asm volatile ("hlt");}
 };
 
@@ -45,7 +45,7 @@ entries(entries_init), limit(limit_init) {
 
     fresh_gdt(&gdt_ptr);
 #ifdef _DEBUG
-    cout << ", GDT: " << gdt_ptr.base;
+    kout << ", GDT: " << gdt_ptr.base;
 #endif
 }
 

@@ -290,8 +290,8 @@ unsigned PhysicalPage::neaten() {
     return 0;
 }
 
-__window_dos_loader_struct_0x1::array::Iterator&
-__window_dos_loader_struct_0x1::array::Iterator::operator++() {
+__window_dos_loader_struct_0x1::array::iterator&
+__window_dos_loader_struct_0x1::array::iterator::operator++() {
     if (count * sizeof(mem_list) >= 0x9FC00 - StackSize - (u32)start) {
         done = true;
     } else { count ++; }

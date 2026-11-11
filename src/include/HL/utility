@@ -1,0 +1,67 @@
+//#ifdef __independent_lib_Using_utility
+#ifndef ___Using_utility
+#define ___Using_utility
+
+#include <HL/bits/utility>
+#include <HL/bits/forward>
+
+namespace rtl {
+
+// delete & for T or T& or T&&
+template<typename T>
+struct remove_reference {
+    using type = T;
+};
+template<typename T>
+struct remove_reference<T&> {
+    using type = T;
+};
+template<typename T>
+struct remove_reference<T&&> {
+    using type = T;
+};
+
+//catch and change to T&&
+template<typename T>
+constexpr decltype(auto) move(T &&obj){ //decltype for DO NOT automatic degradation
+    return static_cast<typename remove_reference<T>::type &&>(obj);
+}
+
+template<typename T>
+decltype(auto) forward(T &&t) {
+    return bits::forward(t);
+};
+
+template<typename T, typename M>
+inline constexpr int member_offset(M T::*ptr) {
+    return reinterpret_cast<int>(&(((T*)0)->*ptr));
+}
+
+template<typename N, typename M>
+struct pair {
+    N key;
+    M value;
+}; 
+
+template<typename T>
+class range {
+    T from, to;
+public:
+    range(T to_): from {}, to{to_}{}
+    range(T from_, T to_): from{from_}, to{to_}{}
+
+    struct it {
+        T v;
+        T operator *() const { return v; }
+        it &operator++() { ++v; return *this; }
+        bool operator!= (const it &oth) const { return v != oth.v; }
+    };
+
+    it begin() const { return {from}; }
+    it end() const { return {to}; }
+};
+
+}
+
+#endif
+//#endif

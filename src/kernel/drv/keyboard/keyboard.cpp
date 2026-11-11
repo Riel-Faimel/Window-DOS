@@ -42,7 +42,7 @@ bool init(){
         io_wait();
         time_count++;
         if(time_count > 0x100){
-            kprint("time out\n");
+            kout << "time out\n";
             return false;
         }
     }
@@ -63,7 +63,7 @@ bool init(){
     io_wait();
     unsigned char self_test = inb(DATA);
     if(self_test != 0x55){
-        kprint("[FAILED] Keyboard self check\n");
+        kout << "[FAILED] Keyboard self check\n";
         return false;
     }
     
@@ -72,7 +72,7 @@ bool init(){
     io_wait();
     unsigned char interface_test = inb(DATA);
     if(interface_test != 0x00){
-        kprint("[FAILED] Keyboard interface check\n");
+        kout << "[FAILED] Keyboard interface check\n";
         return false;
     }
     */
@@ -84,7 +84,7 @@ bool init(){
         io_wait();
         time_count++;
         if(time_count > 0x100){
-            kprint("time out\n");
+            kout << "time out\n";
             return false;
         }
     }
@@ -98,7 +98,7 @@ void init_driver(){
     idt.regist(&keyboard_handler, static_cast<unsigned>(IDNT::keyboard));
     if(init())return;
     else{
-        kprint("[WARNING] Keyboard Failed\n");
+        kout << "[WARNING] Keyboard Failed\n";
     };
 }
 

@@ -12,14 +12,15 @@ CPU::CPU(): mm{}, idt{new (mm) descrptor::IDTEntry[256]},
 gdt{new (mm) descrptor::GDTEntry[256]{}, 256, idt}, tss{gdt, mm}, 
 scheduler{mm, idt}, /*syscall{idt},*/ info{ 
     .arch_type = CPUInfo::ArchType::x86,
+    .cpu_nums = 1,
     .bit_num = 32,
     .Segmentation_support = 1,
     .paging_support = 1,
     .Segmentation_mode = 1,
-    .paging_mode = 0
+    .paging_mode = 0,
+    .FPU_suppport = 1,
 }{
-    while(!countorlock.try_lock());
-    {
+    while(!countorlock.try_lock()){} {
         if (cpu_list_root == nullptr) {
             cpu_list_root = this;
         } else for (auto cpup = cpu_list_root;cpup != nullptr;cpup = cpup->next) {
@@ -43,9 +44,9 @@ scheduler{mm, idt}, /*syscall{idt},*/ info{
     countorlock.unlock();
 
     DebugInfo (
-        cout << " :: CPU[";
-        print_hex((u8)cpuid, false);
-        cout << "] >\n";
+        kout << " :: CPU[";
+        kout.hex((u16)cpuid);
+        kout << "] >\n";
     )
 }
 

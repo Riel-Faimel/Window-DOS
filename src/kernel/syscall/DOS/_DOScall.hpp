@@ -1,7 +1,7 @@
 #include "DOScall.hpp"
 
 #include <global/type.hpp>
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 #include <arch/x86/idt.hpp>
 #include <multiCE/default/cs.hpp>
 

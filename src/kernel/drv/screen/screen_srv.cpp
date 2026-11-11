@@ -1,7 +1,7 @@
 #include "screen_srv.hpp"
 
 extern "C" {
-    void kprint(char *string){ cout.VGA_screen.print(string);
+    void kprint(char *string){ vgatextout.VGA_screen.print(string);
 } 
 
 void print_hex(unsigned short val, bool a){
@@ -18,7 +18,7 @@ void print_hex(unsigned short val, bool a){
     else kprint(hex_str+2);
 }}
 void kprint(const char * str) { kprint(const_cast<char *>(str)); }
-void kprint(char *string, char end){ cout.VGA_screen.print(string, end); }
+void kprint(char *string, char end){ vgatextout.VGA_screen.print(string, end); }
 
 void print_hex(unsigned char val, bool a) {
     const char *hex_digits = "0123456789ABCDEF";
@@ -51,7 +51,7 @@ void print_hex(unsigned val, bool a){
 }
 
 void print_char(char ch){
-    cout.VGA_screen._prt(ch);
+    vgatextout.VGA_screen._prt(ch);
 }
 
-screen_output cout;
+screen_output vgatextout;

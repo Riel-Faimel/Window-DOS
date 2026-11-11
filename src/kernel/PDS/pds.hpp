@@ -4,82 +4,94 @@
 /**
  * PeripheralDeviceSpace (Physical Driver Space) is a space for all physical drivers
  * it is manage enumerator objects and provide driver queries and API for caller 
+ * 
+ * Abort database, PDS is more append/remove, fewer check/view
  */
 
 #include "pdsdef.hpp"
-#include <TL/container>
-#include <TL/concept>
+#include <global/type.hpp>
+#include <HL/container>
+#include <HL/map>
+#include <HL/condi_tranv>
+#include <string>
 #include <interface/enumer.hpp>
 #include <interface/dev_cls/device.hpp>
 
-using DriverConstr = void *(*)(DeviceConfig &);
+struct XXX {
+    XXX();
 
-class Device_DriverRecored;
-
-template<typename T, typename P>
-concept DevAcCon = requires (T t, const P &pif) {
-    rtl::is_same_t<decltype(t(pif)), bool>;
-};
-
-class Device_DriverRecored {
-    struct DeviceNode {
-        DeviceIndex did;
-        void *config;
-        void *drvInstance;
-        DriverConstr *drv;
-    };
-    struct ProgramInFace {
-        BusIndex bus;
-        ClassType cls;
-        ProgIFIndex id;
-        rtl::list<DeviceNode> dev;
-        DriverConstr *drv;
-    };
-    using DeviceSpace_t = rtl::list<ProgramInFace>;
-    friend class PeripheralDeviceSpace;
-
-    template<u32 N, DevAcCon<ProgramInFace> AC>
-    class CondiView;
-    template<typename C>
-    class Iterator;
-    class it;
-public:
-    using DevNode = DeviceNode;
-    using PifNode = ProgramInFace;
-    Device_DriverRecored() = default;
-
-    void append(const ProgIFIndex &);
-
-    template<DevAcCon<PifNode> AC>
-    CondiView<0u, AC> filter(AC);
-    it begin() const;
-    it end() const;
 private:
-    DeviceSpace_t storage;
+    struct DeviceNode {
+        // device id
+        DeviceType device_typeID;
+        // list<pair<device instance, driver instance>>
+        rtl::list<rtl::pair<void *, void *>> InstanceList;
+        // drv factry
+        DriverConstr drv;
+    };
+    struct ProgIFNode {
+        // progif id map to here
+        // abort bus
+        // abort class
+        // list device information
+        rtl::list<DeviceNode> DeviceList;
+        // drv factry
+        DriverConstr drv;
+    };
+    rtl::map<ProgIFType, ProgIFNode> device_record_space;
 };
-
-using DevNode = Device_DriverRecored::DevNode;
-using PifNode = Device_DriverRecored::PifNode;
 
 struct PeripheralDeviceSpace {
     PeripheralDeviceSpace();
 
     // append bus
-    int append(Enumerator *);
+    BusIndex append(Enumerator *);
+    Enumerator *&operator [] (String );
     // append device
-    int append(BusIndex, ClassType, ProgIFIndex, const DeviceConfig &);
+    int append(DeviceInfo *);
+    // append device
+    int append(BusIndex, ClassType, ProgIFType, DeviceType, void *);
     // append drvier for prog if
-    int append(BusIndex, ClassType, ProgIFIndex, DriverConstr);
+    int append(BusIndex, ClassType, ProgIFType, DriverConstr);
     // append driver for device
-    int append(BusIndex, ClassType, ProgIFIndex, DeviceIndex, DriverConstr);
+    int append(BusIndex, ClassType, ProgIFType, DeviceType, DriverConstr);
+    // apply for id
+    ProgIFType apply_pifid (size_t);
+    BusIndex apply_busid ();
 private:
+    class DeviceNode {
+        struct Instance {
+            void *config;
+            void *drvInstance;
+
+            Instance(void *config_): config{config_}, drvInstance{nullptr} {}
+            Instance(void *config_, void *drv_): config{config_}, drvInstance{drv_} {}
+        };
+    public:
+        DeviceType dev_t;
+        rtl::list<Instance> in_l;
+        DriverConstr *drv;
+    };
+    struct ProgramInFace {
+        BusIndex bus_id;
+        ClassType cls_t;
+        ProgIFType prog_t;
+        rtl::list<DeviceNode> dev_l;
+        DriverConstr *drv;
+    };
     struct EnumerNode {
         BusIndex id;
         Enumerator *enumr;
     };
+    class RecordDB {
+        rtl::map<ProgIFType, ProgramInFace> prog_r;
+    };
 
-    Device_DriverRecored database;
     rtl::array<EnumerNode> busspace;
+    rtl::list<ProgramInFace> storage;
+    rtl::Filter<ProgramInFace, rtl::list> database;
+    ProgIFType pc; // Prog interface index counter
+    BusIndex bc; // bus index counter
 };
 
 extern PeripheralDeviceSpace *pdevspace;

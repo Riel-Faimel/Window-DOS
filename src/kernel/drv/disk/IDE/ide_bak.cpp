@@ -1,7 +1,7 @@
 #include <global/type.hpp>
 #include <interface/dev_cls/cluster.hpp>
 #include <port.h>
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 #include <interface/dev_cls/device.hpp>
 #include <CDM/PM.hpp>
 #include <id/id.hpp>
@@ -109,10 +109,10 @@ chan(chan_){
 
     IDE_DISK&& mm = IDE_DISK{IDE_DISK::Device::Master_Device, this};
     if(mm.exist)master = rtl::move(mm);
-    //else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Master disk not found\r\n";
+    //else if(registry.do_IDE_controller_initialization_print_info)kout << "[NOTICE] Master disk not found\r\n";
     IDE_DISK&& ms = IDE_DISK{IDE_DISK::Device::Slave_Device, this};
     if(ms.exist)slave = rtl::move(ms);
-    //else if(registry.do_IDE_controller_initialization_print_info)cout << "[NOTICE] Slave disk not found\r\n";
+    //else if(registry.do_IDE_controller_initialization_print_info)kout << "[NOTICE] Slave disk not found\r\n";
 }
 
 void IDE_Channal::get_ctlpkg(ctlpkg &cp){
@@ -254,7 +254,7 @@ inline unsigned IDE_Channal::write_PIO_LBA(unsigned short *buf, unsigned int LBA
         while (!(inb(static_cast<u16>(chan) + static_cast<u16>(ATA::REG_STATUS)) & 0x08)){
             i++;
             if(i > 10000){
-                if(registry.do_IDE_controller_initialization_print_info)kprint("[NOTICE] Time out\r\n");
+                if(registry.do_IDE_controller_initialization_print_info)kout << "[NOTICE] Time out\r\n";
                 break;
             }
         };
@@ -444,11 +444,11 @@ lock(c), info_{}, exist{true}{
     ) { //兼容CF卡的小玩意
 		/* CPRM may make this media unusable */
 		if (id[static_cast<u32>(162)] & 1)
-        if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
+        if(registry.do_IDE_controller_initialization_print_info)kout << "supports DRM functions and may not be fully accessable.\n";
 	} else {
 		/* Warn the user if the device has TPM extensions */
 		if (identify_info.cmd_set2 & 0b0001)
-        if(registry.do_IDE_controller_initialization_print_info)kprint("supports DRM functions and may not be fully accessable.\n");
+        if(registry.do_IDE_controller_initialization_print_info)kout << "supports DRM functions and may not be fully accessable.\n";
 	}
 
 	info_.index_num = (u64)identify_info.LBA28_sectors;
@@ -468,9 +468,9 @@ lock(c), info_{}, exist{true}{
         info_.address_mode |= 0b10;
 		if (identify_info.cmd_set2 & (1 << 10)) {
 			info_.address_mode |= 0b100;
-            if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA48\n");
+            if(registry.do_IDE_controller_initialization_print_info)kout << "supports LBA48\n";
 		}else 
-        if(registry.do_IDE_controller_initialization_print_info)kprint("supports LBA\n");
+        if(registry.do_IDE_controller_initialization_print_info)kout << "supports LBA\n";
 	} else {
 		/* CHS */
         LBA_mode = 0;
@@ -494,7 +494,7 @@ lock(c), info_{}, exist{true}{
 unsigned IDE_DISK::read(void *buf, unsigned LBA, unsigned, unsigned sectors_read){
 #define LocalDebug
 #include <global/macro.hpp>
-    LocalDebugInfo(cout << '[' << LBA << ", " << sectors_read << "]\n";)
+    LocalDebugInfo(kout << '[' << LBA << ", " << sectors_read << "]\n";)
     if(lock) return lock->read(static_cast<unsigned short *>(buf), LBA, sectors_read, &info_);
     else while(1);//return -1;
 }

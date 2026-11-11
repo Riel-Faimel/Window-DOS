@@ -54,7 +54,7 @@ void *exCOM_resolv(WinHandle &win) {
     exCOM_Header buf;
     driverletterspace->read(&buf, h, 0, sizeof(buf));
 
-    LocalDebugInfo(cout << buf.enter_point << ' ' << buf.text_offset << ' ' << buf.text_start << ' ' << buf.text_size << ' '\
+    LocalDebugInfo(kout << buf.enter_point << ' ' << buf.text_offset << ' ' << buf.text_start << ' ' << buf.text_size << ' '\
     << buf.data_offset << ' ' << buf.data_start << ' ' << buf.data_size << ' ';)
     
     if (buf.magic[0] != 'E' || buf.magic[1] != 'C' || 
@@ -67,7 +67,7 @@ void *exCOM_resolv(WinHandle &win) {
         driverletterspace->read((void*)buf.data_start, h, buf.data_offset, buf.data_size);
     }
     if (buf.bss_size > 0) {
-        memset((void*)(buf.data_start + buf.data_size), 0, buf.bss_size);
+        memset((void*)((u8 *)buf.data_start + buf.data_size), 0, buf.bss_size);
     }
     return buf.enter_point;
 }
@@ -88,12 +88,12 @@ FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
     u8 *enter_point = (u8 *)exCOM_resolv(win);
 #undef LocalDebug
 #include <global/macro.hpp>
-    LocalDebugInfo(cout << enter_point;)
+    LocalDebugInfo(kout << enter_point;)
     
     Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv, 1, 3);
 
 #undef LocalDebug
 #include <global/macro.hpp>
-    LocalDebugInfo(for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);cout << ' '; })
+    LocalDebugInfo(for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);kout << ' '; })
     return FexecExceptionCode::NoException;
 }

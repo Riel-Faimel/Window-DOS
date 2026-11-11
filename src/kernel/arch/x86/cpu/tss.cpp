@@ -14,7 +14,7 @@ TSM::TSM(GDT &gdt, MemoryManager& mm) {
         : "r"(tss_id)
         : "memory"
     );
-    DebugInfo(cout << ", tss: " << (u8)tss_id;)
+    DebugInfo(kout << ", tss: " << (u8)tss_id;)
 }
 
 } // namespace arch 

@@ -8,11 +8,16 @@ AR = ar
 COPY = objcopy
 QEMU = qemu-system-x86_64
 
+
+LIBOBJ =
+OBJ =
+
+
 ifeq ($(ARCH), x86)
-include $(MK_DIR)/x86/x86.mk
+include $(MK_DIR)x86/x86.mk
 endif
 ifeq ($(ARCH), STM32H750)
-include $(MK_DIR)/ARM/STM32/H750.mk
+include $(MK_DIR)ARM/Core-M7/STM32/H750.mk
 endif
 
 # ======
@@ -31,17 +36,18 @@ include $(SRC_DIR)lib/lib.mk
 MOD = $(FS_MOD)
 MOD += $(DRV_MOD)
 
-libs: libos.a
+lib: $(BUILD_DIR)lib/libos.a
 module: module_32
 
 boot.img: $(BUILD_DIR)bootloader.bin $(BUILD_DIR)kernel.bin 
-	copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
+	@ copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
+	@ echo [COPY] $@
 kernel.exe:
-result: boot.img kernel.exe
+result: boot.img
 
 QEMUFLAGS = -serial stdio \
 	-device ich9-ahci,id=sata\
-	-drive format=raw,index=0,file=boot.img,media=disk \
+	-drive format=raw,index=0,file=boot.img,media=disk\
 	-drive format=raw,id=disk1,file=flp.vhd,if=none\
 	-device ide-hd,drive=disk1,bus=sata.1
 
@@ -49,8 +55,8 @@ run:
 	$(QEMU) $(QEMUFLAGS)
 
 clean:
-	rmdir /s "$(BUILD_DIR)"
-	rmdir /s "$(ROOT_DIR)/gcm.cache"
+	rmdir /s /q "$(BUILD_DIR)"
+	rmdir /s /q "$(ROOT_DIR)/gcm.cache"
 	del boot.img
 
 debug:

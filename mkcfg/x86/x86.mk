@@ -6,7 +6,7 @@ AS = nasm
 CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding -MMD -MP\
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
-		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_DEBUG -D_x86
+		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_DEBUG -D_x86 
 
 CFLAGS = $(CBASE) -Werror=implicit-int
 CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts
@@ -15,10 +15,10 @@ CPPEXCEPTION = $(CPPBASE) -fexceptions
 	
 LDFLAGS_B = -nostdlib -m elf_i386
 LDFLAGS = $(LDFLAGS_B) -r
-LDFLAGS_F = $(LDFLAGS_B) -static -T $(MK_DIR)/x86/x86.ld -Map=loader.map
+LDFLAGS_F = $(LDFLAGS_B) -static -T $(MK_DIR)/x86/x86.ld -Map=loader.map -L$(BUILD_DIR)lib -los
 ASFLAGS = -f elf32
 
-LDCMD = $(LD) $(LDFLAGS) -o
+LDCMD = @ $(LD) $(LDFLAGS) -o
 LDCMD_F = $(LD) $(LDFLAGS_F) -o
 
 COPYFLAGS = -O binary --only-section=.start\
@@ -47,34 +47,41 @@ define STRIP_MODULE_DEPS
 endef
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.cpp
-	$(call MKDIR_F,$@)
-	$(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -c $< -o $@
-	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ $(call MKDIR_F,$@)
+	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -c $< -o $@
+	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ echo [CPP] $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%_exception.cpp
-	$(call MKDIR_F,$@)
-	$(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
-	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ $(call MKDIR_F,$@)
+	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
+	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ echo [CPP] exception $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c 
-	$(call MKDIR_F,$@)
-	$(CC) -D_BITS_32 $(CFLAGS) -c $< -o $@
-	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ $(call MKDIR_F,$@)
+	@ $(CC) -D_BITS_32 $(CFLAGS) -c $< -o $@
+	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ echo [CC] $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.asm
-	$(call MKDIR_F,$@)
-	$(AS) $(ASFLAGS) $< -o $@
+	@ $(call MKDIR_F,$@)
+	@ $(AS) $(ASFLAGS) $< -o $@
+	@ echo [AS] $<
 
 $(BUILD_DIR)%.bin: $(SRC_DIR)%.asm
-	$(call MKDIR_F,$@)
-	$(AS) -f bin $< -o $@
+	@ $(call MKDIR_F,$@)
+	@ $(AS) -f bin $< -o $@
+	@ echo [AS] $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.cppm
-	$(call MKDIR_F,$@)
-	$(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -c $< -o $@
-	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ $(call MKDIR_F,$@)
+	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -c $< -o $@
+	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ echo [CPP] module $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%_exception.cppm
-	$(call MKDIR_F,$@)
-	$(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
-	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ $(call MKDIR_F,$@)
+	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
+	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ echo [CPP] module $<

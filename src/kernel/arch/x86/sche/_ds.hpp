@@ -1,5 +1,5 @@
 #include "ds.hpp"
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 #include <arch/cpu.hpp>
 #include <id/id.hpp>
 #include <mm/mm.hpp>

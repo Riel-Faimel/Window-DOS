@@ -2,14 +2,17 @@
 #include "..\ATA/ATActl.hpp"
 #include <interface/dev_cls/device.hpp>
 #include <interface/dev_cls/logicaldisk.hpp>
-#include <TL/utility>
+#include <drv/mod_head.hpp>
+#include <HL/utility>
 #undef LocalDebug
 #include <global/macro.hpp>
 #include <port.h>
 #include <utility>
 #include <CDM/PM.hpp>
 #include <id/id.hpp> 
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
+
+namespace ATAdev {
 
 class IDE_control final : public ATADiskControl {
 	DetectTable act(const ActionTable &at) const override final;
@@ -21,12 +24,12 @@ class IDE_control final : public ATADiskControl {
 
     static rtl::pair<u16, u8> diskID2chan_dev (DeviceIndex);
 
-    struct Iterator {
+    struct iterator {
         u8 count = 0;
 
-        bool operator!= (const Iterator &) {
+        bool operator!= (const iterator &) {
             for (;count < 4;count++) {
-                auto [chan, dev] = ::IDE_control::diskID2chan_dev(DeviceIndex{count});
+                auto [chan, dev] = IDE_control::diskID2chan_dev(DeviceIndex{count});
                 outb(dev, chan + CMDBlock::device);
                 io_wait();
                 if(inb(chan + CMDBlock::status) == 0xFF) continue;
@@ -34,11 +37,11 @@ class IDE_control final : public ATADiskControl {
             }
             return false;
         }
-        Iterator &operator++() { count++; return *this; }
+        iterator &operator++() { count++; return *this; }
         DeviceIndex operator* () { return DeviceIndex{count}; }
     };
-    Iterator begin() { return Iterator{}; }
-    Iterator end() { return Iterator{}; }
+    iterator begin() { return iterator{}; }
+    iterator end() { return iterator{}; }
 public:
     IDE_control();
 };
@@ -54,6 +57,8 @@ public:
     DiskInfo *info(unsigned = 0, String = {}) override final;
     unsigned cmd(unsigned, String, void *argv, unsigned argc) override final;
 };
+    
+} // namespace ATAdev 
 
 extern "C" void when_PATA_Master_cut_handler();
 extern "C" void when_PATA_Slave_cut_handler();

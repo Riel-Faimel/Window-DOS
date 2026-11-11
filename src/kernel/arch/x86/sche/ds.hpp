@@ -10,7 +10,7 @@ extern "C" {
     void _Scall_yield();
     void _Sint_sche();
     void _Sint_yield();
-    void _Sexit();
+    [[noreturn]] void _Sexit();
 }
 
 namespace arch {
@@ -29,7 +29,7 @@ public:
     inline void ScheduleDecision();
     [[noreturn]] void resume();
     __attribute__((optimize("O3"), used))
-    inline void run(
+    void run(
         void *func, size_t argc, void *argv, size_t time, 
         size_t code_seg, size_t data_seg, size_t gs, size_t fs
     ); // Create Thread

@@ -4,11 +4,11 @@
 #include <interface/dev_cls/cluster.hpp>
 #include <global/type.hpp>
 #include <drv/kmod.hpp>
-#include <TL/utility>
+#include <HL/utility>
 
 #define LocalDebug
 #include <global/macro.hpp>
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 
 
 class SingalPart : public LogicalDisk {
@@ -29,7 +29,7 @@ public:
         //*/
         nums;
         /*
-        kprint("reaing: ");print_hex(LBA+start);print_char(',');print_hex(read_num);print_char('\n');
+        kout << "reaing: ");print_hex(LBA+start);print_char(',');print_hex(read_num);print_char('\n';
         //*/
         return disk->read(buf, LBA + start, 0, read_num);
     }

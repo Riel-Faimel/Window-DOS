@@ -1,7 +1,7 @@
 #include "idt.hpp"
 
 #include <port.h>
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 #include <global/new.hpp>
 #include <id/id.hpp>
 #include "IDNT.hpp"
@@ -31,6 +31,3 @@ struct no_errcode_frame {
     unsigned eflags;
 };
 #pragma pack(pop)
-
-static void no_errcode_frame_status(no_errcode_frame *);
-static u32 errorcode_frame_status (errcode_frame *frame);

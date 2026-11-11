@@ -44,7 +44,7 @@ class BoxLevel {
     u16 data;
 public:
     BoxLevel(): data{0} {}
-    BoxLevel(u32 data_): data{data_} {}
+    BoxLevel(u16 data_): data{data_} {}
 
     operator unsigned () const { return data; }
 };

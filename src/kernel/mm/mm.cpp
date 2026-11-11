@@ -18,7 +18,7 @@ KernelHeapFormat::KernelHeapFormat(void *page_base){
 __attribute__((optimize("O2")))
 KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
     u32 size_need = size_classes[level]+sizeof(ObjHeader)+sizeof(u16);
-    //cout << "size need = " << size_need << '\n';
+    //kout << "size need = " << size_need << '\n';
 
     for (auto &page : rtl::list_tranveser{sb->page_head})
     if (page.get_free_size() > size_need) // page large enough
@@ -83,7 +83,7 @@ void KernelHeapFormat::format_subzone(SubZone *sz, u32 level) {
     lastptr->next = sb->free_zones[level].obj_start;
     sb->free_zones[level].obj_start = buf.next;
     sb->free_zones[level].free_count += objcount;
-    //cout << "level(C): " << level << ", start: " << sb->free_zones[level].obj_start << '\n';
+    //kout << "level(C): " << level << ", start: " << sb->free_zones[level].obj_start << '\n';
 }
 void KernelHeapFormat::format(PagePackage addrpkg) {
     sb = (SuperBlock *)new (Pointer<ObjHeader>{addrpkg.base}) SuperBlock {
@@ -149,11 +149,9 @@ KernelHeapFormat::SubZone *KernelHeapFormat::search_zone(void *obj, KernelHeapFo
 }
 
 
-inline MemoryManager::allocable::allocable(MemoryManager *mm) {
-    mm->_ = this;
-}
-MemoryManager::nopage::nopage(void* page_base, MemoryManager *mm):
-allocable{mm}, KernelHeapFormat{page_base} {}
+inline MemoryManager::allocable::allocable() {}
+MemoryManager::nopage::nopage(void* page_base):
+allocable{}, KernelHeapFormat{page_base} {}
 
 __attribute__((optimize("O2")))
 void *MemoryManager::nopage::alloc(size_t size) {
@@ -168,7 +166,7 @@ void *MemoryManager::nopage::alloc(size_t size) {
             if(box == (void *)-1) return nullptr;
             box->pages = pages;
             box->head_guard = ObjectSingalGuard;
-            //cout << "<addr=" << box+1 << ">\n";
+            //kout << "<addr=" << box+1 << ">\n";
             return box+1;
         }
     }
@@ -177,7 +175,7 @@ void *MemoryManager::nopage::alloc(size_t size) {
     if (objzone.obj_start == nullptr) {
         // need to new subzone
         createzone(level);
-        //cout << "level(P): " << level << ", objzone start: " << objzone.obj_start << '\n';
+        //kout << "level(P): " << level << ", objzone start: " << objzone.obj_start << '\n';
     }
 
     auto box = objzone.obj_start;
@@ -191,7 +189,7 @@ void *MemoryManager::nopage::alloc(size_t size) {
         reinterpret_cast<u8 *>(box + 1) + size_classes[level]
     ) = ObjectTailGuard;
 
-    //cout << "<addr=" << box+1 << ">";
+    //kout << "<addr=" << box+1 << ">";
     return box+1;
 }
 __attribute__((optimize("O2")))
@@ -209,13 +207,13 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     }
 }
 __attribute__((error("Not yet!")))
-MemoryManager::inpage::inpage(void* page_base, MemoryManager *mm):
-allocable{mm}, KernelHeapFormat{page_base} {}
+MemoryManager::inpage::inpage(void* page_base):
+allocable{}, KernelHeapFormat{page_base} {}
 void *MemoryManager::inpage::alloc(size_t) { return nullptr; }
 void MemoryManager::inpage::dlloc(void *, size_t) {}
 MemoryManager::MemoryManager(bool print):
-reserved_space{._rn{nullptr, this}} {
-    DebugInfo(if (print) cout << "< heap: " << *(void **)(&reserved_space._rn);)
+defaul{nullptr}, al{&defaul} {
+    DebugInfo(if (print) kout << "< heap: " << *(void **)(&defaul);)
 }
 
 //======

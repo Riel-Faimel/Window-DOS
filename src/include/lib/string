@@ -1,27 +1,27 @@
 #ifndef __lib_cppstdlib_string
 #define __lib_cppstdlib_string
 
-#include <TL/container>
+#include <HL/container>
 
 class String{
     char *data;
     unsigned len;
 
-    class Iterator {
+    class iterator {
         char *ptr;
 
     public:
-        Iterator(char *ptr_): ptr{ptr_}{}
-        ~Iterator() = default;
+        iterator(char *ptr_): ptr{ptr_}{}
+        ~iterator() = default;
 
-        constexpr bool operator!= (const Iterator &it) const {
+        constexpr bool operator!= (const iterator &it) const {
             return ptr != it.ptr;
         }
-        constexpr Iterator &operator++() {
+        constexpr iterator &operator++() {
             ptr+=1;
             return *this;
         }
-        constexpr Iterator operator++(int ) = delete;
+        constexpr iterator operator++(int ) = delete;
         constexpr char operator* () const { return *ptr; }
     };
 public:
@@ -77,8 +77,8 @@ public:
     String get_word(char);
 
     operator const char *() const;
-    Iterator begin() const { return Iterator{data}; }
-    Iterator end() const { return Iterator{data+len}; }
+    iterator begin() const { return iterator{data}; }
+    iterator end() const { return iterator{data+len}; }
 };
 
 inline String::String(String &&s) noexcept :data(s.data), len(s.len){

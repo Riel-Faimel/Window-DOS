@@ -2,6 +2,6 @@
 
 #include <global/macro.hpp>
 #include "gdt.hpp"
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 #include <mm/phy.hpp>
 #include <mm/mm.hpp>

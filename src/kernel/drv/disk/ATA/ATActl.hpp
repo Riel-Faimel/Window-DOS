@@ -8,8 +8,10 @@
 #undef LocalDebug
 #include <global/macro.hpp>
 #include <port.h>
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 
+namespace ATAdev {
+    
 #pragma pack(push, 1)
 struct ActionTable {
     struct {
@@ -86,14 +88,14 @@ public:
 #include <global/macro.hpp>
         DetectTable result = act(cmd);
         if (result.status.busy || result.status.error) {
-            LocalDebugInfo(cout << "No such Disk\n";)
+            LocalDebugInfo(kout << "No such Disk\n";)
             return nullptr;
         }
         ASMLabelMark(start_move_identify_data)
 
         auto [de, _] = pio_data_in(iden, SectorCount{(u16)1u}, DeviceIndex{cmd.device_index});
         if (iden[0] == 0xFFFF || !de.status.data_ready) {
-            LocalDebugInfo(cout << "Invalid Disk\n";)
+            LocalDebugInfo(kout << "Invalid Disk\n";)
             return nullptr;
         }
         auto re = new DiskInfo {};
@@ -119,7 +121,7 @@ public:
         re->PIO_supported = iden.pio_valid();
 #undef LocalDebug
 #include <global/macro.hpp>
-        LocalDebugInfo(cout << re->address_mode << '\n';
+        LocalDebugInfo(kout << re->address_mode << '\n';
         if (re->PIO_supported == 0) {
             for (int i = 0;i < 256;i++) {
                 print_hex(iden[i], false);print_char(' ');
@@ -149,7 +151,7 @@ public:
         #undef LocalDebug
         #include <global/macro.hpp>
         LocalDebugInfo(
-            cout << '[' << LBA.high;print_hex(LBA.low, false);cout << ", " << static_cast<u16>(count) << "]\n";
+            kout << '[' << LBA.high;print_hex(LBA.low, false);kout << ", " << static_cast<u16>(count) << "]\n";
         )
         ActionTable cmd = {};
         if (LBA.high || LBA.low & 0xF0000000) {
@@ -252,6 +254,8 @@ public:
         cmd.buffer.size = static_cast<byteCount>(512);
         return act(cmd);
     }
+};
+
 };
 
 #endif

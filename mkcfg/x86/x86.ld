@@ -34,6 +34,13 @@ SECTIONS {
         *(.data.*)
     }
 
+    .insidemods : {
+        __inside_mods_begin = .;
+        *(.insidemods)
+        *(.insidemods.*)
+        __inside_mods_end = .;
+    }
+
     .weak : {
         *(.weak)
     }

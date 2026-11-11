@@ -16,4 +16,14 @@ struct CPUInfo {
     u8 FPU_suppport : 1;
 };
 
+class CPUIndex {
+    u16 id;
+public:
+    CPUIndex(): id{0} {}
+    explicit CPUIndex(u16 id_): id{id_} {}
+    explicit operator u16 () const { return id; }
+
+    bool operator == (const CPUIndex &oth) const { return id == oth.id; }
+};
+
 #endif

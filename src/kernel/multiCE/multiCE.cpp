@@ -4,7 +4,7 @@ extern "C" { multiCE Multi_Channel_executor; }
 
 multiCE::multiCE() {}
 
-void multiCE::cut(size_t cpuid, TCB *tid, size_t intnum) {
+void multiCE::cut(size_t /*cpuid*/, TCB */*tid*/, size_t /*intnum*/) {
     ;
 }
 

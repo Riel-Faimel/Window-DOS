@@ -1,8 +1,21 @@
-#include "_idt.hpp"
-
 #pragma GCC optimize("Os")
 
+#include "_idt.hpp"
 import exception;
+
+namespace {
+void no_errcode_frame_status(no_errcode_frame *frame) {
+    kout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
+}
+u32 errorcode_frame_status (errcode_frame *frame) {
+    kout << "Error Code: ";
+    kout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
+    if ((frame->errcode & 0b0100) == 0)goto Done;
+    kout << "< SS = " << frame->ss << ", ESP = " << frame->esp << " >\n";
+    Done:
+    return frame->errcode;
+}
+} // namespace 
 
 namespace arch {
 
@@ -30,7 +43,7 @@ IDT::IDT(volatile IDT_item *tab):idt_base(tab){
     regist(&basic_time_handler, 48); //基本时钟中断
 
 #ifdef _DEBUG
-    cout << ", IDT: " << (void *)tab;
+    kout << ", IDT: " << (void *)tab;
 #endif
 };
 
@@ -38,7 +51,7 @@ void IDT::regist(
     void (*handler)(void), unsigned internum, unsigned short sec, 
     unsigned char DPL, bool _32_or_16
 ) volatile {
-    //cout << "reg:" << internum << '\n';
+    //kout << "reg:" << internum << '\n';
     new ((void *)&idt_base[internum]) descrptor::IDTEntry::IG {
         .addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF),
         .selector = sec, .is_32_bits_or_16_bits = (unsigned char)(_32_or_16?1:0),
@@ -57,71 +70,58 @@ unsigned long long _time_count = 0;
 extern "C" {
 
 void DE_handler_c(no_errcode_frame* frame){
-    cout << "#DE" << frame->eip;
+    kout << "#DE" << frame->eip;
     throw "#DE";
 }
 void OF_handler_c(){
-    kprint("#OF: Overflaw!\n");
+    kout << "#OF: Overflaw!\n";
     while (true){ asm volatile ("hlt"); }
 }
 __attribute__((optimize("O0")))
 void UD_handler_c(no_errcode_frame *frame){
-    kprint("=== #UD ===\n");
+    kout << "=== #UD ===\n";
     no_errcode_frame_status(frame);
     catch_program();
 }
 void NM_handler_c(){
-    kprint("#NM fault!\n");
+    kout << "#NM fault!\n";
     catch_program();
 }
 void DF_handler_c(){
-    kprint("#DF: Double fault!\n");
+    kout << "#DF: Double fault!\n";
     while (true){ asm volatile ("hlt"); }
 }
 void GP_handler_c(errcode_frame * frame){
-    cout << "=== #GP ===\n";
+    kout << "=== #GP ===\n";
     auto err = errorcode_frame_status(frame);
     bool is_extern = err & 1;
     bool is_IDT = err & 2;
     bool is_LDT = err & 4;
     u16 seg = err & 0xFFF8;
     if (is_extern) {
-        cout << "extern exception";
+        kout << "extern exception";
     } else {
         if (is_IDT) {
-            cout << "IDT";
+            kout << "IDT";
             return;
         } else {
             if (is_LDT) {
-                cout << "LDT";
+                kout << "LDT";
             } else {
-                cout << "GDT";
+                kout << "GDT";
             }
         }
-        cout << " err ";
+        kout << " err ";
     }
-    cout << seg << '\n';
+    kout << seg << '\n';
     catch_program();
 }
 __attribute__((optimize("O0")))
 void basic_time_handler_c(){
-    //cout << "cut ";
+    //kout << "cut ";
     _time_count++;
 };
 
 }
     
 } // namespace arch 
-
-static void no_errcode_frame_status(no_errcode_frame *frame) {
-    cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
-}
-
-static u32 errorcode_frame_status (errcode_frame *frame) {
-    cout << "Error Code: ";
-    cout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
-    if ((frame->errcode & 0b0100) == 0)goto Done;
-    cout << "< SS = " << frame->ss << ", ESP = " << frame->esp << " >\n";
-    Done:
-    return frame->errcode;
-}

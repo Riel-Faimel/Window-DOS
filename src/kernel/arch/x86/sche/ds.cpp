@@ -57,7 +57,7 @@ loop:
 }
 
 __attribute__((optimize("O3")))
-[[noreturn]] void DefaultScheduler::resume() <%
+[[noreturn]] void DefaultScheduler::resume() {
     if ((context_local->xcs & 3) == 0) {
         //ring0 stack
         asm volatile (
@@ -68,6 +68,7 @@ __attribute__((optimize("O3")))
             : "r"(context_local->xsp), "r"(context_local)
             : "eax", "memory"
         );
+        __builtin_unreachable();
     }
     else {
         //ring3 stack
@@ -78,11 +79,12 @@ __attribute__((optimize("O3")))
             : "r"(&context_local->xds)
             : "memory"
         );
+        __builtin_unreachable();
     }
-%>
+}
 
 __attribute__((optimize("O3"), used))
-inline void DefaultScheduler::run(
+void DefaultScheduler::run(
     void *func, size_t argc, void *argv, size_t time, 
     size_t code_seg, size_t data_seg, size_t gs, size_t fs
 ) {

@@ -2,19 +2,22 @@
 
 PM *partmanager;
 
-static void PartInfoPrint(u8 sysid) {
-    cout << "[INFO] ";
+namespace {
+    
+void PartInfoPrint(u8 sysid) {
+    kout << "[INFO] ";
     switch (sysid) {
     case 0x0E:
-        cout << "FAT16";
+        kout << "FAT16";
         break;
     default:
-        cout << "RAW";
+        kout << "RAW";
         break;
     }
-    cout << " Part Got, ";
+    kout << " Part Got, ";
 }
 
+} // namespace 
 PM::PM():disk_stack{} {
     partmanager = this;
 }
@@ -28,9 +31,9 @@ void PM::resolve(LogicalDisk *disk) {
     static_assert(sizeof(MBR) == 512);
     for (auto timeout : rtl::range{4}) {
         auto err = disk->read(mbr.buf, 0, 0, 1);
-        if (err == -1) {
+        if (err == (unsigned)-1) {
             LocalDebugInfo(
-                cout << "Read Failed\n";
+                kout << "Read Failed\n";
                 break;
             )
         }
@@ -60,7 +63,7 @@ void PM::resolve(LogicalDisk *disk) {
     }
     LocalDebugInfo(
         for (auto ch : mbr.buf) {
-            print_hex(ch, false);print_char(' ');
+            kout.hex(ch);kout.ch(' ');
         }
     );
     disk_stack.append(disk);

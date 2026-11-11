@@ -1,32 +1,45 @@
-//#pragma GCC optimize("Os")
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "_ide.hpp"
 
-void *init_IDE_controller(DeviceConfig &) {
-    return new IDE_control{};
-}
+DriverConstr drv_c= [](void *) -> void *{ return new ATAdev::IDE_control{}; };
 
-static void DiskInfoPrint(DiskInfo *diskinfo) {
-    cout << "[INFO] ";
+struct {
+    ModHead h{ModHead::ModType::PDevDrv};
+    PDevDrv info{
+        ProgIFType{(u32)InsProgifID::IDE},
+        DeviceType{0},
+        drv_c,
+        ClassType::storage,
+        PDevDrv::DrvType::ProgIF
+    };
+} head __attribute__((section("insidemod")));
+
+namespace {
+void DiskInfoPrint(DiskInfo *diskinfo) {
+    kout << "[INFO] ";
     if (diskinfo->address_mode & 0b10) {
-        cout << "LBA";
+        kout << "LBA";
         if (diskinfo->address_mode & 0b100) {
-            cout << "48 ";
+            kout << "48 ";
         } else {
-            cout << "28 ";
+            kout << "28 ";
         }
     } else if (diskinfo->address_mode & 1) {
-        cout << "CHS ";
+        kout << "CHS ";
     } else {
-        cout << "Bad ";
+        kout << "Bad ";
     }
-    cout << "Disk Got, ";
+    kout << "Disk Got, ";
     if (diskinfo->PIO_supported) {
-        cout << "PIO";
+        kout << "PIO";
     } else {
-        cout << "Unknown";
+        kout << "Unknown";
     }
-    cout << " Mode\n";
+    kout << " Mode\n";
 }
+} // namespace 
+
+namespace ATAdev {
 
 IDE_control::IDE_control() {
     interrupt_distributor.reg_irq(&when_PATA_Master_cut_handler, IRQ::ATA_Master);
@@ -42,7 +55,7 @@ IDE_control::IDE_control() {
 #include <global/macro.hpp>
             LocalDebugInfo(
                 static bool a = false;
-                cout << "enter" << a << '\n';
+                kout << "enter" << a << '\n';
                 if (a) {
                     u16 buf[256];
                     disk->read(buf, 0x80, 0, 1);
@@ -60,7 +73,7 @@ IDE_control::IDE_control() {
 #undef LocalDebug
 #include <global/macro.hpp>
     LocalDebugInfo(else {
-            cout << "null port\n";
+            kout << "null port\n";
         })
     }
 }
@@ -177,26 +190,6 @@ rtl::pair<DetectTable, size_t> IDE_control::pio_data_out(bufAddr buf, SectorCoun
 rtl::pair<DetectTable, size_t> IDE_control::dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device) const {
     ;
 }
-
-/*
-rtl::pair<DetectTable, size_t> IDE_control::PIO_read_data(u16 *buf, u16 count, DetectTable result, DeviceIndex device_index) {
-    auto [chan, _] = diskID2chan_dev(device_index);
-    u8 timeout_count = 0;
-    unsigned bytes_deal = 0;
-    for(u16 fan = 0;fan < count;fan++){
-        for (;result.status.busy || !result.status.data_ready;timeout_count++){
-            result = detect(device_index);
-            if(timeout_count > 128) return {result, bytes_deal};
-        };
-        for(u16 i = 0;i < 256;i++){
-            buf[i + fan * 256] = inw(chan);
-            bytes_deal += 2;
-        }
-    }
-    return {detect(device_index), bytes_deal};
-}
-*/
-
 IDE::IDE(const DiskInfo &diskinfo_, const IDE_control &ctl_, DeviceIndex device_):
 diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}
 
@@ -205,11 +198,11 @@ diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}
 unsigned IDE::read(void *buf, unsigned LBA, unsigned LBAh, unsigned count) {
 #undef LocalDebug
 #include <global/macro.hpp>
-    LocalDebugInfo(cout << '[' << LBA << ", " << count << "]\n";)
+    LocalDebugInfo(kout << '[' << LBA << ", " << count << "]\n";)
     DetectTable detect{};
     size_t bytes = 0;
     if (diskinfo.address_mode & 0b10) {
-        LocalDebugInfo(cout << "PIO mode: " << diskinfo.PIO_supported << '\n';)
+        LocalDebugInfo(kout << "PIO mode: " << diskinfo.PIO_supported << '\n';)
         if (false) { // DMA no yet
             auto [d_, b_] = ctl.read_DMA_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
             detect = d_; bytes = b_;
@@ -242,7 +235,7 @@ unsigned IDE::read(void *buf, unsigned LBA, unsigned LBAh, unsigned count) {
             }
         }
     }
-    LocalDebugInfo(cout << "can't read\n";)
+    LocalDebugInfo(kout << "can't read\n";)
     return -1;
 DONE:
     if (detect.status.error || detect.status.busy) return -1;
@@ -270,3 +263,5 @@ rtl::pair<u16, u8> IDE_control::diskID2chan_dev(DeviceIndex device_index) {
         (static_cast<u8>(device_index) & 1u)?(u8)0b10110000:(u8)0b10100000
     };
 }
+    
+} // namespace ATAdev 

@@ -6,7 +6,7 @@
 
 #undef LocalDebug
 #include <global/macro.hpp>
-#include <drv/screen/screen_srv.hpp>
+#include <stdio>
 
 u8 calc_checksum(char *name) {
     u8 sum = 0;
@@ -134,7 +134,7 @@ protected:
         #include <global/macro.hpp>
         LocalDebugInfo(
             auto [p, err] = ptr(0);
-            if (err) cout << "[Fault] ptr err\n";
+            if (err) kout << "[Fault] ptr err\n";
             for (auto i : rtl::range{512}) {
                 print_hex(p[i], false);print_char(' ');
             }
@@ -147,8 +147,8 @@ protected:
         auto [high, err1] = get(cluster * 2u + 1u);
         auto [low, err2] = get(cluster * 2u); // cluster as offset in FAT
         LocalDebugInfo(
-            if (err1 || err2) cout << "[Fault] ptr error\n";
-            cout << u16{(high << 8) | low};
+            if (err1 || err2) kout << "[Fault] ptr error\n";
+            kout << u16{(high << 8) | low};
             while(1);
         )
         if (err1 || err2) return {0, true};
@@ -249,9 +249,9 @@ class DirResolv : public ClusterView<DirResolv<T>> {
 
     rtl::pair<DIR*, ifMatch> find_dir_entry(u16 cluster, String &&filename) {
         u16 index = 0;
-        LocalDebugInfo(cout << filename << ' ' << cluster << '\n';)
+        LocalDebugInfo(kout << filename << ' ' << cluster << '\n';)
         while (cluster != 0 || index < 8) {
-            LocalDebugInfo(cout << '<' << cluster << ", " << index << ">\n";)
+            LocalDebugInfo(kout << '<' << cluster << ", " << index << ">\n";)
         // this condition means if root dir, only tranvese 512 entries, 
         // otherwise traverse until the end of cluster chain
             auto situation = match_entry(cluster, index, filename);
@@ -370,7 +370,7 @@ protected:
     rtl::pair<DIR*, DirResolvException> resolv_dir(String path) {
         path.get_word('\\');
         if (path.empty()) {
-            LocalDebugInfo(cout << "Got!";)
+            LocalDebugInfo(kout << "Got!";)
             auto [re, _] = dirptr(0u, 0u);
             return {re, DirResolvException::NoException};
         }
@@ -381,11 +381,11 @@ protected:
             // done
         } break;
         case ifMatch::NotFound: {
-            LocalDebugInfo(cout << "No Such File\n!";)
+            LocalDebugInfo(kout << "No Such File\n!";)
             return {nullptr, DirResolvException::FindFileFailed};
         } break;
         case ifMatch::NoCluster: {
-            LocalDebugInfo(cout << "No Such Cluster\n";)
+            LocalDebugInfo(kout << "No Such Cluster\n";)
             return {nullptr, DirResolvException::ClusterMissFault};
         } break;
         case ifMatch::BrokenDir:
@@ -395,9 +395,9 @@ protected:
         }
 
         while (!path.empty()) {
-            LocalDebugInfo(cout << path << '\n';)
+            LocalDebugInfo(kout << path << '\n';)
             if (!(entry->_8_3FN.attribute.dir)) {
-                LocalDebugInfo(cout << "Not a Dir!";)
+                LocalDebugInfo(kout << "Not a Dir!";)
                 return {nullptr, DirResolvException::AsDirectoryFailed};
             }
             auto [next_entry, next_err] = find_dir_entry(
@@ -405,12 +405,12 @@ protected:
                 path.get_word('\\')
             );
             if (next_err != ifMatch::MatchOne) {
-                LocalDebugInfo(cout << "No Such File!";)
+                LocalDebugInfo(kout << "No Such File!";)
                 return {nullptr, DirResolvException::FindFileFailed};
             }
             entry = next_entry;
         }
-        LocalDebugInfo(cout << "Got!";)
+        LocalDebugInfo(kout << "Got!";)
         return {entry, DirResolvException::NoException};
     }
 public:

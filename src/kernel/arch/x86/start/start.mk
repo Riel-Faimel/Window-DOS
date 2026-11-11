@@ -1,9 +1,4 @@
-B_R = $(BUILD_DIR)kernel/arch/x86/start/
-S_R = $(SRC_DIR)kernel/arch/x86/start/
+$(x86BR)start/_start.o: $(x86SR)start/_start.asm
 
-$(B_R)_start.o: $(S_R)_start.asm
-
-$(BUILD_DIR)kernel/arch/x86/start.o:\
-	$(B_R)_start.o\
-
-	$(LDCMD) $@ $^
+OBJ += \
+	$(x86BR)start/_start.o

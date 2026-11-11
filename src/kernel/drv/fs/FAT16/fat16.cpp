@@ -190,7 +190,7 @@ void *FAT16::mmap(unsigned h, void *nice_address) {
     auto buf = new u8 [file_size];
     auto bytes_read = read(buf, h, 0, file_size);
     if (bytes_read != file_size) {
-        delete buf;
+        delete []buf;
         return nullptr;
     }
     return buf;
@@ -264,7 +264,7 @@ void format_fat_fs(
 
     unsigned S = cluster_size;
     unsigned T = info->index_num; // total sectors
-    unsigned R, F, D, C; // Reserved, FAT, DataStart, ClusterNum
+    unsigned R, F/*, D, C*/; // Reserved, FAT, DataStart, ClusterNum
     R = 1;
     F = 1;
     unsigned F_ = F;
@@ -278,8 +278,8 @@ void format_fat_fs(
         if(R != R_)continue;
         break;
     }
-    D = R + 2 * F + 32;
-    C = (T - D) / S;
+    // D = R + 2 * F + 32;
+    // C = (T - D) / S;
     // auto cluster0sector_id = D / S;
     bpb.reserved_sectors = R;
     bpb.sector_per_fat_table = F;

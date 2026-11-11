@@ -11,3 +11,12 @@ fs{} {
     kmod = this;
 }
 
+void KernelModule::reg_insmod() {
+    ;
+}
+
+void KernelModule::probe() {
+    counter = pdevspace->apply_pifid(16);
+    (*pdevspace)[""] = (new ISA_space{});
+    (*pdevspace)[""] = (new PCI_space{});
+}

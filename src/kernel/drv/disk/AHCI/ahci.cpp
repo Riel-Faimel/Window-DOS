@@ -1,7 +1,9 @@
 #include "_ahci.hpp"
 
+using namespace ATAdev;
+
 void *init_SATA_controller(DeviceConfig &) {
-    LocalDebugInfo(cout << "[FAILED] SATA Disk can\'t drive\n";)
+    LocalDebugInfo(kout << "[FAILED] SATA Disk can\'t drive\n";)
     return nullptr;// new SATA_control{};
 }
 

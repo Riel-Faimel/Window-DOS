@@ -5,17 +5,19 @@ extern "C" {
 
 
 // kernel modes
-#include <mm/mm.hpp>
+#include <global/macro.hpp>
+
+#include <arch/start.hpp>
 #include <arch/cpu.hpp>
-#include <drv/drv.hpp>
 #include <id/id.hpp>
-#include <PDS/PCI/pci.hpp>
+#include <mm/mm.hpp>
+#include <drv/drv.hpp>
+#include <PDS/pds.hpp>
 #include <CDM/cdm.hpp>
 #include <TM/TM.hpp>
-#include <interface/Window.hpp>
-#include <arch/start.hpp>
 #include <drv/kmod.hpp>
-#include <global/macro.hpp>
+
+#include <interface/Window.hpp>
 
 //#include <DOSsyscall/DOScall.hpp>
 

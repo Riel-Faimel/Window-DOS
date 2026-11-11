@@ -3,7 +3,7 @@
 DLS* driverletterspace;
 
 static void FSInfoPrint(String letter) {
-    cout << "set [" << letter << ":]\n";
+    kout << "set [" << letter << ":]\n";
 }
 
 DLS::DLS(){ driverletterspace = this; }
@@ -97,7 +97,7 @@ unsigned DLS::write(void *buf, Handle *h, unsigned byte_offset, unsigned byte_wr
     else return -1;
 }
 
-unsigned DLS::create(WinHandle &win, String filename){
+unsigned DLS::create(WinHandle &, String){
     return (unsigned)-1;
 }
 

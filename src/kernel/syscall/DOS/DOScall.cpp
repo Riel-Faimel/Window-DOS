@@ -61,7 +61,7 @@ void DOScall_handler_c() {
         standard_input_with_echo();
         break;
     case 0x02:  // 字符输出
-        cout << (char)frame->edx;
+        kout << (char)frame->edx;
         break;
     case 0x07:  // 无回显键盘输入（不处理Ctrl+C）
         direct_console_input_no_echo();
@@ -70,7 +70,7 @@ void DOScall_handler_c() {
         direct_console_input_with_ctrl_c();
         break;
     case 0x09:  // string print end of $
-        kprint(reinterpret_cast<char *>(frame->edx), '$');
+        kout << reinterpret_cast<char *>(frame->edx), '$';
         break;
     case 0x0A:  // 缓冲字符串输入
         buffered_keyboard_input();

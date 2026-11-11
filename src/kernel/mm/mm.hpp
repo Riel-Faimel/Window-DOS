@@ -124,7 +124,7 @@ protected:
 struct MemoryManager {
     class allocable {
     public:
-        inline allocable(MemoryManager *);
+        inline allocable();
         virtual void *alloc(size_t) = 0;
         virtual void dlloc(void *, size_t) = 0;
     };
@@ -138,34 +138,29 @@ private:
          * and called by operator new/delete
          */
     struct nopage : public allocable, mm::KernelHeapFormat {
-        nopage(void* page_base, MemoryManager *);
+        nopage(void* page_base);
         
         void *alloc(size_t);
         void dlloc(void *, size_t);
     };
     struct inpage : public allocable, mm::KernelHeapFormat {
-        inpage(void* page_base, MemoryManager *);
+        inpage(void* page_base);
 
         void *alloc(size_t);
         void dlloc(void *, size_t);
     };
 
-    union {
-        nopage _rn;
-        inpage _ri;
-    } reserved_space;
-    allocable *_;
+    nopage defaul;
+    allocable *al;
 
 
 public:
     MemoryManager(bool = true);
+    MemoryManager(allocable *);
 
-    void *alloc(size_t size) {
-        return _->alloc(size);
-    }
-    void dlloc(void *ptr, size_t size = -1) {
-        _->dlloc(ptr, size);
-    }
+    void *alloc(size_t size) { return al->alloc(size); }
+    void dlloc(void *ptr, size_t size = -1) { al->dlloc(ptr, size); }
+    void set_allocator(allocable *);
 };
 
 #endif

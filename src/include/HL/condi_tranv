@@ -1,0 +1,190 @@
+#ifndef __include_HL_condi_tranv
+#define __include_HL_condi_tranv
+
+#include <stdio>
+#include <global/type.hpp>
+#include <HL/concept>
+
+namespace rtl {
+
+template<typename T, typename R>
+concept AccordCondition = requires (T t, const R &r) {
+    rtl::is_same_t<decltype(t(r)), bool>;
+};
+
+namespace bits {
+    
+template<typename Record, template <typename> typename Container, AccordCondition<Record>... AC>
+class CondiView;
+
+} // namespace bits 
+    
+template<typename Record, template <typename> typename Container>
+class Filter {
+    Container<Record> &data;
+
+public:
+    class it;
+    Filter(Container<Record> &data_): data{data_} {}
+    template<AccordCondition<Record> AC>
+    bits::CondiView<Record, Container, AC> with(AC);
+    it begin() const;
+    it end() const;
+
+    template<typename C>
+    class iterator;
+};
+
+// === iterator template ===
+
+template<class Record, template<class> class Container> 
+template<typename C> 
+class Filter<Record, Container>::iterator {
+protected:
+    using RIt = Container<Record>::iterator;
+    bool match(const Record &prog) const 
+    { return static_cast<const C *>(this)->match(prog); }
+private:
+    RIt pif_this;
+    RIt pif_end;
+protected:
+    void prev() {
+        while (pif_this != pif_end)
+        if (match(*pif_this)) break;
+        else ++pif_this;
+    }
+public:
+    iterator(const RIt &pt, const RIt &pe):
+    pif_this{pt}, pif_end{pe} {}
+    bool operator != (const iterator &) const { return (pif_this != pif_end); }
+    Record &operator * () { return *pif_this; }
+    iterator &operator ++ () {
+        ++pif_this;
+        prev();
+        return *this;
+    }
+};
+
+// === conditions ===
+
+template<typename Record, template <typename> typename Container, AccordCondition<Record> AC, AccordCondition<Record>... Before> 
+class bits::CondiView<Record, Container, AC, Before...> : public bits::CondiView<Record, Container, Before...> {
+    AC ac;
+public:
+    class it;
+    CondiView(CondiView<Record, Container, Before...> oth, AC ac_):
+    CondiView<Record, Container, Before...>{oth}, ac{ac_} {}
+
+    template<AccordCondition<Record> Ac_>
+    CondiView<Record, Container, Ac_, AC, Before...> with(Ac_ ac) 
+    { return {*this, ac}; }
+    bool match(const Record &prog) const
+    { return ac(prog) && CondiView<Record, Container, Before...>::match(prog); }
+
+    it begin() const;
+    it end() const;
+};
+
+template<typename Record, template <typename> typename Container, AccordCondition<Record> AC> 
+class bits::CondiView<Record, Container, AC> {
+    Container<Record> &space;
+protected:
+    auto get_begin() const { return space.begin(); }
+    auto get_end() const { return space.end(); }
+private:
+    AC ac;
+public:
+    class it;
+    CondiView(Container<Record> &s, AC ac_): space{s}, ac{ac_} {}
+
+    template<AccordCondition<Record> Ac_>
+    bits::CondiView<Record, Container, Ac_, AC> with(Ac_ ac) { return {*this, ac}; }
+    bool match(const Record &pid) const { return ac(pid); }
+
+    it begin() const;
+    it end() const;
+};
+
+// === iterators ===
+
+template<typename Record, template <typename> typename Container, AccordCondition<Record> AC, AccordCondition<Record>... Before>
+class bits::CondiView<Record, Container, AC, Before...>::it : public Filter<Record, Container>::iterator<it> {
+    CondiView<Record, Container, AC, Before...> condition;
+    using FIt = typename Filter<Record, Container>::iterator<it>;
+    friend typename Filter<Record, Container>::iterator<it>;
+    bool match(const Record &pid) const { return condition.match(pid); }
+public:
+    it(const typename FIt::RIt &bit, const typename FIt::RIt &eit, 
+    const CondiView<Record, Container, AC, Before...> &condition_):
+    Filter<Record, Container>::iterator<it>{bit, eit}, condition{condition_} 
+    { FIt::prev(); }
+};
+
+template<typename Record, template <typename> typename Container, AccordCondition<Record> AC>
+class bits::CondiView<Record, Container, AC>::it : public Filter<Record, Container>::iterator<it> {
+    CondiView<Record, Container, AC> condition;
+    using FIt = typename Filter<Record, Container>::iterator<it>;
+    friend typename Filter<Record, Container>::iterator<it>;
+    bool match(const Record &pid) const { return condition.match(pid); }
+public:
+    it(const typename FIt::RIt &bit, const typename FIt::RIt &eit, 
+        const CondiView<Record, Container, AC> &condition_):
+    Filter<Record, Container>::iterator<it>{bit, eit}, condition{condition_} 
+    { FIt::prev(); }
+};
+
+template<typename Record, template <typename> typename Container>
+class Filter<Record, Container>::it : public Filter<Record, Container>::iterator<it> {
+    using FIt = typename Filter<Record, Container>::iterator<it>;
+    friend typename Filter<Record, Container>::iterator<it>;
+    bool match(const Record &) const { return true; }
+public:
+    it(const FIt::RIt &bit, const FIt::RIt &eit): iterator<it>{bit, eit} 
+    { FIt::prev(); }
+};
+
+// === range ===
+
+template<typename Record, template <typename> typename Container>
+Filter<Record, Container>::it Filter<Record, Container>::begin()
+const 
+{ return {data.begin(), data.end()}; }
+template<typename Record, template <typename> typename Container>
+Filter<Record, Container>::it 
+Filter<Record, Container>::end() 
+const 
+{ return {data.end(), data.end()}; }
+
+template<typename Record, template<typename> typename Container> 
+template<AccordCondition<Record> AC> 
+bits::CondiView<Record, Container, AC> 
+Filter<Record, Container>::with(AC ac)
+{ return {data, ac}; }
+
+template<typename Record, template <typename> typename Container, AccordCondition<Record> AC, AccordCondition<Record>... Before> 
+bits::CondiView<Record, Container, AC, Before...>::it 
+bits::CondiView<Record, Container, AC, Before...>::begin()
+const 
+{ return {this->get_begin(), this->get_end(), *this}; }
+template<typename Record, template <typename> typename Container, AccordCondition<Record> AC, AccordCondition<Record>... Before> 
+bits::CondiView<Record, Container, AC, Before...>::it 
+bits::CondiView<Record, Container, AC, Before...>::end() 
+const 
+{ return {this->get_end(), this->get_end(), *this}; }
+
+template<typename Record, template<typename> typename Container, AccordCondition<Record> AC> 
+bits::CondiView<Record, Container, AC>::it 
+bits::CondiView<Record, Container, AC>::begin() 
+const
+{ return {get_begin(), get_end(), *this}; }
+template<typename Record, template<typename> typename Container, AccordCondition<Record> AC>
+bits::CondiView<Record, Container, AC>::it 
+bits::CondiView<Record, Container, AC>::end() 
+const 
+{ return {get_end(), get_end(), *this}; }
+
+    
+} // namespace rtl
+
+
+#endif
