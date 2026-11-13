@@ -2,6 +2,14 @@
 #include <stdio>
 
 
-class GlobalExceptionHandler {};
 
-extern GlobalExceptionHandler geh;
+namespace {
+
+class GlobalExceptionHandler {
+public:
+    GlobalExceptionHandler() = default;
+    void terminate(GlobalExceptionType);
+};
+GlobalExceptionHandler geh;
+
+};

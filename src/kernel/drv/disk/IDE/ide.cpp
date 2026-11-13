@@ -12,7 +12,7 @@ PDevDrv head __attribute__((section(".insidemods"))){
 
 namespace {
 void DiskInfoPrint(DiskInfo *diskinfo) {
-    kout << "[IDE] ";
+    kout << "[IDE] +disk ";
     if (diskinfo->address_mode & 0b10) {
         kout << "LBA";
         if (diskinfo->address_mode & 0b100) {
@@ -25,7 +25,7 @@ void DiskInfoPrint(DiskInfo *diskinfo) {
     } else {
         kout << "Bad ";
     }
-    kout << "Disk Got, ";
+    kout << ", ";
     if (diskinfo->PIO_supported) {
         kout << "PIO";
     } else {

@@ -10,11 +10,6 @@ fs{} {
     kmod = this;
     pdevspace->append(this);
     reg_insmod();
-    try {
-        throw 1;
-    } catch (...) {
-        kout << "catch\n";
-    }
 }
 
 void KernelModule::reg_insmod() {

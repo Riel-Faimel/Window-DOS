@@ -6,7 +6,7 @@ include $(SRC_DIR)kernel/drv/bus/USB/usb.mk
 include $(SRC_DIR)kernel/drv/bus/ISA/isa.mk
 #include $(SRC_DIR)kernel/drv/keyboard/keyboard.mk
 
-$(BUILD_DIR)kernel/drv/kmod.o: $(SRC_DIR)kernel/drv/kmod_exception.cpp
+$(BUILD_DIR)kernel/drv/kmod.o: $(SRC_DIR)kernel/drv/kmod_exp.cpp
 
 OBJ += \
 	$(BUILD_DIR)kernel/drv/kmod.o

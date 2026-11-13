@@ -2,7 +2,7 @@
 
 #include <CDM/DLS.hpp>
 #include <stdio>
-#undef LocalDebug
+#define LocalDebug
 #include <global/macro.hpp>
 
 #include <CDM/sdef.hpp>

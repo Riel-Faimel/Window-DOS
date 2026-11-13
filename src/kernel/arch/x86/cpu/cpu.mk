@@ -1,4 +1,4 @@
-$(x86BR)cpu/idt.o: $(x86SR)cpu/idt_exception.cpp
+$(x86BR)cpu/idt.o: $(x86SR)cpu/idt_exp.cpp
 $(x86BR)cpu/gdt.o: $(x86SR)cpu/gdt.cpp
 $(x86BR)cpu/tss.o: $(x86SR)cpu/tss.cpp
 $(x86BR)cpu/cpu.o: $(x86SR)cpu/cpu.cpp

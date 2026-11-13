@@ -67,7 +67,7 @@ void PCI_space::probe(){
 #define LocalDebug
 #include <global/macro.hpp>
     LocalDebugInfo(
-        kout << "[INFO] " << (u16)config.get_size() << " PCI Devices Found\n";
+        kout << "[PCI] -probe " << (u16)config.get_size() << " Devices\n";
     )
 #undef LocalDebug
 #include <global/macro.hpp>
@@ -114,7 +114,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev){
     config.append(cfg);
 
     LocalDebugInfo(
-        kout << ("[INFO] VEN:DEV  REV  CLS\n");
+        kout << ("[PCI] VEN:DEV  REV  CLS\n");
         kout << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' ' 
         << static_cast<u32>(cfg.Revision_ID << 24 | cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
     )

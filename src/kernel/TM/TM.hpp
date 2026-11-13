@@ -15,6 +15,7 @@ enum class FexecExceptionCode : u8 {
 
     // exception
     OpenFileFailed,
+    NoExecutable,
 
     // fault
     DLSFault,

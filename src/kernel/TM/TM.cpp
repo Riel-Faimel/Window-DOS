@@ -1,6 +1,15 @@
 #include "_TM.hpp"
 import lib32;
 
+#undef LocalDebug
+#include <global/macro.hpp>
+LocalDebugInfo(
+    for (unsigned i = 0;i < 256;i++) {
+        kout.hex(((u8 *)(&buf))[i]);
+        kout.ch(' ');
+    }
+)
+
 void caller(size_t n, void *v) {
     void *start_point = *(void **)v;
     void *argv = *((void **)v + 1);
@@ -51,25 +60,39 @@ struct MZ_Header {
 
 void *exCOM_resolv(WinHandle &win) {
     auto h = (DLS::Handle *)win.extra;
-    exCOM_Header buf;
-    driverletterspace->read(&buf, h, 0, sizeof(buf));
-
-    LocalDebugInfo(kout << buf.enter_point << ' ' << buf.text_offset << ' ' << buf.text_start << ' ' << buf.text_size << ' '\
-    << buf.data_offset << ' ' << buf.data_start << ' ' << buf.data_size << ' ';)
+    auto buf = new exCOM_Header;
+    driverletterspace->read(buf, h, 0, sizeof(exCOM_Header));
     
-    if (buf.magic[0] != 'E' || buf.magic[1] != 'C' || 
-        buf.magic[2] != 'O' || buf.magic[3] != 'M') {
+    if (buf->magic[0] != 'E' || buf->magic[1] != 'C' || 
+        buf->magic[2] != 'O' || buf->magic[3] != 'M'
+    ) {
+        kout
+            << "[TM] <exception> Unknow Head: " 
+            << (char)buf->magic[0] << (char)buf->magic[1] 
+            << (char)buf->magic[2] << (char)buf->magic[3] 
+        << '\n';
         return nullptr;
     }
+
+    #undef LcalDebug
+    #include <global/macro.hpp>
+    LocalDebugInfo(
+    kout    << "[TM] <Info> :" 
+            << "enter point = " << buf->enter_point << '\n' 
+            << "text offset =" << buf->text_offset << '\n' 
+            << buf->text_start << '\n' << buf->text_size << '\n' 
+            << buf->data_offset << '\n' << buf->data_start << '\n' 
+            << buf->data_size << "\n====\n";
+    )
     
-    driverletterspace->read((void*)buf.text_start, h, buf.text_offset, buf.text_size);
-    if (buf.data_size > 0) {
-        driverletterspace->read((void*)buf.data_start, h, buf.data_offset, buf.data_size);
+    driverletterspace->read((void*)buf->text_start, h, buf->text_offset, buf->text_size);
+    if (buf->data_size > 0) {
+        driverletterspace->read((void*)buf->data_start, h, buf->data_offset, buf->data_size);
     }
-    if (buf.bss_size > 0) {
-        memset((void*)((u8 *)buf.data_start + buf.data_size), 0, buf.bss_size);
+    if (buf->bss_size > 0) {
+        __builtin_memset((void*)((u8 *)buf->data_start + buf->data_size), 0, buf->bss_size);
     }
-    return buf.enter_point;
+    return buf->enter_point;
 }
 
 FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
@@ -86,14 +109,14 @@ FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
     } break;
     }
     u8 *enter_point = (u8 *)exCOM_resolv(win);
-#undef LocalDebug
+    if (enter_point == nullptr) { 
+        return FexecExceptionCode::NoExecutable;
+    }
+#define LocalDebug
 #include <global/macro.hpp>
     LocalDebugInfo(kout << enter_point;)
     
     Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv, 1, 3);
 
-#undef LocalDebug
-#include <global/macro.hpp>
-    LocalDebugInfo(for (unsigned i = 0;i < 256;i++) { print_hex(enter_point[i], false);kout << ' '; })
     return FexecExceptionCode::NoException;
 }

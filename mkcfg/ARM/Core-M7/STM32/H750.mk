@@ -51,7 +51,7 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.cpp
 	$(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -c $< -o $@
 	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
 
-$(BUILD_DIR)%.o: $(SRC_DIR)%_exception.cpp
+$(BUILD_DIR)%.o: $(SRC_DIR)%_exp.cpp
 	$(call MKDIR_F,$@)
 	$(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
 	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
@@ -74,7 +74,7 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.cppm
 	$(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -x c++ -c $< -o $@
 	$(call STRIP_MODULE_DEPS,$(@:.o=.d))
 
-$(BUILD_DIR)%.o: $(SRC_DIR)%_exception.cppm
+$(BUILD_DIR)%.o: $(SRC_DIR)%_exp.cppm
 	$(call MKDIR_F,$@)
 	$(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -x c++ -c $< -o $@
 	$(call STRIP_MODULE_DEPS,$(@:.o=.d))

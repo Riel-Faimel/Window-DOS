@@ -10,7 +10,7 @@ InvalidTCB,
 UnwindBreak,
 };
 
-extern "C" void terminal(GlobalExceptionType);
+extern "C" void terminate(GlobalExceptionType);
 
 
 #endif

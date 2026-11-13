@@ -1,10 +1,10 @@
 #include "_geh.hpp"
 
-void terminal(GlobalExceptionType type) {
+void GlobalExceptionHandler::terminate(GlobalExceptionType type) {
     switch (type) {
     case GlobalExceptionType::UnwindBreak: {
-        kout << "[GEH] Unwind Fault\n";
-        while(1);
+        kout << "[GEH] <Unwind Fault>\n";
+        while(1) { asm volatile ("hlt"); }
     } break;
     case GlobalExceptionType::BadMemoryAlloc: {
         ;
@@ -13,4 +13,8 @@ void terminal(GlobalExceptionType type) {
         ;
     } break;
     }
+}
+
+void terminate(GlobalExceptionType type) {
+    geh.terminate(type);
 }

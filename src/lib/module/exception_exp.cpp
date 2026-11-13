@@ -439,7 +439,7 @@ __attribute__((used, noreturn))
 void __cxa_throw(void * thrown_exception, void * tinfo, void (* /*dest*/) (void *)) {
     __cxa_exception *header = ((__cxa_exception *) thrown_exception - 1);
     eh_thrown_type = tinfo;
-    header->terminateHandler = terminal;
+    header->terminateHandler = terminate;
     eh_frame_tranveser(header, thrown_exception);
 }
 

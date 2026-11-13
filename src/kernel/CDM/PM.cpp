@@ -5,7 +5,7 @@ PM *partmanager;
 namespace {
     
 void PartInfoPrint(u8 sysid) {
-    kout << "[INFO] ";
+    kout << "[PM] +";
     switch (sysid) {
     case 0x0E:
         kout << "FAT16";
@@ -14,7 +14,7 @@ void PartInfoPrint(u8 sysid) {
         kout << "RAW";
         break;
     }
-    kout << " Part Got, ";
+    kout << " Part, ";
 }
 
 } // namespace 

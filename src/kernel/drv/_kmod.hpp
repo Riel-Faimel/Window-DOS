@@ -43,7 +43,7 @@ public:
         }
         bool operator != (const Iterator &) const {
             if (ptr == &__inside_mods_end) return false;
-            else if (ptr > &__inside_mods_end) while(1);//throw 2;
+            else if (ptr > &__inside_mods_end) throw 2;
             else return true;
         }
     };
