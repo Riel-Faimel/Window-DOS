@@ -1,10 +1,10 @@
 #ifndef __kernel_KOM_kom_hpp
 #define __kernel_KOM_kom_hpp
 
-#include <interface/dev_cls/physicaldisk.hpp>
-#include <interface/dev_cls/logicaldisk.hpp>
-#include <interface/dev_cls/serialport.hpp>
-#include <interface/dev_cls/frameport.hpp>
+#include <interface/knlobj/physicaldisk.hpp>
+#include <interface/knlobj/logicaldisk.hpp>
+#include <interface/knlobj/serialport.hpp>
+#include <interface/knlobj/frameport.hpp>
 
 class KernelObjectManager {
 public:

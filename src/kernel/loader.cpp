@@ -22,8 +22,6 @@ void LoaderMain(){
     ClusterDeviceManager cdm{};
     PeripheralDeviceSpace pds{};
     KernelModule kernelmodule;
-    while(1);
-    pds["kernel module"] = &kernelmodule;
     TaskManager taskmgr;
     kout << "[INFO] start INIT.COM\n";
     ASMLabelMark(LoaderMain_StartB_INIT_EXE)

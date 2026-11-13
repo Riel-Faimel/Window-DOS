@@ -2,23 +2,23 @@
 
 DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
     auto re = new DeviceInfo{
+        .progif = ProgIFIndex{0},
         .bus = id,
-        .cls = ClassType::nul, 
-        .progif = ProgIFType{0},
-        .device = DeviceType{0}, 
+        .cls = DeviceInfo::ClassType::nul, 
+        .device = DeviceInfo::DeviceType{0}, 
 
         .config = &pcf,
         .enumer = enumer 
     };
     switch (pcf.class_code){
     case StorageController: {
-        re->cls = ClassType::storage;
+        re->cls = DeviceInfo::ClassType::storage;
         switch (pcf.subclass_code) {
         case SCSIBus: {} break;
         case IDE: {
             // let PCI native support ISA
             //re->device = dev_hash(pcf.vender_ID, pcf.Device_ID, pcf.Revision_ID);
-            re->progif = ProgIFType{(u32)InsProgifID::IDE};
+            re->progif = ProgIFIndex::PCI_IDE;
         } break;
         case FloppyDisk: {} break;
         case RAID: {} break;
@@ -26,16 +26,16 @@ DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
         case SATA: {
             //re->device = DeviceType{_GM_DeviceType_SATA};
             if (pcf.prog_interface == SATApi_AHCI || true) {
-                re->progif = ProgIFType{(u32)InsProgifID::AHCI};
+                re->progif = ProgIFIndex::PCI_AHCI;
             } else {
-                re->progif = ProgIFType{(u32)InsProgifID::IDE};
+                re->progif = ProgIFIndex::PCI_IDE;
             }
         } break;
         default: {} break;
         } 
     } break;
     case NetworkController: {
-        re->cls = ClassType::network;
+        re->cls = DeviceInfo::ClassType::network;
         switch (pcf.subclass_code){
         case 0x00: {} break;
         default: {} break;
@@ -51,12 +51,9 @@ DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
     return re;
 }
 
-PCI_space::PCI_space():progif_num{} {
-    id = pdevspace->apply_busid();
-    progif_base = pdevspace->apply_pifid(progif_num);
-};
+PCI_space::PCI_space():progif_num{} {};
 
-inline void PCI_space::probe(){
+void PCI_space::probe(){
     for(int dev = 0;dev < 32;dev++){
         pci_probe_device(0, dev);
     }
@@ -66,9 +63,14 @@ inline void PCI_space::probe(){
             pci_probe_device(bus, dev);
         }
     }
+    
+#define LocalDebug
+#include <global/macro.hpp>
     LocalDebugInfo(
         kout << "[INFO] " << (u16)config.get_size() << " PCI Devices Found\n";
     )
+#undef LocalDebug
+#include <global/macro.hpp>
     for (auto dev : config) {
         pdevspace->append(construc(dev, this));
     }

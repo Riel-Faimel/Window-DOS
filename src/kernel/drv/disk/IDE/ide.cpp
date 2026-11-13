@@ -1,22 +1,18 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "_ide.hpp"
 
-DriverConstr drv_c= [](void *) -> void *{ return new ATAdev::IDE_control{}; };
-
-struct {
-    ModHead h{ModHead::ModType::PDevDrv};
-    PDevDrv info{
-        ProgIFType{(u32)InsProgifID::IDE},
-        DeviceType{0},
-        drv_c,
-        ClassType::storage,
-        PDevDrv::DrvType::ProgIF
-    };
-} head __attribute__((section("insidemod")));
+PDevDrv head __attribute__((section(".insidemods"))){
+    ModHead::ModType::PDevDrv,
+    DeviceInfo::ClassType::storage,
+    ProgIFIndex::PCI_IDE,
+    DeviceInfo::DeviceType{0},
+    [](void *) -> void *{ return new ATAdev::IDE_control{}; },
+    PDevDrv::DrvType::ProgIF
+};
 
 namespace {
 void DiskInfoPrint(DiskInfo *diskinfo) {
-    kout << "[INFO] ";
+    kout << "[IDE] ";
     if (diskinfo->address_mode & 0b10) {
         kout << "LBA";
         if (diskinfo->address_mode & 0b100) {

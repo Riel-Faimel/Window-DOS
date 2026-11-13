@@ -6,6 +6,8 @@
 enum class GlobalExceptionType : u32 {
 BadMemoryAlloc,
 InvalidTCB,
+
+UnwindBreak,
 };
 
 extern "C" void terminal(GlobalExceptionType);

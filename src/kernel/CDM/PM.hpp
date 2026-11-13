@@ -8,7 +8,7 @@
 
 #include "PM_.hpp"
 #include <global/type.hpp>
-#include <interface/dev_cls/logicaldisk.hpp>
+#include <interface/knlobj/logicaldisk.hpp>
 #include <HL/container>
 
 class PM {

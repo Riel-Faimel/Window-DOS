@@ -1,7 +1,6 @@
 #pragma GCC optimize("Os")
 
 #include "_idt.hpp"
-import exception;
 
 namespace {
 void no_errcode_frame_status(no_errcode_frame *frame) {

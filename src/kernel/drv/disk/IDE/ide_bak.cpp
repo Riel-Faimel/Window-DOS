@@ -1,8 +1,8 @@
 #include <global/type.hpp>
-#include <interface/dev_cls/cluster.hpp>
+#include <interface/srvdev/cluster.hpp>
 #include <port.h>
 #include <stdio>
-#include <interface/dev_cls/device.hpp>
+#include <interface/hardev/device.hpp>
 #include <CDM/PM.hpp>
 #include <id/id.hpp>
 #include "..\ATA\ATAcmd.hpp"

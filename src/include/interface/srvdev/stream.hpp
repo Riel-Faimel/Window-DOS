@@ -1,5 +1,5 @@
-#ifndef __include_interface_kernel_stream_hpp
-#define __include_interface_kernel_stream_hpp
+#ifndef __include_interface_srvdev_stream_hpp
+#define __include_interface_srvdev_stream_hpp
 #include <global/type.hpp>
 
 class Stream {

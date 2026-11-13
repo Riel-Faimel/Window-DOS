@@ -1,7 +1,9 @@
-#ifndef __include_interface_dev_cls_frameport_hpp
-#define __include_interface_dev_cls_frameport_hpp
+#ifndef __include_interface_knlobj_frameport_hpp
+#define __include_interface_knlobj_frameport_hpp
 
-class FramePort {
+#include "knlobj.hpp"
+
+class FramePort : public KernelObj {
 public:
     /**
      * send/recv(buf, port, bytes)

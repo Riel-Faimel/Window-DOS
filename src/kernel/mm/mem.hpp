@@ -1,7 +1,7 @@
 #ifndef __kernel_mm_mem_hpp
 #define __kernel_mm_mem_hpp
 
-#include <interface/dev_cls/cluster.hpp>
+#include <interface/srvdev/cluster.hpp>
 
 class mem : public Cluster {
 public:

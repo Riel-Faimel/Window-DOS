@@ -9,8 +9,8 @@ CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
 		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_DEBUG -D_x86 
 
 CFLAGS = $(CBASE) -Werror=implicit-int
-CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts
-CPPFLAGS = $(CPPBASE) -fno-exceptions -mno-sse
+CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts -mno-sse
+CPPFLAGS = $(CPPBASE) -fno-exceptions
 CPPEXCEPTION = $(CPPBASE) -fexceptions
 	
 LDFLAGS_B = -nostdlib -m elf_i386

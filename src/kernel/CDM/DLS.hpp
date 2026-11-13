@@ -8,7 +8,7 @@
 
 #include "DLS_.hpp"
 #include <global/type.hpp>
-#include <interface/dev_cls/cluster.hpp>
+#include <interface/srvdev/cluster.hpp>
 #include <global/WIN.hpp>
 #include <PDS/pds.hpp>
 #include <string>

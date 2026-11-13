@@ -32,7 +32,7 @@ $(BUILD_DIR)kernel.bin: \
 	$(BUILD_DIR)kernel/syscall.o\
 	
 	@ $(LD) -o $@ $^ $(LDFLAGS_F)
-	@ echo [LD] $@
+	@ echo [LD] $^
 
 #$(BUILD_DIR)kernel.bin: $(BUILD_DIR)kernel.pe
 #	$(COPY) $(COPYFLAGS) $< $@

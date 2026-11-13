@@ -1,5 +1,6 @@
 #include "pds.hpp"
-#include <interface/dev_cls/device.hpp>
+#include <interface/hardev/device.hpp>
+#include <interface/hardev/pift.hpp>
 #define LocalDebug
 #include <global/macro.hpp>
 #include <stdio>

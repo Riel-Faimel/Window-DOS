@@ -2,8 +2,8 @@
 #define __kernel_PDS_PCI_pci_hpp
 
 #include <HL/container>
-#include <interface/enumer.hpp>
-#include <interface/dev_cls/device.hpp>
+#include <interface/hardev/enumer.hpp>
+#include <interface/hardev/device.hpp>
 
 #pragma pack(push, 1)
 struct PCI_device_config {
@@ -58,9 +58,6 @@ class PCI_space : public Enumerator {
         command_bus_master = 1 << 2,
         command_int_disable = 1 << 10
     };
-
-    BusIndex id{};
-    ProgIFType progif_base{0};
     size_t progif_num{};
     
     void pci_lookfor_addr(int, int, int, int);

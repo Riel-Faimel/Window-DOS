@@ -2,7 +2,7 @@
 #include <port.h>
 
 #include "..\ATA\ATActl.hpp"
-#include <interface/dev_cls/cluster.hpp>
+#include <interface/srvdev/cluster.hpp>
 #define LocalDebug
 #include <global/macro.hpp>
 

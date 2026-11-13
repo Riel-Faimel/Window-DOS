@@ -3,7 +3,7 @@
 
 #include "ATAcmd.hpp"
 #include "ATAdef.hpp"
-#include <interface/dev_cls/cluster.hpp>
+#include <interface/srvdev/cluster.hpp>
 #include <global/type.hpp>
 #undef LocalDebug
 #include <global/macro.hpp>

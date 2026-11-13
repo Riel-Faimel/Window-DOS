@@ -1,7 +1,7 @@
 #ifndef __kernel_PDS_USB_usb_hpp
 #define __kernel_PDS_USB_usb_hpp
 
-#include <interface/enumer.hpp>
+#include <interface/hardev/enumer.hpp>
 
 class USB_space : public Enumerator {
 public:

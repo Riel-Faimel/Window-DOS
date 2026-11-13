@@ -1,13 +1,14 @@
-#ifndef __include_interface_physicaldisk_hpp
-#define __include_interface_physicaldisk_hpp
+#ifndef __include_interface_knlobj_physicaldisk_hpp
+#define __include_interface_knlobj_physicaldisk_hpp
 
 #include <global/type.hpp>
 #include <string>
+#include "knlobj.hpp"
 
 /**
  * real disk and virtual disk also logical disk
  */
-class PhysicalDisk {
+class PhysicalDisk : public KernelObj {
 public:
     /**
      * if disk driver realize 

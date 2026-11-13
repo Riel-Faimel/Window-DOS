@@ -1,7 +1,9 @@
-#ifndef __include_interface_dev_cls_serialport_hpp
-#define __include_interface_dev_cls_serialport_hpp
+#ifndef __include_interface_knlobj_serialport_hpp
+#define __include_interface_knlobj_serialport_hpp
 
-class SerialPort {
+#include "knlobj.hpp"
+
+class SerialPort : public KernelObj {
 public:
     /**
      * take/give(buf, port, bytes)

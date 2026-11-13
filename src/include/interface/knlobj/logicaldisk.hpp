@@ -1,6 +1,7 @@
-#ifndef __include_interface_logicaldisk_hpp
-#define __include_interface_logicaldisk_hpp
+#ifndef __include_interface_knlobj_logicaldisk_hpp
+#define __include_interface_knlobj_logicaldisk_hpp
 
+#include "knlobj.hpp"
 #include <global/type.hpp>
 #include <string>
 
@@ -37,7 +38,7 @@ struct FileInfo : ClusterInfo {
 /**
  * real disk and virtual disk also logical disk
  */
-class LogicalDisk {
+class LogicalDisk : public KernelObj {
 public:
     /**
      * if disk driver realize 

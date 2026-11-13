@@ -1,7 +1,7 @@
 #include "PM.hpp"
 
 #include <CDM/DLS.hpp>
-#include <interface/dev_cls/cluster.hpp>
+#include <interface/srvdev/cluster.hpp>
 #include <global/type.hpp>
 #include <drv/kmod.hpp>
 #include <HL/utility>

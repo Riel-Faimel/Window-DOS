@@ -1,8 +1,8 @@
 #include "ide.hpp"
 #include "..\ATA/ATActl.hpp"
-#include <interface/dev_cls/device.hpp>
-#include <interface/dev_cls/logicaldisk.hpp>
-#include <drv/mod_head.hpp>
+#include <interface/hardev/device.hpp>
+#include <interface/knlobj/logicaldisk.hpp>
+#include <interface/hardev/drvhead.hpp>
 #include <HL/utility>
 #undef LocalDebug
 #include <global/macro.hpp>
@@ -11,6 +11,7 @@
 #include <CDM/PM.hpp>
 #include <id/id.hpp> 
 #include <stdio>
+#include <interface/hardev/pift.hpp>
 
 namespace ATAdev {
 
