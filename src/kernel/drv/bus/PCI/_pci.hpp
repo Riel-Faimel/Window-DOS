@@ -7,6 +7,7 @@
 #include <drv/kmod.hpp>
 #include <PDS/pds.hpp>
 #include <interface/hardev/pift.hpp>
+#include <interface/hardev/drvhead.hpp>
 
 #define PCI_address  0xCF8
 #define PCI_data 0xCFC

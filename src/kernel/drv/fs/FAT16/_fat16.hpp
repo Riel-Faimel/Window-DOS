@@ -3,6 +3,7 @@
 #include <lib/string>
 #include <global/new.hpp>
 #include <lib/utility>
+#include <interface/hardev/drvhead.hpp>
 
 #undef LocalDebug
 #include <global/macro.hpp>

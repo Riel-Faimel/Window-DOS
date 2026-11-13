@@ -17,6 +17,7 @@ public:
     virtual IOBackend &operator<< (void *) = 0;
     virtual IOBackend &operator<< (bool) = 0;
     virtual void ch(char) = 0;
+    virtual void str(const char *, char) = 0;
     virtual void hex(unsigned char) = 0;
     virtual void hex(unsigned short) = 0;
     virtual void hex(unsigned) = 0;
@@ -38,6 +39,7 @@ public:
     iostream &operator<< (void *p) { *backend << (u32)p;return *this; }
     iostream &operator<< (bool b) { *backend << b; return *this; }
     void ch(char c) { backend->ch(c); }
+    void str(const char *str, char end) { backend->str(str, end); }
     void hex(unsigned char i) { backend->hex(i); }
     void hex(unsigned short i) { backend->hex(i); }
     void hex(unsigned i) { backend->hex(i); }

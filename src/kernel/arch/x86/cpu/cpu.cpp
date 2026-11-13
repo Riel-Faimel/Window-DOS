@@ -10,7 +10,7 @@ size_t cpuidcountor{0};
 
 CPU::CPU(): mm{}, idt{new (mm) descrptor::IDTEntry[256]}, 
 gdt{new (mm) descrptor::GDTEntry[256]{}, 256, idt}, tss{gdt, mm}, 
-scheduler{mm, idt}, /*syscall{idt},*/ info{ 
+scheduler{mm, idt}, syscall{idt},/**/ info{ 
     .arch_type = CPUInfo::ArchType::x86,
     .cpu_nums = 1,
     .bit_num = 32,

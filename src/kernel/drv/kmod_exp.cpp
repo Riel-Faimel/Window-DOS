@@ -9,6 +9,9 @@ KernelModule::KernelModule():
 fs{} {
     kmod = this;
     pdevspace->append(this);
+}
+
+void KernelModule::probe() {
     reg_insmod();
 }
 
@@ -17,15 +20,15 @@ void KernelModule::reg_insmod() {
         switch (head.mod_type) {
         case ModHead::ModType::PDevDrv: {
             auto drv = (PDevDrv &)head;
-            switch (drv.drv_t) {
+            switch (drv.drv_type) {
             case PDevDrv::DrvType::ProgIF: {
-                pdevspace->append(drv.pid, drv.drvc);
+                pdevspace->append(drv.progid, drv.drv_construc);
             } break;
             case PDevDrv::DrvType::Dev: {
-                pdevspace->append(drv.pid, drv.dev_t, drv.drvc);
+                pdevspace->append(drv.progid, drv.device_type, drv.drv_construc);
             } break;
             default: {
-                while(1);
+                throw "Bad Module Record";
             } break;
             }
         } break;
@@ -33,16 +36,16 @@ void KernelModule::reg_insmod() {
             ;
         } break;
         case ModHead::ModType::SrvDev: {
-            ;
+            auto srvmod = (SrvDev &)head;
+            fs[srvmod.fs_id] = srvmod.fs_construc;
+        } break;
+        case ModHead::ModType::EnumerMod: {
+            auto enumermod = (EnumerMod &)head;
+            pdevspace->append(enumermod.mainbody());
         } break;
         default: {
             __builtin_unreachable();
         } break;
         }
     }
-}
-
-void KernelModule::probe() {
-    pdevspace->append(new ISA_space{});
-    pdevspace->append(new PCI_space{});
 }

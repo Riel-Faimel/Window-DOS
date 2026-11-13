@@ -46,6 +46,6 @@ void LoaderMain(){
     }
     // Bad
     // I need Center Shell to keep user's control
-    ;
+    while(1) { asm volatile ("hlt"); };
     __builtin_unreachable();
 }

@@ -10,7 +10,7 @@
 #include "tss.hpp"
 #include "ldt.hpp"
 #include "..\sche\ds.hpp"
-//#include <syscall/DOS/DOScall.hpp>
+#include <syscall/DOS/DOScall.hpp>
 
 namespace arch {
     
@@ -23,7 +23,7 @@ struct CPU {
     TSM tss; // table
     LDT ldt;
     alignas(4) DefaultScheduler scheduler; // schedule loop
-    //DOScall syscall;
+    DOScall syscall;
     CPUInfo info;
 
     CPU();

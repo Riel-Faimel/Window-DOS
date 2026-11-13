@@ -10,7 +10,7 @@ extern "C" {
      * read byte from keyboard, echo
      */
     void standard_output(char dl){
-        print_char(dl);
+        kout.ch(dl);
     };
     /**
      * print byte to console
@@ -70,7 +70,7 @@ void DOScall_handler_c() {
         direct_console_input_with_ctrl_c();
         break;
     case 0x09:  // string print end of $
-        kout << reinterpret_cast<char *>(frame->edx), '$';
+        kout.str(reinterpret_cast<char *>(frame->edx), '$');
         break;
     case 0x0A:  // 缓冲字符串输入
         buffered_keyboard_input();
@@ -158,6 +158,6 @@ void DOScall_handler_c() {
     return;
 }
 
-DOScall::DOScall(IDT& idt_):idt{idt_} {
+DOScall::DOScall(arch::IDT& idt_):idt{idt_} {
     idt_.regist(DOScall_handler, 0x21);
 }

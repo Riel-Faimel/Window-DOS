@@ -1,5 +1,9 @@
 #include "_pci.hpp"
 
+InsideModuleRecord EnumerMod head {
+    []() -> Enumerator *{ return new PCI_space{}; }
+};
+
 DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
     auto re = new DeviceInfo{
         .progif = ProgIFIndex{0},

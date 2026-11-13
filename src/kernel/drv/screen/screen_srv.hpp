@@ -30,6 +30,7 @@ public:
     screen_output &operator<< (void *p) { print_hex((u32)p);return *this; }
     screen_output &operator<< (bool b) { if (b) kprint("true"); else kprint("false"); return *this; }
     void ch(char c) { print_char(c); }
+    void str(const char *str, char end) { VGA_screen.print(str, end); }
     void hex(unsigned char i) { print_hex(i, false); }
     void hex(unsigned short i) { print_hex(i, false); }
     void hex(unsigned i) { print_hex(i, false); }

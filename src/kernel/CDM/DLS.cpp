@@ -70,6 +70,7 @@ unsigned DLS::open(WinHandle &win, String file_path){
             return 0;
         }
     }
+    kout << "[DLS] No Such Disk\n";
     return ClusterDeviceManagerDefination_OpenErrorCode_NoSuchDisk; // no such disk
 }
 

@@ -52,7 +52,7 @@ bool init(){
     io_wait();
     unsigned char config = inb(DATA);
     config |= 0x01;
-    config &= ~0x10; // 禁用鼠标中断，如果需要
+    config &= ~0x10; // 禁用鼠标中断
     outb(0x60, CMD);
     io_wait();
     outb(config, DATA);
@@ -95,7 +95,7 @@ void init_driver(){
     click = false;
     read = 0;
     write = 0;
-    idt.regist(&keyboard_handler, static_cast<unsigned>(IDNT::keyboard));
+    interrupt_distributor.reg_irq(&keyboard_handler, IRQ::keyboard);
     if(init())return;
     else{
         kout << "[WARNING] Keyboard Failed\n";

@@ -7,6 +7,7 @@ enum class ProgIFIndex : u32 {
     begin = 0,
     PCI_IDE,
     PCI_AHCI,
+    ISA_PS2_KM,
     end,
 };
 

@@ -68,7 +68,7 @@ public:
         return disk->write(buf, LBA, 0, nums);
     }
     void *mmap(unsigned, void * = nullptr) override { return nullptr; };
-    unsigned open(String s) { return static_cast<unsigned>(s.to_int()); }
+    unsigned open(String s) { return (unsigned)-1; }
     unsigned close(unsigned) { return 0; }
     unsigned create(String) { return 0; }
     unsigned delet(String) { return 0; }

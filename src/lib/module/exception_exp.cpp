@@ -456,6 +456,9 @@ void __gxx_personality_v0() {}
 __attribute__((used))
 void _Unwind_Resume() {}
 
+[[noreturn]]
+void __cxa_throw_bad_array_new_length() { __builtin_unreachable(); }
+
 }
 
 asm (

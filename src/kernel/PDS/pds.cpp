@@ -185,6 +185,6 @@ int PeripheralDeviceSpace::append(
         if (!instance.drvInstance) instance.drvInstance = dcon(instance.config);
     }
 
-    LocalDebugInfo(kout << "[PDS] +driver(special) progif=" << (u32)pid << '\n';)
+    LocalDebugInfo(kout << "[PDS] +driver progif=" << (u32)pid << "device=" << (u32)did << '\n';)
     return PdsOk;
 }

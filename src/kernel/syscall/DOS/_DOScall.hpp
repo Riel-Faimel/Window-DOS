@@ -2,8 +2,7 @@
 
 #include <global/type.hpp>
 #include <stdio>
-#include <arch/x86/idt.hpp>
-#include <multiCE/default/cs.hpp>
+#include <arch/cpu.hpp>
 
 #pragma pack(push, 1)
 struct Frame {

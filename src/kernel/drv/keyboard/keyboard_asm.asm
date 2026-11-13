@@ -13,7 +13,7 @@ keyboard_handler:
     jmp keyboard_handler_go_back
 
 keyboard_handler_go_back:
+    mov dword[esp], Label_for_keyboard_interrput_goto
     mov al, 0x20
     out 0x20, al
-    mov dword[esp], Label_for_keyboard_interrput_goto
     iretd

@@ -2,6 +2,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "_fat16.hpp"
 
+InsideModuleRecord SrvDev head {14,[](LogicalDisk *d) -> Cluster *{ return new FAT16{d}; }};
+
 FAT16::FAT16(LogicalDisk *part_init):
 FATTable{}, DirResolv{}, 
 status{RAW}, part{part_init}{

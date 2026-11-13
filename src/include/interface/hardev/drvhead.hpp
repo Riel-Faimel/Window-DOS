@@ -3,6 +3,8 @@
 
 #include <global/type.hpp>
 #include <interface/hardev/device.hpp>
+#include <interface/srvdev/cluster.hpp>
+#define InsideModuleRecord constinit static __attribute__((used, section(".insidemods"), aligned(1)))
 
 #pragma pack(push, 1)
 struct ModHead {
@@ -11,22 +13,45 @@ struct ModHead {
         PDevDrv,
         KrnlObj,
         SrvDev,
+        EnumerMod,
     } mod_type;
 
     constexpr ModHead(ModType type): magic{'K', 'M', 'H', 'M'}, mod_type{type} {}
 };
 struct PDevDrv : public ModHead {
-    DeviceInfo::ClassType cls_t;
-    ProgIFIndex pid;
-    DeviceInfo::DeviceType dev_t;
-    DriverConstr drvc;
+    ProgIFIndex progid;
+    DeviceInfo::ClassType cls_type;
+    DeviceInfo::DeviceType device_type;
+    DriverConstr drv_construc;
     enum class DrvType : u8 {
         ProgIF,
         Dev,
-    } drv_t;
+    } drv_type;
+
+    constexpr PDevDrv(
+        ProgIFIndex progid_, DeviceInfo::ClassType cls_type_, 
+        DeviceInfo::DeviceType device_type_, DriverConstr drv_construc_
+    ): ModHead{ModType::PDevDrv}, progid{progid_}, cls_type{cls_type_}, device_type{device_type_}, 
+    drv_construc{drv_construc_}, drv_type{DrvType::Dev} {}
+    constexpr PDevDrv(
+        ProgIFIndex progid_, DeviceInfo::ClassType cls_type_, DriverConstr drv_construc_
+    ): ModHead{ModType::PDevDrv}, progid{progid_}, cls_type{cls_type_}, device_type{0}, 
+    drv_construc{drv_construc_}, drv_type{DrvType::ProgIF} {}
 };
 struct KrnlObj : public ModHead {};
-struct SrvDev : public ModHead {};
+struct SrvDev : public ModHead {
+    u32 fs_id;
+    Cluster *(*fs_construc)(LogicalDisk *);
+
+    constexpr SrvDev(u32 fs_id_, Cluster *(*fs_construc_)(LogicalDisk *)): 
+    ModHead{ModType::SrvDev}, fs_id{fs_id_}, fs_construc{fs_construc_} {}
+};
+struct EnumerMod : public ModHead {
+    Enumerator *(*mainbody)();
+
+    constexpr EnumerMod(Enumerator *(*mainbody_)()): 
+    ModHead{ModType::EnumerMod}, mainbody{mainbody_} {}
+};
 #pragma pack(pop)
 
 

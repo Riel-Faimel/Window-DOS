@@ -42,6 +42,7 @@ struct DeviceInfo {
         constexpr explicit DeviceType(u32 id_): id{id_} {}
 
         bool operator == (const DeviceType &oth) const { return id == oth.id; }
+        operator u32() const { return id; }
     } device; // from vendoor, device, reversion hash
 
     // bus config

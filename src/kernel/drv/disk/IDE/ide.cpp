@@ -1,13 +1,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "_ide.hpp"
 
-PDevDrv head __attribute__((section(".insidemods"))){
-    ModHead::ModType::PDevDrv,
-    DeviceInfo::ClassType::storage,
+InsideModuleRecord PDevDrv head {
     ProgIFIndex::PCI_IDE,
-    DeviceInfo::DeviceType{0},
-    [](void *) -> void *{ return new ATAdev::IDE_control{}; },
-    PDevDrv::DrvType::ProgIF
+    DeviceInfo::ClassType::storage,
+    [](void *) -> void *{ return new ATAdev::IDE_control{}; }
 };
 
 namespace {

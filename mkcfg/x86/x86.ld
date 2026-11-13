@@ -34,7 +34,7 @@ SECTIONS {
         *(.data.*)
     }
 
-    .insidemods : {
+    .insidemods : SUBALIGN(1) {
         __inside_mods_begin = .;
         *(.insidemods)
         *(.insidemods.*)

@@ -116,7 +116,9 @@ FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
 #include <global/macro.hpp>
     LocalDebugInfo(kout << enter_point;)
     
+    ASMLabelMark(start_thread)
     Multi_Channel_executor.run((void (*)(size_t,void *))enter_point, argc, argv, 1, 3);
+
 
     return FexecExceptionCode::NoException;
 }
