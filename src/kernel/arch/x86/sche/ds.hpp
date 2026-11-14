@@ -1,7 +1,7 @@
 #ifndef __kernel_multiCE_default_cs_hpp
 #define __kernel_multiCE_default_cs_hpp
 
-#include <interface/TD/sechduler.hpp>
+#include <interface/TD/TCB.hpp>
 #include "..\cpu\idt.hpp"
 
 class MemoryManager;

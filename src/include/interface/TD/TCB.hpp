@@ -58,4 +58,6 @@ struct TCB {
 };
 #pragma pack(pop)
 
+static_assert(sizeof(TCB) == 24*4);
+
 #endif
