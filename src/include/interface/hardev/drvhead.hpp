@@ -4,6 +4,8 @@
 #include <global/type.hpp>
 #include <interface/hardev/device.hpp>
 #include <interface/srvdev/cluster.hpp>
+#include <interface/syscall.hpp>
+
 #define InsideModuleRecord constinit static __attribute__((used, section(".insidemods"), aligned(1)))
 
 #pragma pack(push, 1)
@@ -14,6 +16,7 @@ struct ModHead {
         KrnlObj,
         SrvDev,
         EnumerMod,
+        SyscallMod,
     } mod_type;
 
     constexpr ModHead(ModType type): magic{'K', 'M', 'H', 'M'}, mod_type{type} {}
@@ -51,6 +54,13 @@ struct EnumerMod : public ModHead {
 
     constexpr EnumerMod(Enumerator *(*mainbody_)()): 
     ModHead{ModType::EnumerMod}, mainbody{mainbody_} {}
+};
+struct SyscallMod : public ModHead {
+    u32 interrupt_index;
+    SyscallHandler *(*create)();
+
+    constexpr SyscallMod(u32 intid, SyscallHandler *(*create_)()):
+    ModHead{ModType::SyscallMod}, interrupt_index{intid}, create{create_} {}
 };
 #pragma pack(pop)
 

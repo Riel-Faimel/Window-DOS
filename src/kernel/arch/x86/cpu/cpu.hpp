@@ -1,8 +1,8 @@
 #ifndef __kernel_multiCE_cpu_hpp
 #define __kernel_multiCE_cpu_hpp
 
+#include <arch/cpu.hpp>
 #include <global/type.hpp>
-#include <arch/arch_type>
 #include <mm/mm.hpp>
 
 #include "gdt.hpp"
@@ -10,24 +10,21 @@
 #include "tss.hpp"
 #include "ldt.hpp"
 #include "..\sche\ds.hpp"
-#include <syscall/DOS/DOScall.hpp>
+
+#define CurruentArchitecture arch::x86
 
 namespace arch {
     
-struct CPU {
-    CPUIndex cpuid{};
-    CPU *next = nullptr;
+struct x86 : public CPU {
     ::MemoryManager mm;// first
     IDT idt;
     GDT gdt;
     TSM tss; // table
     LDT ldt;
     alignas(4) DefaultScheduler scheduler; // schedule loop
-    DOScall syscall;
     CPUInfo info;
 
-    CPU();
-    auto next_node(){ return next; }
+    x86();
 
     CPUInfo get_info();
 
@@ -36,26 +33,23 @@ struct CPU {
     void unpaging();
 
     // scheduler control
-    void preempt();
-    void collabora();
+    void preempt() override;
+    void collabora() override;
     void run(
         void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
         size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
-    );
+    ) override;
 
     // interrupt regist
-    enum class AccessControl : u8 {
-        Public, Private, HardOnly
-    };
-    bool regist_int_handler(void (*handler)(void), unsigned internum, AccessControl access);
+    bool regist_int_handler(
+        void (*handler)(void), unsigned internum, AccessControl access
+    ) override;
 
     // segmention control
     const GDT &get_gdt() const { return gdt; }
 };
 
 } // namespace arch
-
-extern arch::CPU *cpu_list_root;
 
 
 #endif

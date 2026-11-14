@@ -7,7 +7,7 @@ void no_errcode_frame_status(no_errcode_frame *frame) {
     kout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
 }
 u32 errorcode_frame_status (errcode_frame *frame) {
-    kout << "Error Code: ";
+    kout << "Error Code: " << frame->errcode;
     kout << "\n< CS = " << frame->cs << ", EIP = " << frame->eip << " >\n";
     if ((frame->errcode & 0b0100) == 0)goto Done;
     kout << "< SS = " << frame->ss << ", ESP = " << frame->esp << " >\n";
@@ -50,7 +50,6 @@ void IDT::regist(
     void (*handler)(void), unsigned internum, unsigned short sec, 
     unsigned char DPL, bool _32_or_16
 ) volatile {
-    //kout << "reg:" << internum << '\n';
     new ((void *)&idt_base[internum]) descrptor::IDTEntry::IG {
         .addr_low = (unsigned short)(reinterpret_cast<unsigned>(handler) & 0xFFFF),
         .selector = sec, .is_32_bits_or_16_bits = (unsigned char)(_32_or_16?1:0),
@@ -91,7 +90,7 @@ void DF_handler_c(){
     while (true){ asm volatile ("hlt"); }
 }
 void GP_handler_c(errcode_frame * frame){
-    kout << "=== #GP ===\n";
+    kout << "[IDT] <#GP>";
     auto err = errorcode_frame_status(frame);
     bool is_extern = err & 1;
     bool is_IDT = err & 2;

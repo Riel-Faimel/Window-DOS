@@ -3,10 +3,10 @@ extern "C" {
     void LoaderMain();
 }
 
+#define ArchitectureDetail
 
 // kernel modes
 #include <global/macro.hpp>
-
 #include <arch/start.hpp>
 #include <arch/cpu.hpp>
 #include <id/id.hpp>
@@ -15,3 +15,6 @@ extern "C" {
 #include <CDM/cdm.hpp>
 #include <TM/TM.hpp>
 #include <drv/kmod.hpp>
+#include <basicshell/bs.hpp>
+#include <WM/wm.hpp>
+#include <arch/x86/sche/ds.hpp>

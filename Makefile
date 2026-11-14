@@ -33,8 +33,9 @@ include $(SRC_DIR)bootloader/bootloader.mk
 include $(SRC_DIR)lib/lib.mk
 #include $(ROOT_DIR)/app/app.mk
 
-MOD = $(FS_MOD)
-MOD += $(DRV_MOD)
+$(BUILD_DIR)kernel.bin:  $(OBJ)
+	@ $(LD) -o $@ $^ $(LDFLAGS_F)
+	@ echo [LD] $@
 
 lib: $(BUILD_DIR)lib/libos.a
 module: module_32
@@ -44,8 +45,11 @@ boot.img: $(BUILD_DIR)bootloader.bin $(BUILD_DIR)kernel.bin
 	@ echo [COPY] $@
 result: boot.img
 
+all: lib result run
+
 DISK1 = -drive format=raw,index=0,file=boot.img,media=disk
-DISK2 = -drive format=raw,index=1,file=flp.vhd,media=disk
+DISK2 = \
+	-drive format=raw,index=1,file=flp.vhd,media=disk
 #\
 	-device ich9-ahci,id=sata\
 	-drive format=raw,id=disk1,file=flp.vhd,if=none\

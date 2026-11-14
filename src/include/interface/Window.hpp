@@ -8,9 +8,9 @@ class Window : WinHandle {
 private:
     unsigned char buffer[N];
 public:
-    Window(): WinHandle{.size{N}} {}
+    Window(): WinHandle{} { size = N; }
     Window(Window &) = delete;
-    Window(Window &&win): Window{static_cast<WinHandle &&>(win)}{}
+    Window(Window &&win): WinHandle{static_cast<const WinHandle &>(win)} { size = N; }
     ~Window() = default;
 
     template<typename T>
@@ -38,17 +38,12 @@ private:
 public:
     Window() = delete;
     template<unsigned N>
-    Window(unsigned char (&buffer_init)[N]){
+    Window(unsigned char (&buffer_init)[N]): WinHandle{} {
         buffer = buffer_init;
         size = N;
     }
-    Window(Window<0>&& win){
-        handle = win.handle;
-        extra = win.extra;
-        size = win.size;
+    Window(Window<0>&& win): WinHandle{static_cast<const WinHandle &>(win)} {
         buffer = win.buffer;
-
-        win.handle = 0;
         win.extra = 0;
         win.size = 0;
         win.buffer = nullptr;

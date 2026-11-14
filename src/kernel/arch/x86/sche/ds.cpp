@@ -1,4 +1,5 @@
 #include "_ds.hpp"
+#include <id/id.hpp>
 using namespace arch;
 
 inline void tcb_push(TCB *tcb, size_t data, int bytes_num = 4) {
@@ -9,7 +10,7 @@ inline void tcb_push(TCB *tcb, size_t data, int bytes_num = 4) {
 extern "C" {
     __attribute__((optimize("O3")))
     [[noreturn]] void sche_c() {
-        arch::CPU *cpu_ptr;
+        arch::x86 *cpu_ptr;
         unsigned code;
         //void *frame;
         asm volatile (
@@ -174,7 +175,8 @@ DefaultScheduler::DefaultScheduler(MemoryManager& mm_, IDT& idt):mm{mm_}{
 }
 
 void DefaultScheduler::start_preemption(IDT &idt) {
-    idt.regist(&_Sint_sche, 48);
+    interrupt_distributor.reg_irq(&_Sint_sche, IRQ::time);
+    (void)idt;
 }
 
 void DefaultScheduler::close_preemption(IDT &idt) {

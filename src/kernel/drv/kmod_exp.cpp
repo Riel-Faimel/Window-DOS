@@ -1,4 +1,5 @@
 #include "_kmod.hpp"
+#include <WM/wm.hpp>
 
 KernelModule *kmod = nullptr;
 
@@ -16,6 +17,7 @@ void KernelModule::probe() {
 }
 
 void KernelModule::reg_insmod() {
+    try {
     for (auto &head : inside_mod_tranv) {
         switch (head.mod_type) {
         case ModHead::ModType::PDevDrv: {
@@ -43,9 +45,17 @@ void KernelModule::reg_insmod() {
             auto enumermod = (EnumerMod &)head;
             pdevspace->append(enumermod.mainbody());
         } break;
+        case ModHead::ModType::SyscallMod: {
+            auto &sysmod = (SyscallMod &)head;
+            if (window_manager)
+                window_manager->append(sysmod.create(), sysmod.interrupt_index);
+        } break;
         default: {
             __builtin_unreachable();
         } break;
         }
+    }
+    } catch (...) {
+        ;
     }
 }

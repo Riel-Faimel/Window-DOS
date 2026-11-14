@@ -2,11 +2,12 @@ include $(SRC_DIR)kernel/drv/drv.mk
 include $(SRC_DIR)kernel/arch/arch.mk
 include $(SRC_DIR)kernel/id/id.mk
 include $(SRC_DIR)kernel/mm/mm.mk
-include $(SRC_DIR)kernel/multiCE/multiCE.mk
-include $(SRC_DIR)kernel/syscall/syscall.mk
-include $(SRC_DIR)kernel/PDS/pds.mk
+include $(SRC_DIR)kernel/WM/wm.mk
 include $(SRC_DIR)kernel/CDM/DLS.mk
+include $(SRC_DIR)kernel/PDS/pds.mk
+include $(SRC_DIR)kernel/multiCE/multiCE.mk
 include $(SRC_DIR)kernel/TM/TM.mk
+include $(SRC_DIR)kernel/basicshell/bs.mk
 include $(SRC_DIR)kernel/GEH/geh.mk
 
 SOURCES = $(wildcard $(SRC_DIR)kernel/*.cpp)
@@ -20,13 +21,7 @@ DEP_LEVELS = * */* */*/* */*/*/* */*/*/*/*
 DEPENDS = $(foreach level,$(DEP_LEVELS),$(wildcard $(BUILD_DIR)kernel/$(level).d))
 -include $(DEPENDS)
 
-$(BUILD_DIR)kernel/loader.o: $(SRC_DIR)kernel/loader_exp.cpp
+$(BUILD_DIR)kernel/kernel.o: $(SRC_DIR)kernel/kernel_exp.cpp
 
 OBJ += \
-	$(BUILD_DIR)kernel/loader.o
-#\
-	$(BUILD_DIR)kernel/syscall.o\
-
-$(BUILD_DIR)kernel.bin:  $(OBJ)
-	@ $(LD) -o $@ $^ $(LDFLAGS_F)
-	@ echo [LD] $@
+	$(BUILD_DIR)kernel/kernel.o

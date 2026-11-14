@@ -32,6 +32,7 @@ public:
             ModuleTypeBanch(KrnlObj)
             ModuleTypeBanch(SrvDev)
             ModuleTypeBanch(EnumerMod)
+            ModuleTypeBanch(SyscallMod)
             default:{
                 throw 1;
             } break;

@@ -1,6 +1,6 @@
 #include "ds.hpp"
 #include <stdio>
-#include <arch/cpu.hpp>
+#include "../cpu/cpu.hpp"
 #include <id/id.hpp>
 #include <mm/mm.hpp>
 //#include <DescripTable/idt.hpp>

@@ -158,6 +158,11 @@ void DOScall_handler_c() {
     return;
 }
 
-DOScall::DOScall(arch::IDT& idt_):idt{idt_} {
-    idt_.regist(DOScall_handler, 0x21);
+InsideModuleRecord SyscallMod head {
+    0x21,
+    []() -> SyscallHandler * { return new DOScall; }
+};
+
+void (*DOScall::handler())() {
+    return DOScall_handler;
 }
