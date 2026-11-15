@@ -7,7 +7,7 @@ void caller(size_t n, void *v) {
     asm volatile (
         "mov %0, %%eax\n"
         "mov %1, %%edx\n"
-        "call %2\n"
+        "call *%2\n"
         "int $0x31\n" // process exit
         "int $0x32\n" // thread exit
         :

@@ -23,7 +23,7 @@ struct PhysicalDiskInfo : DiskInfo {
     u32 multi_count;
 };
 
-struct ClusterInfo : DiskInfo {
+struct FileInfo : DiskInfo {
     String name;
     u16 create_date;
     u16 create_time;

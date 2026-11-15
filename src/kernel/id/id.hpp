@@ -3,6 +3,7 @@
 
 #include <global/type.hpp>
 #include <arch/cpu.hpp>
+#include <HL/container>
 
 enum class IRQ : unsigned char {
     time = 0,
@@ -44,6 +45,19 @@ private:
     u8 master_mask = 0xFF;
     u8 slave_mask = 0xFF;
 } pic;
+
+    struct IrqEntry {
+        void (*handler)();
+        IRQ irq;
+    };
+
+    struct IntEntry {
+        void (*handler)();
+        unsigned vector;
+    };
+
+    rtl::list<IrqEntry> irq_entries;
+    rtl::list<IntEntry> int_entries;
 
 public:
     InterruptDistributor();

@@ -1,7 +1,7 @@
 #ifndef __include_interface_Window_hpp
 #define __include_interface_Window_hpp
 
-#include <global/WIN.hpp>
+#include <global/WinHandle.hpp>
 
 template<unsigned N>
 class Window : WinHandle {

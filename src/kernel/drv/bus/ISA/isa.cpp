@@ -71,35 +71,16 @@ bool ISA_space::PS2::probe() {
 void ISA_space::probe() {
     PS2 ps2;
     if (ps2.probe()) {
-        if (ps2.keyboard()) {
-            pdevspace->append(new DeviceInfo{
-                .progif = ProgIFIndex::ISA_PS2_KM,
-                .bus = id,
-                .cls = DeviceInfo::ClassType::input,
-                .device = DeviceInfo::DeviceType{
-                    (u32)ISA_PS2_Config::Device::keyboard
-                },
-                .config = new ISA_PS2_Config{
-                    ISA_PS2_Config::Device::keyboard, 0
-                },
-                .enumer = this
-            });
-        }
-
-        if (ps2.mouse()) {
-            pdevspace->append(new DeviceInfo{
-                .progif = ProgIFIndex::ISA_PS2_KM,
-                .bus = id,
-                .cls = DeviceInfo::ClassType::input,
-                .device = DeviceInfo::DeviceType{
-                    (u32)ISA_PS2_Config::Device::mouse
-                },
-                .config = new ISA_PS2_Config{
-                    ISA_PS2_Config::Device::mouse, 0
-                },
-                .enumer = this
-            });
-        }
+        pdevspace->append(new DeviceInfo{
+            .progif = ProgIFIndex::ISA_PS2_KM,
+            .bus = id,
+            .cls = DeviceInfo::ClassType::input,
+            .device = DeviceInfo::DeviceType{0},
+            .config = new ISA_PS2_Config{
+                ps2.keyboard(), ps2.mouse(), 0
+            },
+            .enumer = this
+        });
         kout << "[ISA] +device PS/2\n";
     }
 }

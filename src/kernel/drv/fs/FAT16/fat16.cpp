@@ -1,6 +1,6 @@
 #pragma GCC optimize("O2")
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "_fat16.hpp"
+#include "fat16.hpp"
 
 InsideModuleRecord SrvDev head {14,[](LogicalDisk *d) -> Cluster *{ return new FAT16{d}; }};
 
@@ -59,7 +59,7 @@ unsigned FAT16::open(String filename) {
     auto [entry, err] = resolv_dir(filename);
     switch (err) {
     case DirResolvException::NoException: {
-        return (unsigned) (new ClusterInfo{
+        return (unsigned) (new FileInfo{
             DiskInfo{
                 .su_start {entry->_8_3FN.first_cluster_low},
                 .su_num {entry->_8_3FN.file_size},
@@ -101,7 +101,7 @@ unsigned FAT16::delet(String) {
 }
 
 unsigned FAT16::read(void *buf, unsigned h, unsigned byte, unsigned count) {
-    u16 handle = ((ClusterInfo *)(h))->su_start;
+    u16 handle = ((FileInfo *)(h))->su_start;
     if (handle == 0 || handle == 1) return -1;
     auto total_sector_skip_num = byte / bytes_per_sector;
     auto in_sector_bytes_skip_num = byte % bytes_per_sector;
@@ -169,7 +169,7 @@ unsigned FAT16::write(void *buf, unsigned handle, unsigned byte, unsigned count)
     return 0;
 }
 
-DiskInfo *FAT16::info(unsigned, String) {
+Cluster::ClusterInfo *FAT16::info(unsigned, String) {
     return nullptr;
 }
 
@@ -184,7 +184,7 @@ unsigned FAT16::cmd(unsigned cmd_id, String param, void *, unsigned ){
 }
 
 void *FAT16::mmap(unsigned h, void *nice_address) {
-    auto fip = (ClusterInfo *)(h);
+    auto fip = (FileInfo *)(h);
     auto file_size = fip->su_num;
     if (nice_address) {
         // I not care [doge]

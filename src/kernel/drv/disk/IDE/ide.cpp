@@ -1,6 +1,5 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "ide.hpp"
-#include <KOM/kom.hpp>
 
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::PCI_IDE,
@@ -168,7 +167,7 @@ rtl::pair<DetectTable, size_t> IDE_control::pio_data_in(bufAddr buf, SectorCount
     return {result, bytes_read};
 }
 rtl::pair<DetectTable, size_t> IDE_control::dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device) const {
-    ;
+    return {};
 }
 rtl::pair<DetectTable, size_t> IDE_control::pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device) const {
     size_t bytes_write = 0;
@@ -189,7 +188,7 @@ rtl::pair<DetectTable, size_t> IDE_control::pio_data_out(bufAddr buf, SectorCoun
     return {result, bytes_write};
 }
 rtl::pair<DetectTable, size_t> IDE_control::dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device) const {
-    ;
+    return {};
 }
 IDE::IDE(const PhysicalDiskInfo &diskinfo_, const IDE_control &ctl_, DeviceIndex device_):
 diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}

@@ -3,7 +3,7 @@
 
 #include "ATAcmd.hpp"
 #include "ATAdef.hpp"
-#include <interface/srvdev/cluster.hpp>
+#include <interface/knlobj/diskinfo.hpp>
 #include <global/type.hpp>
 #undef LocalDebug
 #include <global/macro.hpp>
@@ -231,11 +231,14 @@ public:
 
     __attribute__((error("Not yet")))
     unsigned set_features(u16 feature, u16 dev) {
+        /*
         ActionTable cmd{};
         cmd.cmd = ATAcmd::set_features;
         cmd.device_index = dev;
         cmd.feature = feature;
         DetectTable result = act(cmd);
+        */
+        return 0;
     }
 
     DetectTable standby(u16 dev) {

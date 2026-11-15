@@ -1,4 +1,5 @@
 #include "_cpu.hpp"
+#include <id/id.hpp>
 #pragma GCC optimize("Os")
 
 namespace arch {
@@ -24,6 +25,8 @@ scheduler{mm, idt}, info{
         : "r"(per_cpu_seg), "r"(this)
         : "eax", "memory"
     );
+
+    interrupt_distributor.append_cpu(*this);
 
     DebugInfo (
         kout << " :: CPU[";
@@ -57,7 +60,7 @@ void x86::run(
 bool arch::x86::regist_int_handler(
     void (*handler)(), unsigned int internum, arch::CPU::AccessControl access
 ) {
-    kout << "[CPU] +handler:" << internum << '\n';
+    kout << "[CPU] +int handler:" << internum << '\n';
     if (internum >= 256) return false;
     u8 dpl = (access == AccessControl::Public) ? 3 : 0;
     idt.regist(handler, internum, 0x08, dpl, true);

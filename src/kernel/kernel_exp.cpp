@@ -10,7 +10,6 @@ void LoaderMain(){
     global_heap = &init_global_heap;
     CurruentArchitecture cpu0{}; // init first CPU
     cpu0.preempt();
-    interrupt_distributor.append_cpu(cpu0);
     asm volatile ("sti");
 
     //===INFO===
@@ -30,7 +29,6 @@ void LoaderMain(){
             TaskManager taskmgr;
             KernelModule kernelmodule;
         } renew_DOS;
-        
         kout << "[BOOT] start INIT.COM\n";
         ASMLabelMark(LoaderMain_StartB_INIT_EXE)
         auto err = renew_DOS.taskmgr.exec("B:\\INIT.COM", 0, nullptr);

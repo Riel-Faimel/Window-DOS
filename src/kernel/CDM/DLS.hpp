@@ -9,7 +9,7 @@
 #include "DLS_.hpp"
 #include <global/type.hpp>
 #include <interface/srvdev/cluster.hpp>
-#include <global/WIN.hpp>
+#include <global/WinHandle.hpp>
 #include <PDS/pds.hpp>
 #include <string>
 #include <HL/container>
@@ -64,7 +64,7 @@ public:
     /**
      * Info(Window, String path) for get info of a file or folder or device
      */
-    DiskInfo *info(Handle *, String);
+    Cluster::ClusterInfo *info(Handle *, String);
     unsigned cmd(Handle *, unsigned, String, void *argv, unsigned argc);
     /**
      * mmap(Window, String) for map handling object to memory

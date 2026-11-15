@@ -454,7 +454,7 @@ public:
     unsigned create(String) override;
     unsigned delet(String) override;
     void *mmap(unsigned, void *) override;
-    DiskInfo *info(unsigned, String) override;
+    ClusterInfo *info(unsigned, String) override;
     unsigned cmd(unsigned, String, void *argv, unsigned argc) override;
 private:
     void set_filesystem_name(char *name);

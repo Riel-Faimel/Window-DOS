@@ -1,21 +1,7 @@
 #include "_id.hpp"
+#include <HL/container>
 
 InterruptDistributor interrupt_distributor;
-
-namespace {
-
-struct IrqEntry {
-    void (*handler)();
-    IRQ irq;
-};
-
-IrqEntry irq_entries[16];
-unsigned irq_entry_count = 0;
-
-} // namespace
-
-
-
 
 u8 InterruptDistributor::PIC::read(u16 port) {
     u8 value;
@@ -120,6 +106,18 @@ InterruptDistributor::InterruptDistributor() {
 }
 
 void InterruptDistributor::reg_int(void (*handler)(), unsigned internum, arch::CPUIndex cpuid) {
+    if (!handler) return;
+
+    bool known = false;
+    for (auto &entry : int_entries) {
+        if (entry.handler == handler && entry.vector == internum) {
+            known = true;
+            break;
+        }
+    }
+    if (!known)
+        int_entries.append(IntEntry{handler, internum});
+
     // internum is the absolute vector (e.g. 0x21), no IRQ base added
     if (cpuid == arch::CPUIndex{0xFFFF}) 
     for (auto &cpu : cpu_list) {
@@ -134,14 +132,14 @@ void InterruptDistributor::reg_int(void (*handler)(), unsigned internum, arch::C
 
 void InterruptDistributor::reg_irq(void (*handler)(), IRQ irq_num, arch::CPUIndex cpuid) {
     bool known = false;
-    for (unsigned i = 0; i < irq_entry_count; ++i) {
-        if (irq_entries[i].handler == handler && irq_entries[i].irq == irq_num) {
+    for (auto &entry : irq_entries) {
+        if (entry.handler == handler && entry.irq == irq_num) {
             known = true;
             break;
         }
     }
-    if (!known && irq_entry_count < 16)
-        irq_entries[irq_entry_count++] = IrqEntry{handler, irq_num};
+    if (!known)
+        irq_entries.append(IrqEntry{handler, irq_num});
 
     if (cpuid == arch::CPUIndex{0xFFFF}) 
     for (auto &cpu : cpu_list) {
@@ -163,13 +161,19 @@ void InterruptDistributor::reg_irq(void (*handler)(), IRQ irq_num, arch::CPUInde
 }
 
 void InterruptDistributor::append_cpu(arch::CPU &cpu) {
-    // 新 CPU 上线时，把 WM 里已有的 syscall 入口和已注册的 IRQ 回放过去
-    if (window_manager) window_manager->install_on(cpu);
-
-    for (unsigned i = 0; i < irq_entry_count; ++i) {
+    // 新 CPU 上线时，把已注册的全局软中断和 IRQ 回放到它的 IDT。
+    for (auto &entry : int_entries) {
         cpu.regist_int_handler(
-            irq_entries[i].handler,
-            (unsigned char)irq_entries[i].irq + 0x30,
+            entry.handler,
+            entry.vector,
+            arch::CPU::AccessControl::Public
+        );
+    }
+
+    for (auto &entry : irq_entries) {
+        cpu.regist_int_handler(
+            entry.handler,
+            (unsigned char)entry.irq + 0x30,
             arch::CPU::AccessControl::HardOnly
         );
     }

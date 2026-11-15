@@ -3,7 +3,7 @@
 DLS* driverletterspace;
 
 static void FSInfoPrint(String letter) {
-    kout << "set [" << letter << ":]\n";
+    kout << ", [" << letter << ":]\n";
 }
 
 DLS::DLS(){ driverletterspace = this; }
@@ -29,7 +29,7 @@ void DLS::regist(Cluster *clu, String le){
 unsigned DLS::start(WinHandle &win, String driver_letter) {
     auto len = driver_letter.length();
     auto path = driver_letter.get_word(':');
-    auto hptr = (Handle *)win.handle;
+    auto hptr = (Handle *)win.extra;
     if (path.length() >= len) {
         // not found ':'
         return -1;
@@ -45,7 +45,7 @@ unsigned DLS::start(WinHandle &win, String driver_letter) {
             return 0;
         } else {
             delete hptr;
-            hptr = new Handle { .ID{new_id}, .file_handle{0} };
+            win.extra = new Handle { .ID{new_id}, .file_handle{0} };
             return 0;
         }
     } else {
@@ -106,7 +106,7 @@ unsigned DLS::del(WinHandle &, String){
     return (unsigned)-1;
 }
 
-DiskInfo *DLS::info(Handle *h, String s){
+Cluster::ClusterInfo *DLS::info(Handle *h, String s){
     if (auto d = search_disk(h);d)
     return d->info(h->file_handle, s);
     else return nullptr;

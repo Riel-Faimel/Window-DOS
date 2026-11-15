@@ -4,12 +4,8 @@
 #include <interface/hardev/enumer.hpp>
 
 struct ISA_PS2_Config {
-    enum class Device : u32 {
-        keyboard = 1,
-        mouse = 2,
-    };
-
-    Device device;
+    bool has_keyboard;
+    bool has_mouse;
     u8 controller_config;
 };
 
