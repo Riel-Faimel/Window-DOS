@@ -7,7 +7,7 @@ class mem : public Cluster {
 public:
     unsigned read(void *, unsigned, unsigned, unsigned) override;
     unsigned write(void *, unsigned, unsigned , unsigned) override;
-    ClusterInfo* info(unsigned, String) override;
+    DiskInfo* info(unsigned, String) override;
     unsigned cmd(unsigned, String, void *, unsigned) override;
 
     unsigned open(String) override;

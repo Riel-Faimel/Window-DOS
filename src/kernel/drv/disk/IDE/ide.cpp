@@ -1,14 +1,15 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "_ide.hpp"
+#include "ide.hpp"
+#include <KOM/kom.hpp>
 
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::PCI_IDE,
     DeviceInfo::ClassType::storage,
-    [](void *) -> void *{ return new ATAdev::IDE_control{}; }
+    [](void *) -> DeviceDriver *{ return new ATAdev::IDE_control{}; }
 };
 
 namespace {
-void DiskInfoPrint(DiskInfo *diskinfo) {
+void DiskInfoPrint(PhysicalDiskInfo *diskinfo) {
     kout << "[IDE] +disk ";
     if (diskinfo->address_mode & 0b10) {
         kout << "LBA";
@@ -37,13 +38,16 @@ namespace ATAdev {
 IDE_control::IDE_control() {
     interrupt_distributor.reg_irq(&when_PATA_Master_cut_handler, IRQ::ATA_Master);
     interrupt_distributor.reg_irq(&when_PATA_Slave_cut_handler, IRQ::ATA_Slave);
-    
+}
+
+void IDE_control::work() {
     for (auto disk_ID : *this) {
         auto diskinfo = identify(disk_ID);
         if (diskinfo) {
             // disk exist
             DebugInfo(DiskInfoPrint(diskinfo);)
             auto disk = new IDE{*diskinfo, *this, disk_ID};
+            kom->append(disk);
 #undef LocalDebug
 #include <global/macro.hpp>
             LocalDebugInfo(
@@ -60,7 +64,6 @@ IDE_control::IDE_control() {
                     a = true;
                 }
             )
-            partmanager->resolve(disk);
             ASMLabelMark(resolve_done)
         } 
 #undef LocalDebug
@@ -71,9 +74,14 @@ IDE_control::IDE_control() {
     }
 }
 
+void IDE_control::off() {
+    // delete LogicalDisk
+}
+
 __attribute__((optimize("O0")))
 DetectTable IDE_control::act(const ActionTable &at) const {
-    #define _LM_act_timeout_guard(...) for (result = detect(DeviceIndex{at.device_index});__VA_ARGS__;timeout_counter++, result = detect(DeviceIndex{at.device_index})) {\
+    #define timeout_guard(...) \
+    for (result = detect(DeviceIndex{at.device_index});__VA_ARGS__;timeout_counter++, result = detect(DeviceIndex{at.device_index})) {\
         if (timeout_counter > 0xFFF0) return result;\
     }
     // IDE
@@ -81,7 +89,7 @@ DetectTable IDE_control::act(const ActionTable &at) const {
     u16 timeout_counter = 0;
     DetectTable result;
 
-    _LM_act_timeout_guard(result.status.busy)
+    timeout_guard(result.status.busy)
 
     if (at.fill_addr){
         if (at.if_need_CHS) {
@@ -116,17 +124,17 @@ DetectTable IDE_control::act(const ActionTable &at) const {
             outb(lba28h, chan + CMDBlock::LBAh);
         }
 
-        _LM_act_timeout_guard(!result.status.ready || result.status.busy)
+        timeout_guard(!result.status.ready || result.status.busy)
     }
 
     if (at.fill_device) {
         outb(device, chan + CMDBlock::device);
-        _LM_act_timeout_guard(!result.status.ready || result.status.busy)
+        timeout_guard(!result.status.ready || result.status.busy)
     }
 
     if (at.send_cmd) {
         outb(static_cast<u8>(at.cmd), chan + CMDBlock::CMD);
-        _LM_act_timeout_guard(!result.status.ready || result.status.busy || result.status.error)
+        timeout_guard(!result.status.ready || result.status.busy || result.status.error)
     }
 
     return result;
@@ -183,7 +191,7 @@ rtl::pair<DetectTable, size_t> IDE_control::pio_data_out(bufAddr buf, SectorCoun
 rtl::pair<DetectTable, size_t> IDE_control::dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device) const {
     ;
 }
-IDE::IDE(const DiskInfo &diskinfo_, const IDE_control &ctl_, DeviceIndex device_):
+IDE::IDE(const PhysicalDiskInfo &diskinfo_, const IDE_control &ctl_, DeviceIndex device_):
 diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}
 
 
@@ -239,10 +247,6 @@ unsigned IDE::write(void *buf, unsigned LBA, unsigned, unsigned count) {
     auto [detect, bytes] = ctl.write_PIO_LBA(bufAddr{buf}, LBAaddr{LBA, 0}, SectorCount{(u16)count}, device);
     if (detect.status.error) return -1;
     else return bytes;
-}
-
-DiskInfo *IDE::info(unsigned, String){
-    return &diskinfo;
 }
 
 unsigned IDE::cmd(unsigned, String, void *, unsigned) {

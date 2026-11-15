@@ -9,6 +9,7 @@ include $(SRC_DIR)kernel/multiCE/multiCE.mk
 include $(SRC_DIR)kernel/TM/TM.mk
 include $(SRC_DIR)kernel/basicshell/bs.mk
 include $(SRC_DIR)kernel/GEH/geh.mk
+include $(SRC_DIR)kernel/kom/kom.mk
 
 SOURCES = $(wildcard $(SRC_DIR)kernel/*.cpp)
 

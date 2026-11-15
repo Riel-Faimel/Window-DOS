@@ -76,7 +76,7 @@ class ATADiskControl {
 
 public:
 
-    DiskInfo *identify(DeviceIndex dev) const {
+    PhysicalDiskInfo *identify(DeviceIndex dev) const {
         IdentifyAnalysis iden;
 
         ActionTable cmd {};
@@ -98,7 +98,7 @@ public:
             LocalDebugInfo(kout << "Invalid Disk\n";)
             return nullptr;
         }
-        auto re = new DiskInfo {};
+        auto re = new PhysicalDiskInfo {};
 
         /* set disk information */
         if (auto [support, c, h, s] = iden.chs_param();support) {
@@ -107,15 +107,15 @@ public:
             re->CHS_heads = h;
             re->CHS_sectors_per_track = s;
 
-            re->index_num = u64{(u32)c * (u32)h * (u32)s};
+            re->su_num = u64{(u32)c * (u32)h * (u32)s};
         }
         if (auto [support, size28] = iden.lba_param();support) {
             re->address_mode |= 0b10;
             if (auto [support, size48] = iden.lba48_param();support) {
                 re->address_mode |= 0b100;
-                re->index_num = size48;
+                re->su_num = size48;
             } else {
-                re->index_num = u64{size28};
+                re->su_num = u64{size28};
             }
         }
         re->PIO_supported = iden.pio_valid();

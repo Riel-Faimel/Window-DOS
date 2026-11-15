@@ -1,7 +1,7 @@
 #ifndef __include_interface_srvdev_cluster_hpp
 #define __include_interface_srvdev_cluster_hpp
 
-#include <interface/knlobj/logicaldisk.hpp>
+#include <interface/knlobj/diskinfo.hpp>
 #include <string>
 
 class Cluster {
@@ -14,7 +14,7 @@ public:
     virtual unsigned create(String) = 0;
     virtual unsigned delet(String) = 0;
     virtual void *mmap(unsigned, void *) = 0;
-    virtual ClusterInfo* info(unsigned = 0, String = {}) = 0;
+    virtual DiskInfo* info(unsigned = 0, String = {}) = 0;
     virtual unsigned cmd(unsigned, String, void *argv, unsigned argc) = 0;
 };
 

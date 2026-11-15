@@ -26,6 +26,7 @@ void LoaderMain(){
             WindowManager wm{};
             ClusterDeviceManager cdm{};
             PeripheralDeviceSpace pds{};
+            KernelObjectManager kom{};
             TaskManager taskmgr;
             KernelModule kernelmodule;
         } renew_DOS;

@@ -59,11 +59,11 @@ unsigned FAT16::open(String filename) {
     auto [entry, err] = resolv_dir(filename);
     switch (err) {
     case DirResolvException::NoException: {
-        return (unsigned) (new FileInfo{
-            ClusterInfo{
-                .index_start {entry->_8_3FN.first_cluster_low},
-                .index_num {entry->_8_3FN.file_size},
-                .index_size {1}
+        return (unsigned) (new ClusterInfo{
+            DiskInfo{
+                .su_start {entry->_8_3FN.first_cluster_low},
+                .su_num {entry->_8_3FN.file_size},
+                .su_size {1}
             },
             filename, entry->_8_3FN.Creation_Date,
             entry->_8_3FN.Creation_time_in_hour_minute_second,
@@ -101,7 +101,7 @@ unsigned FAT16::delet(String) {
 }
 
 unsigned FAT16::read(void *buf, unsigned h, unsigned byte, unsigned count) {
-    u16 handle = ((FileInfo *)(h))->index_start;
+    u16 handle = ((ClusterInfo *)(h))->su_start;
     if (handle == 0 || handle == 1) return -1;
     auto total_sector_skip_num = byte / bytes_per_sector;
     auto in_sector_bytes_skip_num = byte % bytes_per_sector;
@@ -169,7 +169,7 @@ unsigned FAT16::write(void *buf, unsigned handle, unsigned byte, unsigned count)
     return 0;
 }
 
-ClusterInfo *FAT16::info(unsigned, String) {
+DiskInfo *FAT16::info(unsigned, String) {
     return nullptr;
 }
 
@@ -184,8 +184,8 @@ unsigned FAT16::cmd(unsigned cmd_id, String param, void *, unsigned ){
 }
 
 void *FAT16::mmap(unsigned h, void *nice_address) {
-    auto fip = (FileInfo *)(h);
-    auto file_size = fip->index_num;
+    auto fip = (ClusterInfo *)(h);
+    auto file_size = fip->su_num;
     if (nice_address) {
         // I not care [doge]
     }
@@ -240,12 +240,12 @@ void format_fat_fs(
     bpb.reserved_sectors = 1;
     bpb.fat_table_count = 2;
     bpb.root_entry_num = 512; //fixed
-    bpb.total_sectors_16 = (info->index_num > 65536u) ? 0 : info->index_num;
+    bpb.total_sectors_16 = (info->su_num > 65536u) ? 0 : info->su_num;
     bpb.medis_type_descriptor = 0xF8; //hdd
     bpb.sector_per_fat_table = 0;
     bpb.sectors_per_track = 63; //hdd
     bpb.num_heads = 16;
-    bpb.total_sectors_32 = (info->index_num < 65536u) ? 0 : info->index_num;
+    bpb.total_sectors_32 = (info->su_num < 65536u) ? 0 : info->su_num;
     bpb.drive_number = 0x80;
     bpb.reserved2 = 0; //fixed
     bpb.boot_sign = 0x29; //extra, 0x28 for not extra
@@ -265,7 +265,7 @@ void format_fat_fs(
     bpb.boot_sector_sign = 0xAA55;
 
     unsigned S = cluster_size;
-    unsigned T = info->index_num; // total sectors
+    unsigned T = info->su_num; // total sectors
     unsigned R, F/*, D, C*/; // Reserved, FAT, DataStart, ClusterNum
     R = 1;
     F = 1;

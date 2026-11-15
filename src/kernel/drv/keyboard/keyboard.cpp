@@ -1,32 +1,6 @@
 #include "_keyboard.hpp"
 import changestack;
-char _stack[128];
 extern "C" void keyboard_handler();
-
-namespace KeyBoard {
-
-char buffer[1024];
-bool click;
-unsigned read;
-unsigned write;
-
-inline void deal_main(){
-    unsigned char data = inb(DATA);
-    buffer[write] = data;
-    write = (write + 1) & 1023;
-    click = true;
-    //unsigned esp;
-}
-
-void keyboard_handler_c(){
-    { ChangeStack s(_stack);{
-        deal_main();
-    }}
-    /*
-    mov al, 0x20
-    out 0x20, al
-    */
-}
 
 bool init(){
     unsigned time_count = 0;
@@ -91,15 +65,38 @@ bool init(){
     return true;
 }
 
-void init_driver(){
+InsideModuleRecord PDevDrv head {
+    ProgIFIndex::ISA_PS2_KM,
+    DeviceInfo::ClassType::input,
+    DeviceInfo::DeviceType{1}, // ISA_PS2_Config::Device::keyboard
+    [] (void *) -> DeviceDriver *{ return new KeyBoard; }
+};
+
+KeyBoard *KeyBoard::self = nullptr;
+
+KeyBoard::KeyBoard() {
+    self = this;
     click = false;
-    read = 0;
-    write = 0;
+    buffer.clear();
     interrupt_distributor.reg_irq(&keyboard_handler, IRQ::keyboard);
     if(init())return;
-    else{
-        kout << "[WARNING] Keyboard Failed\n";
-    };
+    else kout << "[WARNING] Keyboard Failed\n";
 }
 
-} // namespace KeyBoard
+void KeyBoard::keyboard_handler_c(){
+    static char _stack[1024];
+    if (!self) return;
+    { ChangeStack s(_stack);{
+        unsigned char data = inb(DATA);
+        self->buffer.push((char)data);
+        self->click = true;
+    }}
+}
+
+void KeyBoard::work() {
+    ;
+}
+
+void KeyBoard::off() {
+    ;
+}

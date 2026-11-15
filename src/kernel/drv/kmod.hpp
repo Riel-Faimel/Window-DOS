@@ -4,6 +4,7 @@
 #include <HL/map>
 #include <interface/srvdev/cluster.hpp>
 #include <interface/hardev/device.hpp>
+#include <interface/knlobj/knlobj.hpp>
 
 struct KernelModule : Enumerator {
     rtl::map<size_t, Cluster *(*)(LogicalDisk *)> fs;

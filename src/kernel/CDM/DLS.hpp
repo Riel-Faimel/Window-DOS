@@ -64,7 +64,7 @@ public:
     /**
      * Info(Window, String path) for get info of a file or folder or device
      */
-    ClusterInfo *info(Handle *, String);
+    DiskInfo *info(Handle *, String);
     unsigned cmd(Handle *, unsigned, String, void *argv, unsigned argc);
     /**
      * mmap(Window, String) for map handling object to memory

@@ -1,57 +1,3 @@
-// ===========================================================================
-// ds/TL/container —— rtl::array / rtl::list 的第二版（建议稿）
-// ===========================================================================
-//
-// 这是 src/include/TL/container 的重写版，**不是**内核主树的一部分。
-// 落地方式：整个文件覆盖到 src/include/TL/container（include guard 同名，
-// 所以新旧两份同时存在于包含路径上时，先被找到的那份生效，不会重定义）。
-//
-// 与原版的接口保持兼容 —— 内核里现有的用法原样编译：
-//
-//   rtl::array<char> hex_string(2);      hex_string.append(c); get_size(); [i]
-//   rtl::array<String> re;               re.append(rtl::move(s));
-//   rtl::array<DriveInfo> space;         space.append(DriveInfo{...}); space[id]
-//   for (auto [driver, id, letter] : space)            // 结构化绑定
-//   rtl::list<CacheObj> m_cache;         space_append(); remove(&ref); begin()
-//   rtl::list<PCI_device_config> config{};
-//   rtl::Filter<ProgramInFace, rtl::list> database;    // 要求 list::iterator 存在
-//
-// ---------------------------------------------------------------------------
-// 与原版的差异（每一条都是 bug 修复，详见 ds/TL/README.md 的对照表）
-// ---------------------------------------------------------------------------
-// 1. 元素生命周期：原版用 `new T[capacity]`（全部默认构造）+ 赋值，
-//    本版用 `::operator new(bytes)` 拿裸内存 + 定位 new 构造、逐个析构。
-//    因此：不再要求 T 可默认构造；capacity 与真实分配严格一致。
-// 2. 原版 `~array` 是 `delete ptr`，而内存来自 `new T[]` —— 标准里是 UB。
-//    本版 new/delete 严格配对（::operator new / ::operator delete）。
-// 3. 原版 `array::clean()` 只把 ptr 置空（内存泄漏），此后再 append 会写空指针。
-//    本版 clean() == clear() + 释放缓冲区。
-// 4. 原版 `array::init(ptr, n)` 把"别人给的缓冲区"和 capacity 绑错
-//    （capacity 按 x4 增长到 >= n，但实际只有 n 个元素的空间）→ 越界写。
-//    本版删除 init()，需要接管外部缓冲区用 array(T*, size_t, adopt_t)。
-// 5. 原版 `array::remove(const T&)` 删除后 i++，会跳过紧随其后的元素。
-//    本版删除全部匹配项并返回删除个数。
-// 6. 原版 array 没有拷贝构造/赋值 → 隐式浅拷贝 → 双重释放。
-//    本版深拷贝 + 移动语义。
-// 7. 原版 `list::operator=(const list&) = default` → 浅拷贝，双重释放（真 bug）。
-//    本版深拷贝。
-// 8. 原版 `list::remove(T*)` 依赖"Node 的第一个成员就是 T"这个布局假设
-//    （reinterpret_cast<Node*>(data)）。本版按地址扫描，不再依赖布局。
-// 9. 原版 `list::space_append()` 先 `new Node{}`（默认构造 T）再让调用方
-//    在上面定位 new —— 对活对象二次构造。本版返回真正的裸内存。
-// 10. 原版 `list::remove(index)` 在 size==0 或 index==size-1 的边界上
-//    没有把 tail 收干净；本版统一走 unlink()。
-//
-// 唯一需要改调用点的地方（README 里有 patch）：
-//   src/kernel/module/string.cpp 的 String::split(const String&) 用
-//   `result[index++] = ...` 直接写 raw slot，从不改 size —— 在正确的容器上
-//   这是"往未构造的对象赋值"。改成 append() 即可（该函数目前无人调用）。
-//
-// 还有一个可选的开关：一旦按 ds/README.md 第 4 步接入 ds_assert.hpp
-// （即 KASSERT 可见），下面的 RTL_CHECK 会自动变成真断言 ——
-// 届时上面那类误用会在现场停下，而不是静默踩坏内存。
-// ---------------------------------------------------------------------------
-
 #ifndef ___Using_template_container_protect
 #define ___Using_template_container_protect
 
@@ -791,6 +737,163 @@ public:
         Node *t = m_tail; m_tail = other.m_tail; other.m_tail = t;
         size_t s = m_size; m_size = other.m_size; other.m_size = s;
     }
+};
+
+// ===========================================================================
+// CyBack —— 固定容量环形缓冲区
+// ===========================================================================
+//
+// 单生产者/单消费者场景（键盘 ISR 写、主循环读）不做额外加锁；
+// 需要多线程时由调用者自己保证 push/pop 不同时发生。
+//
+//   rtl::CyBack<char, 1024> buffer;
+//   buffer.push(ch);
+//   char ch;
+//   if (buffer.pop(ch)) ...
+template<typename T, size_t N>
+class CyBack {
+    static_assert(N > 0, "CyBack capacity must be greater than zero");
+
+    alignas(T) unsigned char m_storage[sizeof(T) * N];
+    size_t m_head = 0;   // 读位置
+    size_t m_tail = 0;   // 下一个写位置
+    size_t m_size = 0;
+
+    static constexpr size_t next(size_t i) { return (i + 1) % N; }
+
+    T *slot(size_t i) {
+        return bits::launder_at(reinterpret_cast<T *>(m_storage) + i);
+    }
+    const T *slot(size_t i) const {
+        return reinterpret_cast<const T *>(m_storage) + i;
+    }
+
+public:
+    using value_type = T;
+
+    class iterator {
+        CyBack *owner = nullptr;
+        size_t pos = 0;
+    public:
+        iterator() = default;
+        iterator(CyBack *owner_, size_t pos_): owner{owner_}, pos{pos_} {}
+
+        T &operator * () const { return (*owner)[pos]; }
+        T *operator -> () const { return &(*owner)[pos]; }
+
+        iterator &operator ++ () { ++pos; return *this; }
+        bool operator == (const iterator &oth) const { return pos == oth.pos; }
+        bool operator != (const iterator &oth) const { return pos != oth.pos; }
+    };
+
+    class const_iterator {
+        const CyBack *owner = nullptr;
+        size_t pos = 0;
+    public:
+        const_iterator() = default;
+        const_iterator(const CyBack *owner_, size_t pos_): owner{owner_}, pos{pos_} {}
+
+        const T &operator * () const { return (*owner)[pos]; }
+        const T *operator -> () const { return &(*owner)[pos]; }
+
+        const_iterator &operator ++ () { ++pos; return *this; }
+        bool operator == (const const_iterator &oth) const { return pos == oth.pos; }
+        bool operator != (const const_iterator &oth) const { return pos != oth.pos; }
+    };
+
+    CyBack() = default;
+    ~CyBack() { clear(); }
+
+    CyBack(const CyBack &oth) {
+        for (const T &value : oth) push(value);
+    }
+    CyBack(CyBack &&oth) noexcept {
+        for (T &value : oth) push(rtl::move(value));
+        oth.clear();
+    }
+
+    CyBack &operator = (const CyBack &oth) {
+        if (this != &oth) {
+            clear();
+            for (const T &value : oth) push(value);
+        }
+        return *this;
+    }
+    CyBack &operator = (CyBack &&oth) noexcept {
+        if (this != &oth) {
+            clear();
+            for (T &value : oth) push(rtl::move(value));
+            oth.clear();
+        }
+        return *this;
+    }
+
+    static constexpr size_t capacity() { return N; }
+    size_t size() const { return m_size; }
+    size_t get_size() const { return m_size; }
+    bool empty() const { return m_size == 0; }
+    bool full() const { return m_size == N; }
+
+    bool push(const T &value) {
+        if (full()) return false;
+        bits::construct_at(slot(m_tail), value);
+        m_tail = next(m_tail);
+        ++m_size;
+        return true;
+    }
+    bool push(T &&value) {
+        if (full()) return false;
+        bits::construct_at(slot(m_tail), rtl::move(value));
+        m_tail = next(m_tail);
+        ++m_size;
+        return true;
+    }
+    bool append(const T &value) { return push(value); }
+    bool append(T &&value) { return push(rtl::move(value)); }
+
+    bool pop(T &value) {
+        if (empty()) return false;
+        value = rtl::move(*slot(m_head));
+        bits::destroy_at(slot(m_head));
+        m_head = next(m_head);
+        --m_size;
+        return true;
+    }
+
+    T &front() { RTL_CHECK(!empty()); return *slot(m_head); }
+    const T &front() const { RTL_CHECK(!empty()); return *slot(m_head); }
+    T &back() {
+        RTL_CHECK(!empty());
+        return *slot(m_tail == 0 ? N - 1 : m_tail - 1);
+    }
+    const T &back() const {
+        RTL_CHECK(!empty());
+        return *slot(m_tail == 0 ? N - 1 : m_tail - 1);
+    }
+
+    T &operator [] (size_t index) {
+        RTL_CHECK(index < m_size);
+        return *slot((m_head + index) % N);
+    }
+    const T &operator [] (size_t index) const {
+        RTL_CHECK(index < m_size);
+        return *slot((m_head + index) % N);
+    }
+
+    void clear() {
+        for (size_t i = 0; i < m_size; ++i) {
+            bits::destroy_at(slot(m_head));
+            m_head = next(m_head);
+        }
+        m_head = 0;
+        m_tail = 0;
+        m_size = 0;
+    }
+
+    iterator begin() { return iterator{this, 0}; }
+    iterator end() { return iterator{this, m_size}; }
+    const_iterator begin() const { return const_iterator{this, 0}; }
+    const_iterator end() const { return const_iterator{this, m_size}; }
 };
 
 template<typename T>

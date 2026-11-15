@@ -102,8 +102,13 @@ int PeripheralDeviceSpace::append(ProgIFIndex pid, DeviceInfo::DeviceType did, v
     auto &instance = node->in_l.emplace_back(cfg);
 
     // 特化优先于通用；都没有就先挂着，等驱动来绑
-    if (node->drv) instance.drvInstance = node->drv(cfg); // 特化
-    else if (root->drv) instance.drvInstance = root->drv(cfg); // 通用
+    if (node->drv) {
+        instance.drvInstance = node->drv(cfg); // 特化
+        instance.drvInstance->work();
+    } else if (root->drv) {
+        instance.drvInstance = root->drv(cfg); // 通用
+        instance.drvInstance->work();
+    }
 
     LocalDebugInfo(
         kout << "[PDS] +device progif=" << (u32)pid
@@ -139,7 +144,10 @@ int PeripheralDeviceSpace::append(ProgIFIndex pid, DriverConstr dcon) {
     for (auto &node : root->dev_l) {
         if (node.drv) continue;
         for (auto &instance : node.in_l) {
-            if (!instance.drvInstance) instance.drvInstance = dcon(instance.config);
+            if (!instance.drvInstance) {
+                instance.drvInstance = dcon(instance.config);
+                instance.drvInstance->work();
+            }
         }
     }
 
@@ -182,7 +190,10 @@ int PeripheralDeviceSpace::append(
     node->drv = dcon;
 
     for (auto &instance : node->in_l) {
-        if (!instance.drvInstance) instance.drvInstance = dcon(instance.config);
+        if (!instance.drvInstance) {
+            instance.drvInstance = dcon(instance.config);
+            instance.drvInstance->work();
+        }
     }
 
     LocalDebugInfo(kout << "[PDS] +driver progif=" << (u32)pid << "device=" << (u32)did << '\n';)

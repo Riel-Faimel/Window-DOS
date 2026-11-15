@@ -1,9 +1,9 @@
-#include "fat16.hpp"
 #include "fat_struc.hpp"
 #include <lib/string>
 #include <global/new.hpp>
 #include <lib/utility>
 #include <interface/hardev/drvhead.hpp>
+#include <interface/knlobj/knlobj.hpp>
 
 #undef LocalDebug
 #include <global/macro.hpp>
@@ -454,7 +454,7 @@ public:
     unsigned create(String) override;
     unsigned delet(String) override;
     void *mmap(unsigned, void *) override;
-    ClusterInfo *info(unsigned, String) override;
+    DiskInfo *info(unsigned, String) override;
     unsigned cmd(unsigned, String, void *argv, unsigned argc) override;
 private:
     void set_filesystem_name(char *name);

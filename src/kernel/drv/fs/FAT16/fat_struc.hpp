@@ -1,3 +1,6 @@
+#include <global/type.hpp>
+#include <String>
+
 #pragma pack(push, 1)
 struct attribute_choice {
     u8 read_only : 1 = 0;

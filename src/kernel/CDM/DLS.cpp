@@ -106,7 +106,7 @@ unsigned DLS::del(WinHandle &, String){
     return (unsigned)-1;
 }
 
-ClusterInfo *DLS::info(Handle *h, String s){
+DiskInfo *DLS::info(Handle *h, String s){
     if (auto d = search_disk(h);d)
     return d->info(h->file_handle, s);
     else return nullptr;

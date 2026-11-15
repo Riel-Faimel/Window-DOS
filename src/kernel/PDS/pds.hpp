@@ -7,8 +7,6 @@
  * 
  * Abort database, PDS is more append/remove, fewer check/view
  */
-
-#include "pdsdef.hpp"
 #include <global/type.hpp>
 #include <HL/container>
 #include <HL/map>
@@ -34,10 +32,10 @@ private:
     class DeviceNode {
         struct Instance {
             void *config;
-            void *drvInstance;
+            DeviceDriver *drvInstance;
 
             Instance(void *config_): config{config_}, drvInstance{nullptr} {}
-            Instance(void *config_, void *drv_): config{config_}, drvInstance{drv_} {}
+            Instance(void *config_, DeviceDriver *drv_): config{config_}, drvInstance{drv_} {}
         };
     public:
         DeviceInfo::DeviceType dev_t;

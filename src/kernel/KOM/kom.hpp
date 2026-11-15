@@ -1,18 +1,18 @@
 #ifndef __kernel_KOM_kom_hpp
 #define __kernel_KOM_kom_hpp
 
-#include <interface/knlobj/physicaldisk.hpp>
-#include <interface/knlobj/logicaldisk.hpp>
-#include <interface/knlobj/serialport.hpp>
-#include <interface/knlobj/frameport.hpp>
+#include <interface/knlobj/knlobj.hpp>
+#include <interface/knlobj/converter.hpp>
+#include <HL/container>
 
 class KernelObjectManager {
+    rtl::array<Converter *> conv_l;
 public:
-    void append(PhysicalDisk *);
-    void append(LogicalDisk *);
-    void append(SerialPort *);
-    void append(FramePort *);
+    KernelObjectManager();
+    void append(Converter *);
+    void append(KernelObj *);
 };
 
+extern KernelObjectManager *kom;
 
 #endif

@@ -3,7 +3,34 @@
 
 #include <interface/hardev/enumer.hpp>
 
+struct ISA_PS2_Config {
+    enum class Device : u32 {
+        keyboard = 1,
+        mouse = 2,
+    };
+
+    Device device;
+    u8 controller_config;
+};
+
 class ISA_space : public Enumerator {
+    class PS2 {
+    public:
+        bool probe();
+        bool keyboard() const { return has_keyboard; }
+        bool mouse() const { return has_mouse; }
+
+    private:
+        bool has_keyboard = false;
+        bool has_mouse = false;
+
+        static bool wait_input_clear();
+        static bool wait_output_full();
+        static void flush();
+        static u8 read_data();
+        static void write_cmd(u8 cmd);
+    };
+
 public:
     void probe() override;
 };
