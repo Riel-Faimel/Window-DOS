@@ -79,7 +79,7 @@ protected:
         tran subzone_tranveser() { return {this}; }
         tran subzone_tranveser(SubZone *ptr) { return {ptr}; }
 
-        void create_subzone(SubZone *free_sz, size_t size);
+        bool create_subzone(SubZone *free_sz, size_t size);
     };
 
     struct SuperBlock {

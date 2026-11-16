@@ -32,10 +32,12 @@ KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
             nz.objsize = 0;
             nz.type = SubZone::Type::nul;
         }
-        if ((u32)subzone.end - (u32)(&subzone+1) > size_need) { // large enough
-            page.create_subzone(&subzone, size_need);
-            format_subzone(&subzone, level);
-            return &subzone;
+        u32 available = (u32)subzone.end - (u32)(&subzone+1);
+        if (available >= size_need + (u32)sizeof(SubZone)) { // room for objects + terminator
+            if (page.create_subzone(&subzone, size_need)) {
+                format_subzone(&subzone, level);
+                return &subzone;
+            }
         }
     }
     // not found
@@ -43,27 +45,33 @@ KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
         if (addrpkg.base == Address{0u}) addrpkg = *physicalpage.aloc(PageNum{2}, true).begin();
         auto page = include(addrpkg);
         for (auto &subzone : page->subzone_tranveser()) {
-            page->create_subzone(&subzone, size_need);
-            format_subzone(&subzone, level);
-            return &subzone;
+            if (page->create_subzone(&subzone, size_need)) {
+                format_subzone(&subzone, level);
+                return &subzone;
+            }
         }
     }
     return nullptr;
 }
 __attribute__((optimize("O2")))
-void KernelHeapFormat::PageHead::create_subzone(SubZone *free_sz, size_t size) {
-    auto szbuf = *free_sz;
-    auto count = ((u8 *)szbuf.end - (u8 *)(&szbuf+1))/size;
+bool KernelHeapFormat::PageHead::create_subzone(SubZone *free_sz, size_t size) {
+    void *old_end = free_sz->end;
+    size_t available = (u8 *)old_end - (u8 *)(free_sz + 1);
+    size_t count = available / size;
     if (count > 0x40) count = 0x40;
+    // Leave room for the trailing SubZone descriptor.
+    while (count && count * size + sizeof(SubZone) > available) --count;
+    if (count == 0) return false;
 
-    free_sz->objsize = size;
-    free_sz->end = (u8 *)(free_sz+1)+size*count;
+    free_sz->objsize = (u16)size;
+    free_sz->end = (u8 *)(free_sz + 1) + size * count;
     free_sz->type = SubZone::Type::inl;
 
     // free subzone
     new (free_sz->end) SubZone {
-        .end = szbuf.end,
+        .end = old_end,
     };
+    return true;
 }
 void KernelHeapFormat::deletezone(KernelHeapFormat::SubZone *zone) {
     zone->objsize = 0; // label of free
@@ -174,17 +182,18 @@ void *MemoryManager::nopage::alloc(size_t size) {
     auto &objzone = sb->free_zones[level];
     if (objzone.obj_start == nullptr) {
         // need to new subzone
-        createzone(level);
-        //kout << "level(P): " << level << ", objzone start: " << objzone.obj_start << '\n';
+        if (!createzone(level)) return nullptr;
     }
 
     auto box = objzone.obj_start;
+    if (!box) return nullptr;
     objzone.free_count--;
     objzone.obj_start = box->next;
-    box->level = level;
 
-    // set head and guard
+    // set head and guard; level is read by dlloc, so it goes in after the
+    // header construction (the header's union starts as next=nullptr).
     new (box) ObjHeader{.next = nullptr, .head_guard = ObjectHeadGuard};
+    box->level = level;
     *reinterpret_cast<u16 *>(
         reinterpret_cast<u8 *>(box + 1) + size_classes[level]
     ) = ObjectTailGuard;

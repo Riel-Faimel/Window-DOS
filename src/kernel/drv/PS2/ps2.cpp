@@ -63,7 +63,7 @@ ps2::ps2() {
 
 void ps2::ps2_handler_c(){
     static char _stack[1024];
-    {ChangeStack s(_stack);{
+    {ChangeStack s(_stack, sizeof(_stack));{
         u8 status = inb(CMD);
         u8 data = inb(DATA);
         if (status & 0x20)

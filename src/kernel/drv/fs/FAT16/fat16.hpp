@@ -251,7 +251,7 @@ class DirResolv : public ClusterView<DirResolv<T>> {
     rtl::pair<DIR*, ifMatch> find_dir_entry(u16 cluster, String &&filename) {
         u16 index = 0;
         LocalDebugInfo(kout << filename << ' ' << cluster << '\n';)
-        while (cluster != 0 || index < 8) {
+        while (cluster != 0 || index < 512) {
             LocalDebugInfo(kout << '<' << cluster << ", " << index << ">\n";)
         // this condition means if root dir, only tranvese 512 entries, 
         // otherwise traverse until the end of cluster chain

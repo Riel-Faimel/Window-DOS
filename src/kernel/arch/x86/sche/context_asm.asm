@@ -21,10 +21,13 @@ _Sint_sche:
     ; ^ eax
     mov esp, [fs:8]
     ;p t TCB base
+    test esp, esp
+    jz .iret_only
     cmp word[esp + TCB.remain_size], 0
     jbe keep_context ;.goto_sche
     ;return
     dec word[esp + TCB.remain_size]
+.iret_only:
     mov esp, eax
     mov al, 0x20
     out 0x20, al

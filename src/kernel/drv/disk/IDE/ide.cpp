@@ -242,8 +242,8 @@ DONE:
     else return bytes;
 }
 
-unsigned IDE::write(void *buf, unsigned LBA, unsigned, unsigned count) {
-    auto [detect, bytes] = ctl.write_PIO_LBA(bufAddr{buf}, LBAaddr{LBA, 0}, SectorCount{(u16)count}, device);
+unsigned IDE::write(void *buf, unsigned LBA, unsigned LBAh, unsigned count) {
+    auto [detect, bytes] = ctl.write_PIO_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
     if (detect.status.error) return -1;
     else return bytes;
 }

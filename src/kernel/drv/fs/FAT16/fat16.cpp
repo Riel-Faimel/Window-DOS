@@ -87,8 +87,8 @@ unsigned FAT16::open(String filename) {
     }    
 }
 
-unsigned FAT16::close(unsigned) {
-    // no need to close
+unsigned FAT16::close(unsigned h) {
+    if (h) delete reinterpret_cast<FileInfo *>(h);
     return 0;
 }
 

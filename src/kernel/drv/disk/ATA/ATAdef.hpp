@@ -7,8 +7,10 @@ namespace ATAdev {
 
 struct LBAaddr : u64 {
     LBAaddr() : u64{} {}
-    explicit LBAaddr(u32 l) : u64{l, 0} {}
-    LBAaddr(u32 l, u32 h) : u64{l, h} {}
+    // One argument is the low 32 bits of the LBA.
+    explicit LBAaddr(u32 low) : u64{0, low} {}
+    // Two arguments are (high, low), matching the u64 layout.
+    LBAaddr(u32 high, u32 low) : u64{high, low} {}
 };
 class SectorCount {
     u16 count;

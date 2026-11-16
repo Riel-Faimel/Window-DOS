@@ -14,9 +14,11 @@ public:
     IDT(volatile IDT_item *);
     ~IDT() = default;
 
+    // CPU exceptions must stay ring0.  Public software vectors (the native
+    // API) pass DPL=3 explicitly through x86::regist_int_handler.
     void regist(
         void (*handler)(void), unsigned internum, 
-        unsigned short sec = 0x08, unsigned char DPL = 3, 
+        unsigned short sec = 0x08, unsigned char DPL = 0, 
         bool is_32_bits_or_16_bits = true
     ) volatile;
     bool had_handler(unsigned i) const;

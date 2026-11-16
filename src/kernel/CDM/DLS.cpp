@@ -75,15 +75,17 @@ unsigned DLS::open(WinHandle &win, String file_path){
 }
 
 unsigned DLS::close(WinHandle &win){
-    if(win.extra){
-        Handle* h = static_cast<Handle*>(win.extra);
-        auto id = h->ID;
-        auto han = h->file_handle;
-        delete h;
-        win.extra = nullptr;
-        return space[id].driver->close(han);
-    }
-    return -1;
+    if (!win.extra) return -1;
+
+    Handle* h = static_cast<Handle*>(win.extra);
+    unsigned han = h->file_handle;
+    Cluster* driver = search_disk(h);
+
+    delete h;
+    win.extra = nullptr;
+
+    if (!driver) return (unsigned)-1;
+    return driver->close(han);
 }
 
 unsigned DLS::read(void *buf, Handle *h, unsigned byte_offset, unsigned byte_read){

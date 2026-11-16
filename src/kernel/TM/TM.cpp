@@ -52,13 +52,14 @@ FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
     } break;
     }
     auto [err2, entry_point] = mainloader.load(win);
-    switch (err2) {
-    case MainLoader::ExceptionCode::NoError:
-        break;
-    case MainLoader::ExceptionCode::UnknowFormat:
+    if (err2 != MainLoader::ExceptionCode::NoError) {
+        driverletterspace->close(win);
         return FexecExceptionCode::NoExecutable;
     }
-    
+
+    // The image is in memory now; the file handle is no longer needed.
+    driverletterspace->close(win);
+
     ASMLabelMark(start_thread)
     Multi_Channel_executor.run((void (*)(size_t,void *))entry_point, argc, argv, 1, 3);
 

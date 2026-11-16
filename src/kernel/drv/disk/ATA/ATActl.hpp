@@ -198,7 +198,12 @@ public:
 
     rtl::pair<DetectTable, size_t> write_PIO_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
         ActionTable cmd{};
-        cmd.cmd = (LBA.high || LBA.low & 0xF0000000)?ATAcmd::write_pio_ext:ATAcmd::write_pio_ext;
+        if (LBA.high || LBA.low & 0xF0000000) {
+            cmd.cmd = ATAcmd::write_pio_ext;
+            cmd.need_48_mode = true;
+        } else {
+            cmd.cmd = ATAcmd::write_pio;
+        }
         cmd.device_index = static_cast<u8>(dev);
         cmd.LBA.low = LBA.low;
         cmd.LBA.high = LBA.high;

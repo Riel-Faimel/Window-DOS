@@ -9,7 +9,7 @@
 extern "C" {
     void _Sexit();
     void _Sint_sche();
-    void basic_time_handler_c();
+    void basic_time_handler();
 }
 
 namespace arch {
@@ -51,7 +51,13 @@ TCB *X86Context::create_thread(
     frame.context.xax = argc;
     frame.xip = (size_t)func;
     frame.xcs = code_seg & 0xFFFF;
-    frame.xsp = (size_t)new (mm) char[4069];
+
+    // x86 stacks grow down: xsp must start at the top of the allocation,
+    // not at its base (the first push writes at xsp - 4).
+    constexpr size_t thread_stack_size = 4096;
+    auto *stack = new (mm) char[thread_stack_size];
+    frame.xsp = ((size_t)stack + thread_stack_size) & ~(size_t)3;
+
     frame.xss = data_seg & 0xFFFF;
     frame.xfs = fs & 0xFFFF;
     frame.xds = data_seg & 0xFFFF;
@@ -100,7 +106,22 @@ void X86Context::destroy(TCB *tcb) {
 }
 
 void X86Context::idle() {
-    asm volatile ("hlt\n");
+    // There is no runnable task, so there is no current TCB: fs:8 may still
+    // point at a destroyed one.  Clear it, acknowledge the interrupt that
+    // brought us here, then halt with interrupts enabled; the next IRQ has
+    // to be able to wake the scheduler loop again.
+    asm volatile (
+        "movl $0, %%fs:8\n"
+        "movb $0x20, %%al\n"
+        "outb %%al, $0xA0\n"
+        "outb %%al, $0x20\n"
+        "sti\n"
+        "hlt\n"
+        "cli\n"
+        :
+        :
+        : "eax", "memory"
+    );
 }
 
 void X86Context::start_preemption() {
@@ -108,7 +129,7 @@ void X86Context::start_preemption() {
 }
 
 void X86Context::close_preemption() {
-    interrupt_distributor.reg_irq(&basic_time_handler_c, IRQ::time);
+    interrupt_distributor.reg_irq(&basic_time_handler, IRQ::time);
 }
 
 } // namespace arch

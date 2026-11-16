@@ -26,7 +26,9 @@ bool ISA_space::PS2::wait_output_full() {
 }
 
 void ISA_space::PS2::flush() {
-    while (inb(ps2_cmd) & 0x01) {
+    // Bounded: with no controller present inb(0x64) reads 0xFF forever.
+    for (unsigned i = 0; i < 0x10000; ++i) {
+        if ((inb(ps2_cmd) & 0x01) == 0) return;
         inb(ps2_data);
         io_wait();
     }
