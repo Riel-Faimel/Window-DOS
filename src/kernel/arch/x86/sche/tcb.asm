@@ -1,8 +1,18 @@
 
 struc TCB
+    .vptr resd 1
     .next resd 1
+    .prev resd 1
     .time_size resw 1
     .remain_size resw 1
+    .int_handler resd 1
+    .wait_handler resd 1
+endstruc
+
+; X86TCB : TCB + X86Frame.
+; Keep this layout in sync with x86_tcb.hpp / x86_frame.hpp.
+struc X86TCB
+    .base resb 24
 
     .context resb 0
     .xdi resd 1

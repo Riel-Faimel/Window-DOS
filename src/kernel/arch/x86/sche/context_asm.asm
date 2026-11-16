@@ -1,21 +1,25 @@
 [bits 32]
 global _Sint_sche, _Scall_yield, _Sint_yield, _Sring0_back, _Sring3_back, _Sexit
-extern soff, sche_c
+global sche_entry
+extern sche_c
 
-%include "E:\\texmanim\\cpp\\Window-DOS\\src\\kernel\\arch\\x86\\sche\\tcb.asm"
+%include ".\\src\\kernel\\arch\\x86\\sche\\tcb.asm"
+
+sche_entry:
+    mov ecx, [fs:4]
+    push eax
+    push ecx
+    call sche_c
+    ud2
 
 _Sint_sche:
     cli
     push dword 0
     push eax
-    mov eax, 0x30
-    mov fs, eax
     mov eax, esp
     ; | eax | code | ...
     ; ^ eax
-    mov esp, [fs:0]
-    add esp, [soff]
-    mov esp, [esp]
+    mov esp, [fs:8]
     ;p t TCB base
     cmp word[esp + TCB.remain_size], 0
     jbe keep_context ;.goto_sche
@@ -44,7 +48,7 @@ _Scall_yield:
     add esp, Frame.xflag
     pushf
     push cs
-    jmp get_tcb 
+    jmp get_tcb
 
 _Sint_yield:
     push dword 1
@@ -57,29 +61,27 @@ _Sint_yield:
     ;foll through
 
 get_tcb:
-    mov esp, [fs:0]
-    add esp, [soff]
-    mov esp, [esp]
+    mov esp, [fs:8]
 keep_context:
-    add esp, TCB.context_end
+    add esp, X86TCB.context_end
     pusha
     ; | context | eip | cs |
     ; ^ esp
 
-    add esp, (TCB.ldtr - TCB.context) ;p t ldtr
+    add esp, (X86TCB.ldtr - X86TCB.context) ;p t ldtr
     sldt word[esp]
     mov edi, cr3
     push edi
     push gs
     push es
     push ds
-    sub esp, (TCB.xds - TCB.xsp) ;skip ss and esp
+    sub esp, (X86TCB.xds - X86TCB.xsp) ;skip ss and esp
     push dword[eax + Frame.xflag] ;eflag
     push dword[eax + Frame.xcs] ;cs
     push dword[eax + Frame.xip] ;eip
     push dword[eax + Frame.xax] ;eax
 
-    add esp, (TCB.int_frame_end - TCB.xax)
+    add esp, (X86TCB.int_frame_end - X86TCB.xax)
     ;next push is xss
     mov ebx, [eax + Frame.xcs] ;cs
     and ebx, 3
@@ -105,29 +107,26 @@ keep_context:
     ; | eax | code | ...
     ;       ^ eax
     mov esp, eax
-    pop eax ;caller code
-
-    ; interrupt context, we don't care 
-    ; because we don't return
-    jmp sche_c
+    pop eax ; caller code (0 = timer, 1 = yield)
+    jmp sche_entry
 
 _Sring0_back:
-    push dword[eax + TCB.xflag] ;eflag
-    push dword[eax + TCB.xcs] ;cs
-    push dword[eax + TCB.xip] ;eip
+    push dword[eax + X86TCB.xflag] ;eflag
+    push dword[eax + X86TCB.xcs] ;cs
+    push dword[eax + X86TCB.xip] ;eip
     mov esp, eax
-    add esp, TCB.xds ;p t ds
+    add esp, X86TCB.xds ;p t ds
     pop ds
     pop es
     pop gs
     pop edi
     mov cr3, edi
     lldt word[esp]
-    sub esp, (TCB.ldtr - TCB.context) ;p t context
+    sub esp, (X86TCB.ldtr - X86TCB.context) ;p t context
     mov al, 0x20
     out 0x20, al
     popa ;resume context
-    mov esp, [esp - (TCB.context_end - TCB.xsp)] ;back
+    mov esp, [esp - (X86TCB.context_end - X86TCB.xsp)] ;back
     sub esp, (Frame.xsp - Frame.xip) ;frame
     iret
 
@@ -138,7 +137,7 @@ _Sring3_back:
     pop edi
     mov cr3, edi
     lldt word[esp] ;p t ldtr
-    sub esp, (TCB.ldtr - TCB.context) ;p t context
+    sub esp, (X86TCB.ldtr - X86TCB.context) ;p t context
     mov al, 0x20
     out 0x20, al
     popa
@@ -146,4 +145,4 @@ _Sring3_back:
 
 _Sexit:
     mov eax, 2
-    jmp sche_c
+    jmp sche_entry

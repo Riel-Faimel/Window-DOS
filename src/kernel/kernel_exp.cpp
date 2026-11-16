@@ -1,4 +1,5 @@
 #include "kernel.hpp"
+#include <syscall/thread>
 extern MemoryManager *global_heap;
 
 extern void f(int);

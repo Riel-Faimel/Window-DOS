@@ -4,60 +4,51 @@
 #include <global/type.hpp>
 
 /**
- * for both rax/eax
+ * What a TCB frame push means.  The concrete TCB maps this to its own
+ * architectural frame, so the scheduler never has to know where xflag/xip
+ * live.
  */
-#pragma pack(push, 1)   
-struct TCB {
-//=== other ===
-    TCB *next;
-    u16 time_size = 1;
-    u16 remain_size = time_size;
+enum class TCBField : u8 {
+    flags,
+    ip,
+    word,
+};
 
-//=== reg ===
-    struct {
-        /* stack top */
-        size_t xdi = 0;
-        size_t xsi = 0;
-        size_t xbp = 0;
-        size_t _rxsp = 0; // no to use
-        size_t xbx = 0;
-        size_t xdx = 0;
-        size_t xcx = 0;
-        size_t xax = 0;
-        // stack bottum
-    } context;
+/**
+ * Generic thread control block.
+ *
+ * TCB itself owns only TCB-local operations.  CPU context switching, idle
+ * and destruction are ArchContext operations.
+ */
+class TCB {
+public:
+    virtual void tcb_push(TCBField field, size_t value = 0) = 0;
+    virtual void tcb_set_ip(size_t ip) = 0;
 
-    size_t xip;
-    size_t xcs;
-    size_t xflag = 0b00000000000000000000001000000010;
-    size_t xsp;
-    size_t xss;
-
-    size_t xfs = 0x33;
-    size_t xds;
-    size_t xes;
-    size_t xgs;
-    size_t cr3 = 0;
-    size_t ldtr = 0; // only 16 bits
-
+    TCB *next = nullptr;
     TCB *prev = nullptr;
+    u16 time_size = 1;
+    u16 remain_size = 1;
     size_t int_handler = 0;
     size_t wait_handler = 0;
 
-#ifdef _BITS_64
-    size_t r8 = 0;
-    size_t r9 = 0;
-    size_t r10 = 0;
-    size_t r11 = 0;
-    size_t r12 = 0;
-    size_t r13 = 0;
-    size_t r14 = 0;
-    size_t r15 = 0;
-#endif
+    TCB(const TCB &) = delete;
+    TCB &operator=(const TCB &) = delete;
 
+protected:
+    TCB() = default;
+    ~TCB() = default;   // non-virtual: destruction goes through ArchContext
 };
-#pragma pack(pop)
 
-static_assert(sizeof(TCB) == 24*4);
+static_assert(sizeof(TCB) == 24);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+static_assert(__builtin_offsetof(TCB, next) == 4);
+static_assert(__builtin_offsetof(TCB, prev) == 8);
+static_assert(__builtin_offsetof(TCB, remain_size) == 14);
+static_assert(__builtin_offsetof(TCB, int_handler) == 16);
+static_assert(__builtin_offsetof(TCB, wait_handler) == 20);
+#pragma GCC diagnostic pop
 
 #endif

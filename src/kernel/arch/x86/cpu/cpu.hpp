@@ -9,7 +9,8 @@
 #include "idt.hpp"
 #include "tss.hpp"
 #include "ldt.hpp"
-#include "..\sche\ds.hpp"
+#include <multiCE/sche/ds.hpp>
+#include <arch/x86/sche/context.hpp>
 
 #define CurruentArchitecture arch::x86
 
@@ -21,6 +22,7 @@ struct x86 : public CPU {
     GDT gdt;
     TSM tss; // table
     LDT ldt;
+    X86Context context;
     alignas(4) DefaultScheduler scheduler; // schedule loop
     CPUInfo info;
 
