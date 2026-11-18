@@ -1,5 +1,5 @@
 #include "exCOM.hpp"
-#include <CDM/DLS.hpp>
+#include <SrvDevMgr/DLS.hpp>
 #define LocalDebug
 #include <global/macro.hpp>
 

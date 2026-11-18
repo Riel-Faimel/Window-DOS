@@ -4,7 +4,7 @@
 #include <global/type.hpp>
 #include <interface/hardev/device.hpp>
 #include <interface/srvdev/cluster.hpp>
-#include <interface/syscall.hpp>
+#include <interface/wm/syscall.hpp>
 #include <interface/knlobj/knlobj.hpp>
 
 #define InsideModuleRecord constinit static __attribute__((used, section(".insidemods"), aligned(1)))

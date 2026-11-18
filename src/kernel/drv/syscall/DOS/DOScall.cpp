@@ -1,6 +1,9 @@
-#include "_DOScall.hpp"
+#include "DOScall.hpp"
+
 
 extern "C" {
+
+namespace {
     void program_exit(){};
     /**
      * cs = PSP section address
@@ -40,20 +43,13 @@ extern "C" {
     void get_current_drive(){};
 }
 
-extern "C" void DOScall_handler();
+}
 
-extern "C"
-__attribute__((optimize("O3")))
-void DOScall_handler_c() {
-    Frame *frame;
-    asm volatile (
-        "mov %%eax, %0\n"
-        : "=r"(frame)
-        :
-        : "memory"
-    );
-    auto syscall_number = (u8)(frame->eax & 0xFF); //AH
-    switch(syscall_number) {
+SYSCALL_ENTRY(DOScall, 0x21, DOScall_entry, DosAh)
+
+void DOScall::handle(SyscallArgs &args) {
+    // For the 0x21 trap the arch entry already extracted AH as the number.
+    switch (args.number) {
     case 0x00:  // 程序终止
         program_exit();
         break;
@@ -61,7 +57,7 @@ void DOScall_handler_c() {
         standard_input_with_echo();
         break;
     case 0x02:  // 字符输出
-        kout << (char)frame->edx;
+        standard_output((char)args.arg2);
         break;
     case 0x07:  // 无回显键盘输入（不处理Ctrl+C）
         direct_console_input_no_echo();
@@ -70,7 +66,7 @@ void DOScall_handler_c() {
         direct_console_input_with_ctrl_c();
         break;
     case 0x09:  // string print end of $
-        kout.str(reinterpret_cast<char *>(frame->edx), '$');
+        kout.str(reinterpret_cast<char *>(args.arg2), '$');
         break;
     case 0x0A:  // 缓冲字符串输入
         buffered_keyboard_input();
@@ -81,7 +77,7 @@ void DOScall_handler_c() {
     case 0x0C:  // 清空键盘缓冲区并调用指定输入功能
         flush_buffer_and_input();
         break;
-    
+
     // 文件操作组 (0x3C-0x42)
     case 0x3C:  // 创建文件
         create_file();
@@ -101,7 +97,7 @@ void DOScall_handler_c() {
     case 0x42:  // 移动文件指针
         seek_file();
         break;
-    
+
     // mem (0x48-0x4A)
     case 0x48:  // alloc
         allocate_memory();
@@ -112,7 +108,7 @@ void DOScall_handler_c() {
     case 0x4A:  // change
         modify_memory_block();
         break;
-    
+
     // programe exit
     case 0x4C:  // 带返回码退出
         _Sexit();
@@ -120,7 +116,7 @@ void DOScall_handler_c() {
     case 0x31:  // 终止并驻留
         terminate_and_stay_resident();
         break;
-    
+
     // dir op
     case 0x3B:  // 改变当前目录
         change_directory();
@@ -128,7 +124,7 @@ void DOScall_handler_c() {
     case 0x47:  // 获取当前目录
         get_current_directory();
         break;
-    
+
     // time/date
     case 0x2A:  // 获取日期
         get_date();
@@ -136,7 +132,7 @@ void DOScall_handler_c() {
     case 0x2C:  // 获取时间
         get_time();
         break;
-    
+
     // 中断向量组
     case 0x25:  // 设置中断向量
         set_interrupt_vector();
@@ -144,25 +140,15 @@ void DOScall_handler_c() {
     case 0x35:  // 获取中断向量
         get_interrupt_vector();
         break;
-    
+
     // 其他
     case 0x19:  // 获取当前盘符
         get_current_drive();
         break;
-    
+
     default:
-        // 未实现的功能号，设置进位标志表示错误
-        // set_carry_flag();
+        // 未实现的功能号：置 CF 表示错误
+        args.error = true;
         break;
     }
-    return;
-}
-
-InsideModuleRecord SyscallMod head {
-    0x21,
-    []() -> SyscallHandler * { return new DOScall; }
-};
-
-void (*DOScall::handler())() {
-    return DOScall_handler;
 }

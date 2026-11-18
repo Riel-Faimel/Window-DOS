@@ -1,6 +1,6 @@
 #include "FileSystem.hpp"
 #include <interface/srvdev/cluster.hpp>
-#include <CDM/DLS.hpp>
+#include <SrvDevMgr/DLS.hpp>
 #include <drv/kmod.hpp>
 
 class RAW : public Cluster {

@@ -6,12 +6,13 @@
  * for sth. of a core-local scheduler
  */
 #include <global/type.hpp>
+#include <interface/TD/TCB.hpp>
 
 class multiCE {
 public:
     multiCE();
 
-    void run(
+    TCB *run(
         void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
         size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
     );

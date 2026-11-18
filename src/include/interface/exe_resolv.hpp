@@ -1,7 +1,7 @@
 #ifndef __include_interface_exec_form_hpp
 #define __include_interface_exec_form_hpp
 
-#include <interface/Window.hpp>
+#include <interface/wm/Window.hpp>
 
 class ExecLoader {
 public:

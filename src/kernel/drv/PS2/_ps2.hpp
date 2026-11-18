@@ -4,7 +4,7 @@
 #include <id/id.hpp>
 #include <interface/hardev/drvhead.hpp>
 #include <interface/knlobj/knlobj.hpp>
-#include <KOM/kom.hpp>
+#include <KrnlObjMgr/kom.hpp>
 #include "ps2_c.h"
 
 #define DATA 0x60

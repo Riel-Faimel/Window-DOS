@@ -2,7 +2,7 @@
 #define __include_interface_WMgr_hpp
 
 #include <global/type.hpp>
-#include <interface/syscall.hpp>
+#include <interface/wm/syscall.hpp>
 #include <HL/container>
 
 class WinHandle;

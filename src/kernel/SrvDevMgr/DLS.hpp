@@ -2,8 +2,8 @@
 #define __kernel_CDM_DLS_hpp
 
 /**
- * DLS (Driver Letter Space) is a space for all  file systems
- * it is manage and give call to file system
+ * DLS (Driver Letter Space) is a space for all cluster service device
+ * it is manage and give call to cluster service device
  */
 
 #include "DLS_.hpp"

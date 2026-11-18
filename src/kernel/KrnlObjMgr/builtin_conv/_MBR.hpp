@@ -1,7 +1,7 @@
 #include "MBR.hpp"
 
-#include <KOM/kom.hpp>
-#include <CDM/DLS.hpp>
+#include <KrnlObjMgr/kom.hpp>
+#include <SrvDevMgr/DLS.hpp>
 #include <interface/srvdev/cluster.hpp>
 #include <global/type.hpp>
 #include <drv/kmod.hpp>

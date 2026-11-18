@@ -46,7 +46,7 @@ CPUInfo x86::get_info() {
 void x86::preempt() { context.start_preemption(); }
 void x86::collabora() { context.close_preemption(); }
 
-void x86::run(
+TCB *x86::run(
     void (*func)(size_t, void *), size_t argc, void *argv, size_t time, 
     u8 ring, size_t cs, size_t ds, size_t gs, size_t fs
 ) {
@@ -65,6 +65,7 @@ void x86::run(
         );
         scheduler.enqueue(tcb, (u16)(time - 1));
     }
+    return tcb;
 }
 
 bool arch::x86::regist_int_handler(

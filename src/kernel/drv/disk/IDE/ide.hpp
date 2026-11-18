@@ -10,7 +10,7 @@
 #include <id/id.hpp> 
 #include <stdio>
 #include <interface/hardev/pift.hpp>
-#include <KOM/kom.hpp>
+#include <KrnlObjMgr/kom.hpp>
 
 namespace ATAdev {
 

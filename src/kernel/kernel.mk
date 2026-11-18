@@ -3,13 +3,13 @@ include $(SRC_DIR)kernel/arch/arch.mk
 include $(SRC_DIR)kernel/id/id.mk
 include $(SRC_DIR)kernel/mm/mm.mk
 include $(SRC_DIR)kernel/WM/wm.mk
-include $(SRC_DIR)kernel/CDM/DLS.mk
+include $(SRC_DIR)kernel/SrvDevMgr/DLS.mk
 include $(SRC_DIR)kernel/PDS/pds.mk
 include $(SRC_DIR)kernel/multiCE/multiCE.mk
-include $(SRC_DIR)kernel/TM/TM.mk
+include $(SRC_DIR)kernel/TaskMgr/TM.mk
 include $(SRC_DIR)kernel/basicshell/bs.mk
 include $(SRC_DIR)kernel/GEH/geh.mk
-include $(SRC_DIR)kernel/kom/kom.mk
+include $(SRC_DIR)kernel/KrnlObjMgr/kom.mk
 
 SOURCES = $(wildcard $(SRC_DIR)kernel/*.cpp)
 

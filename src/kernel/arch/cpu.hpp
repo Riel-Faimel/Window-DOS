@@ -4,6 +4,7 @@
 #include <global/type.hpp>
 #include <HL/atomic>
 #include <HL/generator>
+#include <interface/TD/TCB.hpp>
 
 namespace arch {
 
@@ -46,7 +47,7 @@ public:
     // scheduler control
     virtual void preempt() = 0;
     virtual void collabora() = 0;
-    virtual void run(
+    virtual TCB *run(
         void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
         size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
     ) = 0;
@@ -94,7 +95,7 @@ inline arch::CPU::CPU() { cpu_list.append(this, cpuid); }
 
 #ifdef ArchitectureDetail
 #ifdef _x86
-#include <arch/x86/cpu/cpu.hpp>
+#include <arch/x86/x86.hpp>
 #endif
 #endif
 

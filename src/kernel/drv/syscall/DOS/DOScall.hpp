@@ -1,14 +1,11 @@
-#ifndef __kernel_syscall_DOS_DOScall_hpp
-#define __kernel_syscall_DOS_DOScall_hpp
+#include <global/type.hpp>
+#include <stdio>
+#define ArchitectureDetail
+#include <arch/cpu.hpp>
+#include <id/id.hpp>
+#include <syscall/thread>
+#include <interface/hardev/drvhead.hpp>
 
-#include <interface/syscall.hpp>
-
-class DOScall : public SyscallHandler {
-public:
-    DOScall() = default;
-    ~DOScall() = default;
-
-    void (*handler())() override;
+struct DOScall {
+    static void handle(SyscallArgs &args);
 };
-
-#endif

@@ -35,7 +35,7 @@ void Time::set_Hz(unsigned int hz){
     io_wait();
     outb(0x40, d & 0xFF);
     io_wait();
-    outb(0x40, (d >> 8) & 0xFF);
+    outb(0x40, (d >> 8) & 0xFF); 
 
     Hz = hz;
 }

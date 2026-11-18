@@ -37,7 +37,7 @@ struct x86 : public CPU {
     // scheduler control
     void preempt() override;
     void collabora() override;
-    void run(
+    TCB *run(
         void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
         size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
     ) override;
