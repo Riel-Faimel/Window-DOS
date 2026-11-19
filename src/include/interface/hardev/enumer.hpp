@@ -18,6 +18,7 @@ public:
     } id{};
     virtual ~Enumerator() = default;
     virtual void probe() = 0;
+    virtual void set_mod(void *) = 0;
 };
 
 #endif

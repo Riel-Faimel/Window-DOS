@@ -33,7 +33,8 @@ include $(SRC_DIR)bootloader/bootloader.mk
 include $(SRC_DIR)lib/lib.mk
 #include $(ROOT_DIR)/app/app.mk
 
-$(BUILD_DIR)kernel.bin:  $(OBJ)
+# libos.a 用 order-only 依赖：必须先建好，但不能进 $^（链接靠 -los）
+$(BUILD_DIR)kernel.bin:  $(OBJ) | $(BUILD_DIR)lib/libos.a
 	@ $(LD) -o $@ $^ $(LDFLAGS_F)
 	@ echo [LD] $@
 
@@ -49,11 +50,11 @@ all: lib result run
 
 DISK1 = -drive format=raw,index=0,file=boot.img,media=disk
 DISK2 = \
-	-drive format=raw,index=1,file=flp.vhd,media=disk
-#\
 	-device ich9-ahci,id=sata\
 	-drive format=raw,id=disk1,file=flp.vhd,if=none\
 	-device ide-hd,drive=disk1,bus=sata.1
+#\
+	-drive format=raw,index=1,file=flp.vhd,media=disk
 
 QEMUFLAGS = -serial stdio $(DISK1) $(DISK2)
 

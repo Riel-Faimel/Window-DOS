@@ -1,9 +1,11 @@
 #include "kernel.hpp"
 #include <syscall/thread>
+#include <drv/screen/screen_srv.hpp>
 extern MemoryManager *global_heap;
 
 extern void f(int);
-iostream kout;
+
+ostream kout{&vgatextout};
 
 __attribute__((optimize("O0"), noreturn))
 void LoaderMain(){

@@ -75,7 +75,8 @@ void PCI_space::probe(){
     )
 #undef LocalDebug
 #include <global/macro.hpp>
-    for (auto dev : config) {
+    // 用引用遍历：DeviceInfo::config 要指向列表里的元素，而不是循环临时量。
+    for (auto &dev : config) {
         pdevspace->append(construc(dev, this));
     }
 }
@@ -89,6 +90,13 @@ inline unsigned int PCI_space::pci_read(int bus, int dev, int func, int reg){
     pci_lookfor_addr(bus, dev, func, reg);
     io_wait();
     return inl(PCI_data);
+}
+
+inline void PCI_space::pci_write(int bus, int dev, int func, int reg, unsigned val){
+    pci_lookfor_addr(bus, dev, func, reg);
+    io_wait();
+    outl(val, PCI_data);
+    io_wait();
 }
 
 inline void PCI_space::pci_probe_device(int bus, int dev){
@@ -116,6 +124,7 @@ inline void PCI_space::pci_probe_device(int bus, int dev){
         reinterpret_cast<unsigned *>(&cfg)[i] = pci_read(bus, dev, 0, i*4);
     }
     config.append(cfg);
+    addr_l.append(PCI_addr{(u8)bus, (u8)dev, (u8)0});
 
     LocalDebugInfo(
         kout << ("[PCI] VEN:DEV  REV  CLS\n");
@@ -148,10 +157,47 @@ inline void PCI_space::pci_probe_device(int bus, int dev){
                 reinterpret_cast<unsigned *>(&cfg)[i] = pci_read(bus, dev, func_id_, i*4);
             }
             config.append(cfg);
+            addr_l.append(PCI_addr{(u8)bus, (u8)dev, (u8)func_id_});
             LocalDebugInfo(
                 kout << "[MULTIFUNC] VEN:DEV  REV  CLS\n" << cfg.vender_ID << ':' << cfg.Device_ID << ' ' << cfg.Revision_ID << ' '
                 << static_cast<u32>(cfg.Class_code[0]<<16 | cfg.Class_code[1] << 8 | cfg.Class_code[2]) << '\n';
             )
         }
     }
+}
+
+PCI_space::PCI_addr *PCI_space::find_addr(void *cfg) {
+    size_t i = 0;
+    for (auto &c : config) {
+        if (static_cast<void *>(&c) == cfg)
+            return i < addr_l.get_size() ? &addr_l[i] : nullptr;
+        ++i;
+    }
+    return nullptr;
+}
+
+void PCI_space::set_mod(void *cfg) {
+    auto addr = find_addr(cfg);
+    if (!addr) {
+        LocalDebugInfo(kout << "[PCI] set_mod: unknown device\n";)
+        return;
+    }
+
+    constexpr int command_reg = 0x04;
+    constexpr unsigned need =
+        static_cast<unsigned>(Commmand_bits::command_memory_space) |
+        static_cast<unsigned>(Commmand_bits::command_bus_master);
+
+    unsigned cmd = pci_read(addr->bus, addr->dev, addr->func, command_reg);
+    if ((cmd & need) != need) {
+        pci_write(addr->bus, addr->dev, addr->func, command_reg, cmd | need);
+        cmd = pci_read(addr->bus, addr->dev, addr->func, command_reg);
+    }
+
+    LocalDebugInfo(
+        kout << "[PCI] mod " << (u32)addr->bus << ':' << (u32)addr->dev
+             << '.' << (u32)addr->func << " cmd=";
+        kout.hex((u16)cmd);
+        kout << '\n';
+    )
 }

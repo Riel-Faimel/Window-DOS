@@ -1,23 +1,14 @@
-#include <global/type.hpp>
-#include <GEH/geh.hpp>
+#include "eh_frame.hpp"
 #include <stdio>
 
-struct EhContext;
-extern "C" void eh_capture(void *);
-bool eh_unwind_step(EhContext &);
+extern "C" {
+extern void *__eh_frame_start __asm__("__eh_frame_start");
+extern void *__eh_frame_end __asm__("__eh_frame_end");
+}
 
-extern "C" bool eh_lsda_match(const u8 *lsda, u32 func_start, u32 pc, void *type,
-                              u32 &landing, u32 &selector);
-void eh_install(EhContext *);
-bool eh_lookup(u32 pc, u32 &lsda, u32 &func);
+// .eh_frame 的解析与展开。只做展开器需要的那部分：
+// 给定 PC 找到 FDE，执行 CFI 得到上一帧的寄存器。
 
-void *eh_thrown_type = nullptr;
-
-extern "C" u32 eh_landing, eh_exc, eh_sel;
-
-// ---------------------------------------------------------------------------
-// .eh_frame 编码
-// ---------------------------------------------------------------------------
 constexpr u8 EH_PE_absptr = 0x00;
 constexpr u8 EH_PE_uleb128 = 0x01;
 constexpr u8 EH_PE_udata2 = 0x02;
@@ -133,60 +124,6 @@ public:
             p = aug_end;
         }
         return p;
-    }
-};
-
-enum EhRule : u8 {
-    EH_SAME = 0,
-    EH_UNDEFINED,
-    EH_OFFSET,
-    EH_VAL_OFFSET,
-    EH_REGISTER,
-};
-
-struct EhRegRule {
-    u8 how;
-    s32 offset;
-    u8 reg;
-};
-
-struct EhCfiState {
-    u8 cfa_reg;
-    s32 cfa_offset;
-    EhRegRule rules[9];
-};
-
-struct EhContext {
-    u32 esp;
-    u32 ebp;
-    u32 ebx;
-    u32 esi;
-    u32 edi;
-    u32 eip;
-
-    u32 value(u8 reg) const {
-        switch (reg) {
-        case 3: return ebx;
-        case 4: return esp;
-        case 5: return ebp;
-        case 6: return esi;
-        case 7: return edi;
-        case 8: return eip;
-        default: return 0;
-        }
-    }
-
-    u32 rule(const EhCfiState &state, u8 reg, u32 cfa) const {
-        if (reg >= 9) return 0;
-        const EhRegRule &r = state.rules[reg];
-        switch (r.how) {
-        case EH_OFFSET: return *(const u32 *)(cfa + r.offset);
-        case EH_VAL_OFFSET: return cfa + r.offset;
-        case EH_REGISTER: return value(r.reg);
-        case EH_UNDEFINED: return 0;
-        case EH_SAME:
-        default: return value(reg);
-        }
     }
 };
 
@@ -377,115 +314,6 @@ private:
     }
 };
 
-extern "C" {
-
-extern void *__eh_frame_start __asm__("__eh_frame_start");
-extern void *__eh_frame_end __asm__("__eh_frame_end");
-
-struct __cxa_exception { 
-    using terminate_handler = void (*)(GlobalExceptionType);
-
-    void (*exceptionDestructor) (void *); 
-    terminate_handler	terminateHandler;
-    __cxa_exception *	nextException;
-
-    int	handlerCount;
-    int	handlerSwitchValue;
-    const char *actionRecord;
-    const char *languageSpecificData;
-    void *catchTemp;
-    void *adjustedPtr;
-};
-
-__attribute__((used))
-void *__cxa_allocate_exception(size_t) noexcept {
-    return (void *)0x7c00;
-}
-__attribute__((used))
-void __cxa_free_exception(void *) noexcept {}
-
-__attribute__((used, noreturn))
-void eh_frame_tranveser(__cxa_exception *header, void *obj) {
-    EhContext ctx;
-    eh_capture(&ctx);
-
-    EhContext probe = ctx;
-    for (u32 i = 0; i < 64; ++i) {
-        u32 pc = probe.eip - 1;
-
-        u32 lsda = 0;
-        u32 func = 0;
-        if (eh_lookup(pc, lsda, func) && lsda) {
-            u32 landing = 0;
-            u32 selector = 0;
-            if (eh_lsda_match((const u8 *)lsda, func, pc, eh_thrown_type, landing, selector)) {
-                eh_landing = landing;
-                eh_exc = (u32)obj;
-                eh_sel = selector;
-                eh_install(&probe);
-            }
-        }
-
-        if (!eh_unwind_step(probe)) break;
-    }
-
-    // 展开失败（走到没有 FDE 的栈顶）：交给异常自己的 terminate_handler
-    if (header && header->terminateHandler)
-        header->terminateHandler(GlobalExceptionType::UnwindBreak);
-    while(1);
-}
-
-__attribute__((used, noreturn))
-void __cxa_throw(void * thrown_exception, void * tinfo, void (* /*dest*/) (void *)) {
-    __cxa_exception *header = ((__cxa_exception *) thrown_exception - 1);
-    eh_thrown_type = tinfo;
-    header->terminateHandler = terminate;
-    eh_frame_tranveser(header, thrown_exception);
-}
-
-__attribute__((used))
-void *__cxa_begin_catch (void *exc) noexcept {
-    return exc;
-}
-__attribute__((used))
-void __cxa_end_catch () noexcept {}
-
-__attribute__((used))
-void __gxx_personality_v0() {}
-
-__attribute__((used))
-void _Unwind_Resume() {}
-
-[[noreturn]]
-void __cxa_throw_bad_array_new_length() { __builtin_unreachable(); }
-
-}
-
-asm (
-    ".globl _ZTIi\n"
-    ".globl _ZTIPKc\n"
-    ".globl _ZTIPc\n"
-    ".globl _ZTIPi\n"
-    ".globl _ZTIl\n"
-    ".globl _ZTIPl\n"
-    ".globl _ZTIj\n"
-    ".globl _ZTIPj\n"
-    ".globl _ZTIb\n"
-    ".globl _ZTIPb\n"
-    ".globl _ZTIPv\n"
-    "_ZTIi:\n"
-    "_ZTIPKc:\n"
-    "_ZTIPc:\n"
-    "_ZTIPi:\n"
-    "_ZTIl:\n"
-    "_ZTIPl:\n"
-    "_ZTIj:\n"
-    "_ZTIPj:\n"
-    "_ZTIb:\n"
-    "_ZTIPb:\n"
-    "_ZTIPv:\n"
-);
-
 namespace {
 
 class {
@@ -510,27 +338,6 @@ public:
     auto end() const { return iterator{}; }
 } eh_frame_tranv;
 
-}
-
-extern "C" {
-u32 eh_landing = 0;
-u32 eh_exc = 0;
-u32 eh_sel = 0;
-}
-
-__attribute__((naked, noreturn)) void eh_install(EhContext *) {
-    asm(
-        "mov 4(%esp), %eax\n"
-        "mov 12(%eax), %esi\n"
-        "mov 16(%eax), %edi\n"
-        "mov 4(%eax), %ebp\n"
-        "mov 8(%eax), %ebx\n"
-        "mov eh_landing, %ecx\n"
-        "mov 0(%eax), %esp\n"
-        "mov eh_exc, %eax\n"
-        "mov eh_sel, %edx\n"
-        "jmp *%ecx\n"
-    );
 }
 
 bool eh_lookup(u32 pc, u32 &lsda, u32 &func) {
@@ -559,23 +366,6 @@ bool eh_unwind_step(EhContext &ctx) {
     return false;
 }
 
-extern "C" {
-
-__attribute__((naked)) void eh_capture(void *) {
-    asm (
-        "mov 4(%esp), %eax\n"
-        "lea 4(%esp), %ecx\n"
-        "mov %ecx, 0(%eax)\n"
-        "mov %ebp, 4(%eax)\n"
-        "mov %ebx, 8(%eax)\n"
-        "mov %esi, 12(%eax)\n"
-        "mov %edi, 16(%eax)\n"
-        "mov (%esp), %ecx\n"
-        "mov %ecx, 20(%eax)\n"
-        "ret\n"
-    );
-}
-
 void eh_backtrace() {
     EhContext ctx;
     eh_capture(&ctx);
@@ -585,6 +375,4 @@ void eh_backtrace() {
         kout << "  #" << (char)('0' + i) << "  " << (void *)ctx.eip << '\n';
         if (!eh_unwind_step(ctx)) break;
     }
-}
-
 }

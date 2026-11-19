@@ -23,7 +23,7 @@ struct PeripheralDeviceSpace {
     // append device
     int append(DeviceInfo *);
     // append device
-    int append(ProgIFIndex, DeviceInfo::DeviceType, void *);
+    int append(ProgIFIndex, DeviceInfo::DeviceType, DeviceInfo *);
     // append drvier for prog if
     int append(ProgIFIndex, DriverConstr);
     // append driver for device
@@ -31,11 +31,10 @@ struct PeripheralDeviceSpace {
 private:
     class DeviceNode {
         struct Instance {
-            void *config;
+            DeviceInfo *info;
             DeviceDriver *drvInstance;
 
-            Instance(void *config_): config{config_}, drvInstance{nullptr} {}
-            Instance(void *config_, DeviceDriver *drv_): config{config_}, drvInstance{drv_} {}
+            Instance(DeviceInfo *info_): info{info_}, drvInstance{nullptr} {}
         };
     public:
         DeviceInfo::DeviceType dev_t;

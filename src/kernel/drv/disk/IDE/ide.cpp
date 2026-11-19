@@ -4,7 +4,7 @@
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::PCI_IDE,
     DeviceInfo::ClassType::storage,
-    [](void *) -> DeviceDriver *{ return new ATAdev::IDE_control{}; }
+    [](DeviceInfo *) -> DeviceDriver *{ return new ATAdev::IDE_control{}; }
 };
 
 namespace {
@@ -92,8 +92,8 @@ DetectTable IDE_control::act(const ActionTable &at) const {
 
     if (at.fill_addr){
         if (at.if_need_CHS) {
-            // well...
-            outb(at.LBA.count, chan + CMDBlock::sector_num);
+            // well.. 
+            outb(static_cast<u8>(at.LBA.count), chan + CMDBlock::sector_num);
             outb(at.CHS.sector, chan + CMDBlock::sector_index);
             outb(static_cast<u8>(at.CHS.cylinder), chan + CMDBlock::cylinder_l);
             outb(static_cast<u8>(at.CHS.cylinder >> 8), chan + CMDBlock::cylinder_h);
@@ -148,104 +148,121 @@ DetectTable IDE_control::detect(DeviceIndex device_index) const {
     };
 }
 
-rtl::pair<DetectTable, size_t> IDE_control::pio_data_in(bufAddr buf, SectorCount count, DeviceIndex device) const {
+rtl::pair<DetectTable, size_t> IDE_control::read(
+    const ActionTable &at, bufAddr buf, SectorCount count
+) const {
+    const DeviceIndex device{static_cast<u8>(at.device_index)};
+
+    DetectTable d = act(at);
+    if (d.status.busy || d.status.error) return {d, 0};
+
     size_t bytes_read = 0;
     size_t timeout_count = 0;
-    DetectTable result = detect(device);
     auto [chan, _] = diskID2chan_dev(device);
 
     for (auto sec : rtl::range{count}) {
-        for (;result.status.busy || !result.status.data_ready;
-            timeout_count++, result = detect(device)) {
-            if (timeout_count > 512) return {result, 0};
+        for (;d.status.busy || !d.status.data_ready;
+            timeout_count++, d = detect(device)) {
+            if (timeout_count > 512) return {d, 0};
         }
         for (size_t i = 0;i < 256;i++) {
             buf[i + static_cast<byteCount>(sec).to_size_t() / 2] = inw(chan + CMDBlock::data);
             bytes_read+=2;
         }
     }
-    return {result, bytes_read};
+    return {d, bytes_read};
 }
-rtl::pair<DetectTable, size_t> IDE_control::dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device) const {
-    return {};
-}
-rtl::pair<DetectTable, size_t> IDE_control::pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device) const {
+
+rtl::pair<DetectTable, size_t> IDE_control::write(
+    const ActionTable &at, bufAddr buf, SectorCount count
+) const {
+    const DeviceIndex device{static_cast<u8>(at.device_index)};
+
+    DetectTable d = act(at);
+    if (d.status.busy || d.status.error) return {d, 0};
+
     size_t bytes_write = 0;
     size_t timeout_count = 0;
-    DetectTable result;
     auto [chan, _] = diskID2chan_dev(device);
 
     for (auto sec : rtl::range{count}) {
-        for (;result.status.busy || !result.status.data_ready;
-            timeout_count++, result = detect(device)) {
-            if (timeout_count > 512) return {result, 0};
+        for (;d.status.busy || !d.status.data_ready;
+            timeout_count++, d = detect(device)) {
+            if (timeout_count > 512) return {d, 0};
         }
         for (size_t i = 0;i < 256;i++) {
             outw(buf[i + static_cast<byteCount>(sec).to_size_t() / 2], chan + CMDBlock::data);
             bytes_write+=2;
         }
     }
-    return {result, bytes_write};
+    return {d, bytes_write};
 }
-rtl::pair<DetectTable, size_t> IDE_control::dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device) const {
-    return {};
-}
+
+
 IDE::IDE(const PhysicalDiskInfo &diskinfo_, const IDE_control &ctl_, DeviceIndex device_):
 diskinfo{diskinfo_}, ctl{ctl_}, device{device_} {}
 
+unsigned IDE::read(void *buf, unsigned lba, unsigned lbah, unsigned count) {
+    if (!buf || !count) return (unsigned)-1;
+    if (count > 0xFFFFu) count = 0xFFFFu;   // SectorCount 是 16 位
 
-
-unsigned IDE::read(void *buf, unsigned LBA, unsigned LBAh, unsigned count) {
-#undef LocalDebug
-#include <global/macro.hpp>
-    LocalDebugInfo(kout << '[' << LBA << ", " << count << "]\n";)
-    DetectTable detect{};
-    size_t bytes = 0;
     if (diskinfo.address_mode & 0b10) {
-        LocalDebugInfo(kout << "PIO mode: " << diskinfo.PIO_supported << '\n';)
-        if (false) { // DMA no yet
-            auto [d_, b_] = ctl.read_DMA_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
-            detect = d_; bytes = b_;
-            goto DONE;
-        } else if (diskinfo.PIO_supported || true) { // use PIO
-            auto [d_, b_] = ctl.read_PIO_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
-            detect = d_; bytes = b_;
-            goto DONE;
-        }
-    } else if (diskinfo.address_mode & 1) {
-        auto sec_per_tr = diskinfo.CHS_sectors_per_track;
-        auto tra_per_suf = diskinfo.CHS_cylinders;
-
-        auto suf_id = LBA / (sec_per_tr * tra_per_suf);
-        auto sec_off_on_suf = LBA % (sec_per_tr * tra_per_suf);
-        auto tra_id = sec_off_on_suf / sec_per_tr;
-        auto sec_id = sec_off_on_suf % sec_per_tr;
-
-        for (u8 i = suf_id;i < diskinfo.CHS_heads;i++, tra_id = 0) {
-            // for all surface
-            for (u32 j = tra_id;j < tra_per_suf;j++, sec_id = 0) {
-                // for all track
-                size_t sec_read = min(sec_per_tr - sec_id, count);
-                auto [d_, b_] = ctl.read_PIO_CHS(bufAddr{buf}, j, i, sec_id, SectorCount{(u16)sec_read}, device);
-                detect = d_; bytes += b_;
-                count -= sec_read;
-                buf = (void *)((u8 *)buf + sec_read * 512);
-                if (count == 0) goto DONE;
-                if (detect.status.error) return -1;
-            }
-        }
+        auto [d, n] = ctl.read(
+            bufAddr{buf}, LBA{lbah, lba}, SectorCount{static_cast<u16>(count)}, device
+        );
+        if (d.status.error || d.status.busy) return (unsigned)-1;
+        return static_cast<unsigned>(n);
     }
-    LocalDebugInfo(kout << "can't read\n";)
-    return -1;
-DONE:
-    if (detect.status.error || detect.status.busy) return -1;
-    else return bytes;
+
+    if (!(diskinfo.address_mode & 1)) return (unsigned)-1;
+
+    const u16 spt = diskinfo.CHS_sectors_per_track;
+    const u8 heads = static_cast<u8>(diskinfo.CHS_heads);
+    if (!spt || !heads) return (unsigned)-1;
+
+    // CHS 的越界由这里夹：基类只有每道扇区数和磁头数，不知道有几柱面。
+    const u32 per_cyl = static_cast<u32>(spt) * heads;
+    const u32 total = static_cast<u32>(diskinfo.CHS_cylinders) * per_cyl;
+    if (lba >= total) return (unsigned)-1;
+    if (count > total - lba) count = total - lba;
+
+    auto [d, n] = ctl.read(
+        bufAddr{buf}, CHS{LBA{lbah, lba}, spt, heads},
+        SectorCount{static_cast<u16>(count)}, device
+    );
+    if (d.status.error || d.status.busy) return (unsigned)-1;
+    return static_cast<unsigned>(n);
 }
 
-unsigned IDE::write(void *buf, unsigned LBA, unsigned LBAh, unsigned count) {
-    auto [detect, bytes] = ctl.write_PIO_LBA(bufAddr{buf}, LBAaddr{LBAh, LBA}, SectorCount{(u16)count}, device);
-    if (detect.status.error) return -1;
-    else return bytes;
+unsigned IDE::write(void *buf, unsigned lba, unsigned lbah, unsigned count) {
+    if (!buf || !count) return (unsigned)-1;
+    if (count > 0xFFFFu) count = 0xFFFFu;
+
+    if (diskinfo.address_mode & 0b10) {
+        auto [d, n] = ctl.write(
+            bufAddr{buf}, LBA{lbah, lba}, SectorCount{static_cast<u16>(count)}, device
+        );
+        if (d.status.error || d.status.busy) return (unsigned)-1;
+        return static_cast<unsigned>(n);
+    }
+
+    if (!(diskinfo.address_mode & 1)) return (unsigned)-1;
+
+    const u16 spt = diskinfo.CHS_sectors_per_track;
+    const u8 heads = static_cast<u8>(diskinfo.CHS_heads);
+    if (!spt || !heads) return (unsigned)-1;
+
+    const u32 per_cyl = static_cast<u32>(spt) * heads;
+    const u32 total = static_cast<u32>(diskinfo.CHS_cylinders) * per_cyl;
+    if (lba >= total) return (unsigned)-1;
+    if (count > total - lba) count = total - lba;
+
+    auto [d, n] = ctl.write(
+        bufAddr{buf}, CHS{LBA{lbah, lba}, spt, heads},
+        SectorCount{static_cast<u16>(count)}, device
+    );
+    if (d.status.error || d.status.busy) return (unsigned)-1;
+    return static_cast<unsigned>(n);
 }
 
 unsigned IDE::cmd(unsigned, String, void *, unsigned) {

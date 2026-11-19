@@ -17,10 +17,8 @@ namespace ATAdev {
 class IDE_control final : public ATADiskControl, public DeviceDriver {
 	DetectTable act(const ActionTable &at) const override final;
 	DetectTable detect(DeviceIndex device_index) const override final;
-    rtl::pair<DetectTable, size_t> pio_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
-    rtl::pair<DetectTable, size_t> dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
-    rtl::pair<DetectTable, size_t> pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
-    rtl::pair<DetectTable, size_t> dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const override final;
+    rtl::pair<DetectTable, size_t> read(const ActionTable &at, bufAddr buf, SectorCount count) const override final;
+    rtl::pair<DetectTable, size_t> write(const ActionTable &at, bufAddr buf, SectorCount count) const override final;
 
     static rtl::pair<u16, u8> diskID2chan_dev (DeviceIndex);
 
@@ -43,6 +41,11 @@ class IDE_control final : public ATADiskControl, public DeviceDriver {
     iterator begin() { return iterator{}; }
     iterator end() { return iterator{}; }
 public:
+    // 基类的 read/write 按地址类型重载（LBA / CHS）；这里的 override 只实现机制，
+    // 不写 using 的话会把那些重载全部遮住。
+    using ATADiskControl::read;
+    using ATADiskControl::write;
+
     IDE_control();
 
     void work() override;

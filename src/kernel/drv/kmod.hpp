@@ -11,6 +11,8 @@ struct KernelModule : Enumerator {
     KernelModule();
 
     void probe() override;
+    // 模块表不是硬件总线，没有可配置的门控。
+    void set_mod(void *) override {}
 private:
     void reg_insmod();
 

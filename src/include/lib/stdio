@@ -3,53 +3,51 @@
 
 #include <global/type.hpp>
 
-class IOBackend {
+class OBackend {
 public:
-    virtual IOBackend &operator<< (char *) = 0;
-    virtual IOBackend &operator<< (const char *) = 0;
-    virtual IOBackend &operator<< (char) = 0;
-    virtual IOBackend &operator<< (unsigned char) = 0;
-    virtual IOBackend &operator<< (unsigned short) = 0;
-    virtual IOBackend &operator<< (unsigned) = 0;
-    virtual IOBackend &operator<< (int) = 0;
-    virtual IOBackend &operator<< (unsigned long long) = 0;
-    virtual IOBackend &operator<< (u64) = 0;
-    virtual IOBackend &operator<< (void *) = 0;
-    virtual IOBackend &operator<< (bool) = 0;
-    virtual void ch(char) = 0;
-    virtual void str(const char *, char) = 0;
-    virtual void hex(unsigned char) = 0;
-    virtual void hex(unsigned short) = 0;
-    virtual void hex(unsigned) = 0;
-    virtual void hex(int) = 0;
+    virtual ~OBackend() = default;
+
+    virtual void write(const char *buf, size_t len) = 0;
 };
 
-class iostream {
-    IOBackend *backend;
-public:
-    iostream &operator<< (char *s) { *backend << s;return *this; }
-    iostream &operator<< (const char *s) { *backend << s;return *this; }
-    iostream &operator<< (char c) { *backend << c;return *this; }
-    iostream &operator<< (unsigned char i) { *backend << i;return *this; }
-    iostream &operator<< (unsigned short i) { *backend << i;return *this; }
-    iostream &operator<< (unsigned i) { *backend << i;return *this; }
-    iostream &operator<< (int i) { *backend << (unsigned)i;return *this; }
-    iostream &operator<< (unsigned long long i) { *backend << (unsigned)i;return *this; }
-    iostream &operator<< (u64 i) { *backend << i;return *this; }
-    iostream &operator<< (void *p) { *backend << (u32)p;return *this; }
-    iostream &operator<< (bool b) { *backend << b; return *this; }
-    void ch(char c) { backend->ch(c); }
-    void str(const char *str, char end) { backend->str(str, end); }
-    void hex(unsigned char i) { backend->hex(i); }
-    void hex(unsigned short i) { backend->hex(i); }
-    void hex(unsigned i) { backend->hex(i); }
-    void hex(int i) { backend->hex(i); }
+class ostream {
+    OBackend *backend;
 
-    iostream();
-    void change(IOBackend *be_) { backend = be_; }
+    void emit(const char *buf, size_t len) {
+        if (backend && len) backend->write(buf, len);
+    }
+
+public:
+    explicit ostream(OBackend *be = nullptr) : backend{be} {}
+
+    // 换后端；返回原来的那个，方便临时切换后恢复（例如转储日志时
+    // 先 change 到文件后端，dump 完再 change 回去）。
+    OBackend *change(OBackend *be_) {
+        OBackend *old = backend;
+        backend = be_;
+        return old;
+    }
+
+    ostream &operator<< (const char *s);
+    ostream &operator<< (char c);
+    ostream &operator<< (bool b);
+    ostream &operator<< (unsigned char i);
+    ostream &operator<< (unsigned short i);
+    ostream &operator<< (unsigned i);
+    ostream &operator<< (int i);
+    ostream &operator<< (unsigned long long i);
+    ostream &operator<< (u64 i);
+    ostream &operator<< (void *p);
+
+    void ch(char c);
+    void str(const char *s, char end);
+    void hex(unsigned char i);
+    void hex(unsigned short i);
+    void hex(unsigned i);
+    void hex(int i);
 };
 
-extern iostream kout;
+extern ostream kout;
 
 
 #endif

@@ -1,0 +1,22 @@
+#ifndef __lib_exception
+#define __lib_exception
+
+// 最小 <exception>：只提供 dynamic_cast / typeid 失败时抛出的类型。
+
+namespace std {
+
+class type_info;
+
+class bad_cast {
+public:
+    virtual ~bad_cast();
+};
+
+class bad_typeid {
+public:
+    virtual ~bad_typeid();
+};
+
+} // namespace std
+
+#endif

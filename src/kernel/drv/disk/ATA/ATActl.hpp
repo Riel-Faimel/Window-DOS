@@ -43,15 +43,15 @@ struct ActionTable {
      * 
      * so in range 0~1 or 0~32
      */
-    u8 device_index : 4 = 0;
-    u8 head : 4 = 0;
+    u8 device_index : 5 = 0;
     u8 if_need_CHS : 1 = false;
     u8 fill_addr : 1 = true;
     u8 fill_device : 1 = true;
+    u8 head : 4 = 0;
     u8 send_cmd : 1 = true;
     u8 need_48_mode : 1 = false;
     u8 force_dma : 1 = false;
-    u8 re : 2 = 0;
+    u8 re : 1 = 0;
     // 64 bits till here
 
 };
@@ -69,10 +69,174 @@ static_assert(sizeof(DetectTable) == 5);
 class ATADiskControl {
     virtual DetectTable act(const ActionTable &) const = 0;
     virtual DetectTable detect(DeviceIndex device_index) const = 0;
-    virtual rtl::pair<DetectTable, size_t> pio_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
-    virtual rtl::pair<DetectTable, size_t> dma_data_in(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
-    virtual rtl::pair<DetectTable, size_t> pio_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
-    virtual rtl::pair<DetectTable, size_t> dma_data_out(bufAddr buf, SectorCount count, DeviceIndex device_index) const = 0;
+    virtual rtl::pair<DetectTable, size_t> read(
+        const ActionTable &, bufAddr, SectorCount
+    ) const = 0;
+    virtual rtl::pair<DetectTable, size_t> write(
+        const ActionTable &, bufAddr, SectorCount
+    ) const = 0;
+
+    rtl::pair<DetectTable, size_t> read_lba(
+        bufAddr buf, LBA lba, SectorCount count, DeviceIndex dev
+    ) const {
+        auto p = static_cast<u8 *>(static_cast<void *>(buf));
+        unsigned sectors = static_cast<unsigned>(count.value());
+        unsigned done = 0;
+        DetectTable last{};
+
+        while (sectors) {
+            const bool lba48 = lba.high() || (lba.low() & 0xF0000000u);
+            const unsigned limit = lba48 ? 65535u : 255u;
+            const unsigned chunk = sectors > limit ? limit : sectors;
+
+            ActionTable cmd{};
+            if (lba48) {
+                cmd.cmd = ATAcmd::read_pio_ext;
+                cmd.need_48_mode = true;
+            } else {
+                cmd.cmd = ATAcmd::read_pio;
+            }
+            cmd.device_index = static_cast<u8>(dev);
+            cmd.LBA.low = lba.low();
+            cmd.LBA.high = lba.high();
+            cmd.LBA.count = static_cast<u16>(chunk);
+
+            auto [d, n] = read(cmd,
+                bufAddr{static_cast<void *>(p)}, SectorCount{static_cast<u16>(chunk)}
+            );
+            last = d;
+            if (d.status.error || d.status.busy || n == 0) break;
+
+            done += chunk;
+            sectors -= chunk;
+            p += chunk * 512u;
+            lba += chunk;
+        }
+        return {last, done * 512u};
+    }
+
+    rtl::pair<DetectTable, size_t> write_lba(
+        bufAddr buf, LBA lba, SectorCount count, DeviceIndex dev
+    ) const {
+        auto p = static_cast<u8 *>(static_cast<void *>(buf));
+        unsigned sectors = static_cast<unsigned>(count.value());
+        unsigned done = 0;
+        DetectTable last{};
+
+        while (sectors) {
+            const bool lba48 = lba.high() || (lba.low() & 0xF0000000u);
+            const unsigned limit = lba48 ? 65535u : 255u;
+            const unsigned chunk = sectors > limit ? limit : sectors;
+
+            ActionTable cmd{};
+            if (lba48) {
+                cmd.cmd = ATAcmd::write_pio_ext;
+                cmd.need_48_mode = true;
+            } else {
+                cmd.cmd = ATAcmd::write_pio;
+            }
+            cmd.device_index = static_cast<u8>(dev);
+            cmd.LBA.low = lba.low();
+            cmd.LBA.high = lba.high();
+            cmd.LBA.count = static_cast<u16>(chunk);
+            cmd.buffer.size = static_cast<byteCount>(chunk);
+
+            auto [d, n] = write(cmd,
+                bufAddr{static_cast<void *>(p)}, SectorCount{static_cast<u16>(chunk)}
+            );
+            last = d;
+            if (d.status.error || d.status.busy || n == 0) break;
+
+            done += chunk;
+            sectors -= chunk;
+            p += chunk * 512u;
+            lba += chunk;
+        }
+        return {last, done * 512u};
+    }
+
+    rtl::pair<DetectTable, size_t> read_chs(
+        bufAddr buf, CHS chs, SectorCount count, DeviceIndex dev
+    ) const {
+        DetectTable last{};
+        if (!chs.sectors_per_track || !chs.heads) return {last, 0};
+
+        auto p = static_cast<u8 *>(static_cast<void *>(buf));
+        unsigned sectors = static_cast<unsigned>(count.value());
+        unsigned done = 0;
+
+        while (sectors) {
+            unsigned chunk = chs.sectors_per_track - chs.sector + 1;
+            if (chunk > sectors) chunk = sectors;
+            if (chunk > 255u) chunk = 255u;
+
+            ActionTable cmd{};
+            cmd.cmd = ATAcmd::read_pio;
+            cmd.device_index = static_cast<u8>(dev);
+            cmd.if_need_CHS = true;
+            cmd.head = chs.head;
+            cmd.CHS.cylinder = chs.cylinder;
+            cmd.CHS.sector = chs.sector;
+            cmd.LBA.count = static_cast<u16>(chunk);
+
+            auto [d, n] = read(cmd,
+                bufAddr{static_cast<void *>(p)}, SectorCount{static_cast<u16>(chunk)}
+            );
+            last = d;
+            if (d.status.error || d.status.busy || n == 0) break;
+
+            done += chunk;
+            sectors -= chunk;
+            p += chunk * 512u;
+
+            LBA next{chs};
+            next += chunk;
+            chs = CHS{next, chs.sectors_per_track, chs.heads};
+        }
+        return {last, done * 512u};
+    }
+
+    rtl::pair<DetectTable, size_t> write_chs(
+        bufAddr buf, CHS chs, SectorCount count, DeviceIndex dev
+    ) const {
+        DetectTable last{};
+        if (!chs.sectors_per_track || !chs.heads) return {last, 0};
+
+        auto p = static_cast<u8 *>(static_cast<void *>(buf));
+        unsigned sectors = static_cast<unsigned>(count.value());
+        unsigned done = 0;
+
+        while (sectors) {
+            unsigned chunk = chs.sectors_per_track - chs.sector + 1;
+            if (chunk > sectors) chunk = sectors;
+            if (chunk > 255u) chunk = 255u;
+
+            ActionTable cmd{};
+            cmd.cmd = ATAcmd::write_pio;
+            cmd.device_index = static_cast<u8>(dev);
+            cmd.if_need_CHS = true;
+            cmd.head = chs.head;
+            cmd.CHS.cylinder = chs.cylinder;
+            cmd.CHS.sector = chs.sector;
+            cmd.LBA.count = static_cast<u16>(chunk);
+            cmd.buffer.size = static_cast<byteCount>(chunk);
+
+            auto [d, n] = write(cmd,
+                bufAddr{static_cast<void *>(p)}, SectorCount{static_cast<u16>(chunk)}
+            );
+            last = d;
+            if (d.status.error || d.status.busy || n == 0) break;
+
+            done += chunk;
+            sectors -= chunk;
+            p += chunk * 512u;
+
+            LBA next{chs};
+            next += chunk;
+            chs = CHS{next, chs.sectors_per_track, chs.heads};
+        }
+        return {last, done * 512u};
+    }
 
 public:
 
@@ -86,14 +250,13 @@ public:
         DebugInfo(ASMLabelMark(identify_acting))
 #undef LocalDebug
 #include <global/macro.hpp>
-        DetectTable result = act(cmd);
-        if (result.status.busy || result.status.error) {
+        auto [de, _] = read(cmd, iden, SectorCount{(u16)1u});
+        if (de.status.busy || de.status.error) {
             LocalDebugInfo(kout << "No such Disk\n";)
             return nullptr;
         }
         ASMLabelMark(start_move_identify_data)
 
-        auto [de, _] = pio_data_in(iden, SectorCount{(u16)1u}, DeviceIndex{cmd.device_index});
         if (iden[0] == 0xFFFF || !de.status.data_ready) {
             LocalDebugInfo(kout << "Invalid Disk\n";)
             return nullptr;
@@ -131,100 +294,28 @@ public:
         return re;
     }
 
-    __attribute__((error("Not yet")))
-    rtl::pair<DetectTable, size_t> read_DMA_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
-        ActionTable cmd = {};
-        cmd.cmd = ATAcmd::read_dma;
-        cmd.device_index = static_cast<u8>(dev);
-        cmd.LBA.low = LBA.low;
-        cmd.LBA.high = LBA.high;
-        cmd.LBA.count = static_cast<u16>(count);
-        cmd.buffer.addr = static_cast<void *>(buf);
-        cmd.buffer.size = static_cast<byteCount>(count);
-        cmd.force_dma = true;
-        
-        act(cmd);
-        return dma_data_in(buf, count, dev);
+    rtl::pair<DetectTable, size_t> read(
+        bufAddr buf, LBA lba, SectorCount count, DeviceIndex dev
+    ) const {
+        return read_lba(buf, lba, count, dev);
     }
 
-    rtl::pair<DetectTable, size_t> read_PIO_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
-        #undef LocalDebug
-        #include <global/macro.hpp>
-        LocalDebugInfo(
-            kout << '[' << LBA.high;print_hex(LBA.low, false);kout << ", " << static_cast<u16>(count) << "]\n";
-        )
-        ActionTable cmd = {};
-        if (LBA.high || LBA.low & 0xF0000000) {
-            cmd.cmd = ATAcmd::read_pio_ext;
-            cmd.need_48_mode = true;
-        } else {
-            cmd.cmd = ATAcmd::read_pio;
-        }
-        cmd.device_index = static_cast<u8>(dev);
-        cmd.LBA.low = LBA.low;
-        cmd.LBA.high = LBA.high;
-        cmd.LBA.count = static_cast<u16>(count);
-        
-        act(cmd);
-        return pio_data_in(buf, count, dev);
+    rtl::pair<DetectTable, size_t> read(
+        bufAddr buf, CHS chs, SectorCount count, DeviceIndex dev
+    ) const {
+        return read_chs(buf, chs, count, dev);
     }
 
-    rtl::pair<DetectTable, size_t> read_PIO_CHS(bufAddr buf, u32 cyl, u32 head, u32 sect, SectorCount count, DeviceIndex dev) const {
-        ActionTable cmd = {};
-        cmd.cmd = ATAcmd::read_pio;
-        cmd.device_index = static_cast<u8>(dev);
-        cmd.if_need_CHS = true;
-        cmd.head = head;
-        cmd.CHS.cylinder = cyl;
-        cmd.CHS.sector = sect;
-
-        act(cmd);
-        return pio_data_in(bufAddr{buf}, SectorCount{count}, dev);
+    rtl::pair<DetectTable, size_t> write(
+        bufAddr buf, LBA lba, SectorCount count, DeviceIndex dev
+    ) const {
+        return write_lba(buf, lba, count, dev);
     }
 
-    __attribute__((error("Not yet")))
-    DetectTable write_DMA_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
-        ActionTable cmd{};
-        cmd.cmd = ATAcmd::write_dma;
-        cmd.device_index = static_cast<u8>(dev);
-        cmd.LBA.low = LBA.low;
-        cmd.LBA.high = LBA.high;
-        cmd.LBA.count = static_cast<u16>(count);
-        cmd.buffer.addr = static_cast<void *>(buf);
-        cmd.buffer.size = static_cast<byteCount>(count);
-        
-        return act(cmd);
-    }
-
-    rtl::pair<DetectTable, size_t> write_PIO_LBA(bufAddr buf, LBAaddr LBA, SectorCount count, DeviceIndex dev) const {
-        ActionTable cmd{};
-        if (LBA.high || LBA.low & 0xF0000000) {
-            cmd.cmd = ATAcmd::write_pio_ext;
-            cmd.need_48_mode = true;
-        } else {
-            cmd.cmd = ATAcmd::write_pio;
-        }
-        cmd.device_index = static_cast<u8>(dev);
-        cmd.LBA.low = LBA.low;
-        cmd.LBA.high = LBA.high;
-        cmd.LBA.count = static_cast<u16>(count);
-        cmd.buffer.size = static_cast<byteCount>(count);
-        
-        act(cmd);
-        return pio_data_out(buf, count, dev);
-    }
-
-    rtl::pair<DetectTable, size_t> write_PIO_CHS(bufAddr buf, u32 cyl, u32 head, u32 sect, SectorCount count, DeviceIndex dev) const {
-        ActionTable cmd = {};
-        cmd.cmd = ATAcmd::write_pio;
-        cmd.device_index = static_cast<u8>(dev);
-        cmd.if_need_CHS = true;
-        cmd.head = head;
-        cmd.CHS.cylinder = cyl;
-        cmd.CHS.sector = sect;
-
-        act(cmd);
-        return pio_data_out(buf, count, dev);
+    rtl::pair<DetectTable, size_t> write(
+        bufAddr buf, CHS chs, SectorCount count, DeviceIndex dev
+    ) const {
+        return write_chs(buf, chs, count, dev);
     }
 
     DetectTable flush_cache(u16 dev) {
@@ -234,16 +325,14 @@ public:
         return act(cmd);
     }
 
-    __attribute__((error("Not yet")))
     unsigned set_features(u16 feature, u16 dev) {
-        /*
         ActionTable cmd{};
         cmd.cmd = ATAcmd::set_features;
         cmd.device_index = dev;
         cmd.feature = feature;
-        DetectTable result = act(cmd);
-        */
-        return 0;
+
+        DetectTable d = act(cmd);
+        return (d.status.error || d.status.busy) ? (unsigned)-1 : 0u;
     }
 
     DetectTable standby(u16 dev) {
@@ -258,9 +347,10 @@ public:
         cmd.cmd = ATAcmd::smart;
         cmd.device_index = dev;
         cmd.feature = 0xD0;  // READ DATA
-        cmd.buffer.addr = buf;
-        cmd.buffer.size = static_cast<byteCount>(512);
-        return act(cmd);
+
+        auto [d, n] = read(cmd, bufAddr{buf}, SectorCount{(u16)1u});
+        (void)n;
+        return d;
     }
 };
 

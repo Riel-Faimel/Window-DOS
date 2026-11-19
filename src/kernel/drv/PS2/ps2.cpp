@@ -49,7 +49,7 @@ bool init(){
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::ISA_PS2_KM,
     DeviceInfo::ClassType::input,
-    [] (void *) -> DeviceDriver *{ return new ps2; }
+    [] (DeviceInfo *) -> DeviceDriver *{ return new ps2; }
 };
 
 ps2 *ps2::self = nullptr;
@@ -62,26 +62,23 @@ ps2::ps2() {
 }
 
 void ps2::ps2_handler_c(){
-    static char _stack[1024];
-    {ChangeStack s(_stack, sizeof(_stack));{
-        u8 status = inb(CMD);
-        u8 data = inb(DATA);
-        if (status & 0x20)
-            self->mouse_buffer.push(data);
-        else
-            self->buffer.push(data);
-    }}
+    u8 status = inb(CMD);
+    u8 data = inb(DATA);
+    if (status & 0x20) self->mouse_buffer.push(data);
+    else self->buffer.push(data);
 }
 
 void ps2::work() {
-    kom->append(new PS2_KB{*this});
-    kom->append(new PS2_MS{*this});
+    kid = kom->append(new PS2_KB{*this});
+    mid = kom->append(new PS2_MS{*this});
 }
 
 void ps2::off() {
     // delete obj
     buffer.clear();
     mouse_buffer.clear();
+    kom->delet_(kid);
+    kom->delet_(mid);
 }
 
 unsigned PS2_KB::take(void *buf, unsigned, unsigned num) {

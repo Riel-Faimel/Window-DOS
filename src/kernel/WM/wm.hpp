@@ -8,15 +8,6 @@
 class WinHandle;
 
 class WindowManager {
-public:
-    WindowManager();
-
-    bool regist(WinHandle &win);
-    bool destroy(WinHandle &win);
-
-    bool append(SyscallHandler *strategy, unsigned vector);
-
-private:
     struct SyscallEntry {
         SyscallHandler *strategy;
         unsigned vector;
@@ -25,6 +16,14 @@ private:
     rtl::list<WinHandle *> handles;
     rtl::list<SyscallEntry> strategies;
     u32 next_handle = 1;
+    
+public:
+    WindowManager();
+
+    bool regist(WinHandle &win);
+    bool destroy(WinHandle &win);
+
+    bool append(SyscallHandler *strategy, unsigned vector);
 };
 
 extern WindowManager *window_manager;

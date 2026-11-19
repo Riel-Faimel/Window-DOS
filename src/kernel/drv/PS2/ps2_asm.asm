@@ -5,7 +5,6 @@ extern ps2_handler_c
     
 ps2_handler:
     pusha
-    cld
     call ps2_handler_c
     popa
     mov al, 0x20

@@ -59,15 +59,34 @@ class PCI_space : public Enumerator {
         command_int_disable = 1 << 10
     };
     size_t progif_num{};
-    
+
+    // 设备的配置空间坐标。config 列表和 addr_l 按同一次 append 一一对应，
+    // 因为 PCI_device_config 本身不带 bus/dev/func（驱动不该知道它们）。
+    struct PCI_addr {
+        u8 bus;
+        u8 dev;
+        u8 func;
+    };
+
     void pci_lookfor_addr(int, int, int, int);
     unsigned pci_read(int, int, int, int);
+    void pci_write(int, int, int, int, unsigned);
     void pci_probe_device(int, int);
     DeviceInfo *construc(PCI_device_config &pcf, PCI_space *enumer);
+    PCI_addr *find_addr(void *cfg);
 public:
     PCI_space();
     void probe() override;
+    /**
+     * 打开这台设备的门控：置 memory space + bus master。
+     *
+     * 参数是 DeviceInfo::config，即 PCI_device_config 的地址。
+     */
+    void set_mod(void *cfg) override;
     rtl::list<PCI_device_config> config{};
+private:
+    // 与 config 一一对应的 bus/dev/func；总线私有，不对外。
+    rtl::list<PCI_addr> addr_l{};
 };
 
 

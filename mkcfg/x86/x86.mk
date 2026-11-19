@@ -11,7 +11,8 @@ CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
 CFLAGS = $(CBASE) -Werror=implicit-int
 CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts -mno-sse
 CPPFLAGS = $(CPPBASE) -fno-exceptions
-CPPEXCEPTION = $(CPPBASE) -fexceptions
+CPPEXCEPTION = $(CPPBASE) -fexceptions -frtti
+CPPRTTI = $(CPPBASE) -fno-exceptions -frtti
 	
 LDFLAGS_B = -nostdlib -m elf_i386
 LDFLAGS = $(LDFLAGS_B) -r
@@ -56,7 +57,13 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%_exp.cpp
 	@ $(call MKDIR_F,$@)
 	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
 	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
-	@ echo [CPP] exception $<
+	@ echo [CPP] ^<exception^> $<
+
+$(BUILD_DIR)%.o: $(SRC_DIR)%_rtti.cpp
+	@ $(call MKDIR_F,$@)
+	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPRTTI) -c $< -o $@
+	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
+	@ echo [CPP] ^<rtti^> $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%.c 
 	@ $(call MKDIR_F,$@)
@@ -78,10 +85,10 @@ $(BUILD_DIR)%.o: $(SRC_DIR)%.cppm
 	@ $(call MKDIR_F,$@)
 	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPFLAGS) -c $< -o $@
 	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
-	@ echo [CPP] module $<
+	@ echo [CPP] ^<module^> $<
 
 $(BUILD_DIR)%.o: $(SRC_DIR)%_exp.cppm
 	@ $(call MKDIR_F,$@)
 	@ $(CPP) -D_BITS_32 -std=c++20 $(CPPEXCEPTION) -c $< -o $@
 	@ $(call STRIP_MODULE_DEPS,$(@:.o=.d))
-	@ echo [CPP] module $<
+	@ echo [CPP] ^<module^> ^<exception^> $<

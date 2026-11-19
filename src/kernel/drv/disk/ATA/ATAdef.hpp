@@ -2,29 +2,14 @@
 #define __kernel_drv_disk_ATA_ATAdef_hpp
 
 #include <global/type.hpp>
+#include <global/cluster.hpp>
 
 namespace ATAdev {
 
-struct LBAaddr : u64 {
-    LBAaddr() : u64{} {}
-    // One argument is the low 32 bits of the LBA.
-    explicit LBAaddr(u32 low) : u64{0, low} {}
-    // Two arguments are (high, low), matching the u64 layout.
-    LBAaddr(u32 high, u32 low) : u64{high, low} {}
-};
-class SectorCount {
-    u16 count;
-public:
-    SectorCount (u32) = delete;
-    explicit SectorCount(): count{0} {}
-    explicit SectorCount(u16 count_) : count{count_} {}
-    explicit operator u16 () { return static_cast<u16>(count); }
-
-    SectorCount &operator++ () { ++count; return *this; }
-    bool operator!= (const SectorCount &oth) const { return count != oth.count; }
-
-    size_t value() const { return count; }
-};
+using clu::CHS;
+using clu::LBA;
+using clu::SectorCount;
+    
 class byteCount {
     size_t offset;
 public:

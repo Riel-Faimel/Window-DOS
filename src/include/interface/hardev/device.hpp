@@ -16,7 +16,8 @@ public:
     virtual void work() = 0;
     virtual void off() = 0;
 };
-using DriverConstr = DeviceDriver *(*)(void *);
+
+struct DeviceInfo;
 
 /**
  * Enumerator submit the struct to PDS
@@ -58,5 +59,12 @@ struct DeviceInfo {
     void *config;
     Enumerator *enumer = nullptr;
 };
+
+/**
+ * 驱动的构造函数。参数是这台设备的 DeviceInfo：驱动从 config 取总线
+ * 私有配置，从 enumer 取总线本身（例如通过 set_mod 让总线打开设备门控）。
+ * PDS 持有 DeviceInfo 的生命周期，驱动只可以在构造期读取，不得留存。
+ */
+using DriverConstr = DeviceDriver *(*)(DeviceInfo *);
 
 #endif

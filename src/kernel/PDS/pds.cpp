@@ -66,9 +66,9 @@ int PeripheralDeviceSpace::append(DeviceInfo *dev) {
         storage.append(ProgramInFace{dev->bus, dev->cls, dev->progif, {}, nullptr});
     }
 
-    int re = append(dev->progif, dev->device, dev->config);
+    int re = append(dev->progif, dev->device, dev);
 
-    delete dev;
+    // dev 交给 Instance 持有：驱动后到的补绑路径还要读它，所以不能在这里释放。
     return re;
 }
 
@@ -76,7 +76,7 @@ int PeripheralDeviceSpace::append(DeviceInfo *dev) {
  * 设备到达：挂到 (progif, device) 的叉上，成为该叉上的一个实例。
  * 如果驱动已经在等它，立刻绑定；否则挂在叉上等驱动注册。
  */
-int PeripheralDeviceSpace::append(ProgIFIndex pid, DeviceInfo::DeviceType did, void *cfg) {
+int PeripheralDeviceSpace::append(ProgIFIndex pid, DeviceInfo::DeviceType did, DeviceInfo *info) {
     ProgramInFace *root = nullptr;
     for (auto &pif : rtl::Filter<ProgramInFace, rtl::list>{storage}
         .with([pid](const ProgramInFace &p) { return p.prog_t == pid; })
@@ -99,14 +99,14 @@ int PeripheralDeviceSpace::append(ProgIFIndex pid, DeviceInfo::DeviceType did, v
         node = &root->dev_l.back();
     }
 
-    auto &instance = node->in_l.emplace_back(cfg);
+    auto &instance = node->in_l.emplace_back(info);
 
     // 特化优先于通用；都没有就先挂着，等驱动来绑
     if (node->drv) {
-        instance.drvInstance = node->drv(cfg); // 特化
+        instance.drvInstance = node->drv(info); // 特化
         instance.drvInstance->work();
     } else if (root->drv) {
-        instance.drvInstance = root->drv(cfg); // 通用
+        instance.drvInstance = root->drv(info); // 通用
         instance.drvInstance->work();
     }
 
@@ -145,7 +145,7 @@ int PeripheralDeviceSpace::append(ProgIFIndex pid, DriverConstr dcon) {
         if (node.drv) continue;
         for (auto &instance : node.in_l) {
             if (!instance.drvInstance) {
-                instance.drvInstance = dcon(instance.config);
+                instance.drvInstance = dcon(instance.info);
                 instance.drvInstance->work();
             }
         }
@@ -191,7 +191,7 @@ int PeripheralDeviceSpace::append(
 
     for (auto &instance : node->in_l) {
         if (!instance.drvInstance) {
-            instance.drvInstance = dcon(instance.config);
+            instance.drvInstance = dcon(instance.info);
             instance.drvInstance->work();
         }
     }

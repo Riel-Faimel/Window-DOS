@@ -5,9 +5,12 @@
 #include <id/id.hpp>
 #include <HL/container>
 #include <interface/hardev/drvhead.hpp>
+#include <KrnlObjMgr/kom.hpp>
 
 class ps2 : public DeviceDriver {
     static ps2 *self;
+    KernelObjectManager::ObjID kid;
+    KernelObjectManager::ObjID mid;
 public:
     rtl::CyBack<u8, 1024> buffer;
     rtl::CyBack<u8, 1024> mouse_buffer;

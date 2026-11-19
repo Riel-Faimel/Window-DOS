@@ -29,6 +29,8 @@ class ISA_space : public Enumerator {
 
 public:
     void probe() override;
+    // ISA 没有配置空间，设备门控靠固定端口，忽略配置请求。
+    void set_mod(void *) override {}
 };
 
 
