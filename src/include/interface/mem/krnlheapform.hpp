@@ -6,6 +6,23 @@ namespace mem {
 
 constexpr size_t SizeClassCount = 17;
 
+// 堆格式的常量。谁实现/使用这个格式都要用，所以放在格式自己的头里，
+// 不留在 mm 的私有头。
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmultichar"
+constexpr size_t MemClusterSize = 4096;
+constexpr u32 SuperBlockMagic = 'RSBM';
+constexpr u32 PageHeadMagic = 'RPHM';
+constexpr u16 ObjectHeadGuard = 'HG';
+constexpr u16 ObjectTailGuard = 'TG';
+constexpr u16 ObjectSingalGuard = 'SP';
+#pragma GCC diagnostic pop
+
+constexpr u16 size_classes[SizeClassCount] = {
+    16, 24, 32, 48, 64, 96, 128, 192, 256,
+    384, 512, 768, 1024, 1536, 2048, 3072, 4096
+};
+
 class KernelHeapFormat {
 protected:
 #pragma pack(push, 1)
@@ -113,7 +130,9 @@ protected:
     PageHead *search_page(void *);
     SubZone *search_zone(void *, PageHead *);
 
-    KernelHeapFormat(void* page_base);
+    KernelHeapFormat(SuperBlock* page_base);
+public:
+    using SuperBlock = SuperBlock;
 };
 
 }

@@ -7,14 +7,14 @@
  */
 #include <global/type.hpp>
 #include <interface/TD/TCB.hpp>
+#include <interface/mem/allocable.hpp>
 
 class multiCE {
 public:
     multiCE();
 
     TCB *run(
-        void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
-        size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
+        void (*)(size_t, void *), size_t, void *, mem::MemSpace, size_t time = 1, u8 ring = 3
     );
     void cut(size_t cpuid, struct TCB *tid, size_t intnum);
 };

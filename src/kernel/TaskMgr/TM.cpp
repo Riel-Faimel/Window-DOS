@@ -1,6 +1,8 @@
 #include "_TM.hpp"
 import lib32;
 
+TaskManager *taskmgr;
+
 void caller(size_t n, void *v) {
     void *start_point = *(void **)v;
     void *argv = *((void **)v + 1);
@@ -16,12 +18,15 @@ void caller(size_t n, void *v) {
     );
 }
 
-TaskManager::MainLoader::MainLoader(): loader_l{} {
-    loader_l.append(new exCOM);
-}
+// 构造函数里不建任何 loader：像 exCOM 这样的格式对象持有 WinHandle，
+// 而 WinHandle 要求 WindowManager 已经在场。TaskManager 比它先构造，
+// 所以注册推迟到第一次 load()——那时子系统都已经建好。
+TaskManager::MainLoader::MainLoader(): loader_l{} {}
 
 rtl::pair<TaskManager::MainLoader::ExceptionCode, void *> 
 TaskManager::MainLoader::load(const WinHandle &win) {
+    if (loader_l.get_size() == 0) loader_l.append(new exCOM);
+
     for (auto el : loader_l) {
         if(el->execable(win)) {
             el->load();
@@ -31,12 +36,10 @@ TaskManager::MainLoader::load(const WinHandle &win) {
     return {TaskManager::MainLoader::ExceptionCode::UnknowFormat, nullptr};
 }
 
-void TaskManager::MainLoader::append(ExecLoader *el) {
-    loader_l.append(el);
-}
+void TaskManager::MainLoader::append(ExecLoader *el) { loader_l.append(el); }
 
 
-TaskManager::TaskManager() {}
+TaskManager::TaskManager():mainloader{}, pcb_l{} { taskmgr = this; }
 
 FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
     WinHandle win{};
@@ -59,9 +62,9 @@ FexecExceptionCode TaskManager::exec(String filepath, size_t argc, void *argv) {
 
     // The image is in memory now; the file handle is no longer needed.
     driverletterspace->close(win);
-
-    ASMLabelMark(start_thread)
-    Multi_Channel_executor.run((void (*)(size_t,void *))entry_point, argc, argv, 1, 3);
+    
+    // TODO: set MemSpace
+    Multi_Channel_executor.run((void (*)(size_t,void *))entry_point, argc, argv, {}, 1, 3);
 
     return FexecExceptionCode::NoException;
 }

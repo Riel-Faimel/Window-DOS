@@ -3,7 +3,7 @@
 #include "type.hpp"
 
 namespace mem {
-
+    
 class PageNum {
     u64 data;
 public:
@@ -77,6 +77,11 @@ public:
         if (data.high) return nullptr;
         else return (void *)data.low;
     }
+};
+
+struct PagePackage {
+    mem::Address base;
+    mem::PageNum pages;
 };
 
 template<typename T>

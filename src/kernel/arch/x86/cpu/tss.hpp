@@ -2,7 +2,6 @@
 #define __kernel_TM_tss_hpp
 
 #include <global/type.hpp>
-struct MemoryManager;
 
 namespace arch {
 
@@ -17,7 +16,7 @@ struct TSS32 {
 };
 
 struct TSM {
-    TSM(GDT &gdt, MemoryManager&);
+    TSM(GDT &gdt);
 };
 
 }

@@ -7,12 +7,12 @@ using namespace mem;
 PhysicalPage physicalpage;
 MemoryManager *global_heap;
 
-KernelHeapFormat::KernelHeapFormat(void *page_base){
+KernelHeapFormat::KernelHeapFormat(SuperBlock *page_base){
     if (page_base == nullptr) {
         auto pkg = *physicalpage.aloc(PageNum{4096u}, true).begin();
         format(pkg);
-    } else if (static_cast<SuperBlock *>(page_base)->magic == SuperBlockMagic) {
-        sb = static_cast<SuperBlock *>(page_base);
+    } else if (page_base->magic == SuperBlockMagic) {
+        sb = page_base;
     }
 }
 __attribute__((optimize("O2")))
@@ -157,8 +157,8 @@ KernelHeapFormat::SubZone *KernelHeapFormat::search_zone(void *obj, KernelHeapFo
 }
 
 
-MemoryManager::nopage::nopage(void* page_base):
-KernelHeapFormat{page_base} {}
+MemoryManager::nopage::nopage(SuperBlock* page_base):
+Allocable{page_base} {}
 
 MemSpace MemoryManager::nopage::alloc() { return {}; }
 void MemoryManager::nopage::dlloc(MemSpace) {}
@@ -223,9 +223,15 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     }
 }
 
-MemoryManager::MemoryManager(bool print):
+MemoryManager::MemoryManager():
 defaul{nullptr}, al{&defaul} {
-    DebugInfo(if (print) kout << "< heap: " << &defaul;)
+    global_heap = this;
+    kout << "[MM] heap: " << defaul.getsbp() << "\n";
+}
+void MemoryManager::set_allocator(Allocable *(*newer)(KernelHeapFormat::SuperBlock *)) {
+    auto newal = newer(al->getsbp());
+    delete al;
+    al = newal;
 }
 
 //======
@@ -248,25 +254,6 @@ void operator delete[](void *ptr) {
 }
 void operator delete[](void *ptr, size_t size) {
     return global_heap->allocator()->dlloc(ptr, size);
-}
-
-void *operator new(size_t size, MemoryManager& mm) {
-    return mm.allocator()->alloc(size);
-}
-void *operator new[](size_t size, MemoryManager& mm) {
-    return mm.allocator()->alloc(size);
-}
-void operator delete(void *ptr, MemoryManager& mm) {
-    mm.allocator()->dlloc(ptr);
-}
-void operator delete(void *ptr, MemoryManager& mm, unsigned size) {
-    mm.allocator()->dlloc(ptr, size);
-}
-void operator delete[](void *ptr, MemoryManager& mm) {
-    mm.allocator()->dlloc(ptr);
-}
-void operator delete[](void *ptr, MemoryManager& mm, unsigned size) {
-    mm.allocator()->dlloc(ptr, size);
 }
 
 /**

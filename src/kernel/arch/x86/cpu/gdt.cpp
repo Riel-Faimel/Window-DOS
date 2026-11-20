@@ -3,6 +3,7 @@
 #include <stdio>
 #include <global/new.hpp>
 #include <HL/utility>
+#include <global/macro.hpp>
 
 #pragma GCC optimize("Os")
 
@@ -44,9 +45,7 @@ entries(entries_init), limit(limit_init) {
     gdt_ptr.base = reinterpret_cast<u32>(entries);
 
     fresh_gdt(&gdt_ptr);
-#ifdef _DEBUG
-    kout << ", GDT: " << gdt_ptr.base;
-#endif
+    DebugInfo(kout << "[CPU] GDT: " << gdt_ptr.base << '\n';)
 }
 
 unsigned GDT::regist(

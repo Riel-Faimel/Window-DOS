@@ -8,6 +8,10 @@ CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
 		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_DEBUG -D_x86 
 
+ifeq ($(COMDebug),1)
+CBASE += -DCOMDebug
+endif
+
 CFLAGS = $(CBASE) -Werror=implicit-int
 CPPBASE = $(CBASE) -nodefaultlibs -fno-rtti -fno-use-cxa-atexit -fno-function-sections  -fmodules-ts -mno-sse
 CPPFLAGS = $(CPPBASE) -fno-exceptions

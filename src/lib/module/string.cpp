@@ -55,19 +55,6 @@ String::String(unsigned n) noexcept {
     len = hex_string.get_size();
 }
 
-String::String(const char *s) noexcept {
-    if(s == nullptr){
-        data = nullptr;
-        len = 0;
-    }else{
-        len = 0;
-        while(s[len])len++;
-        data = new char[len + 1];
-        for(unsigned i = 0;i < len;i++)data[i] = s[i];
-        data[len] = '\0';
-    }
-}
-
 String::String(char *s, unsigned n) noexcept {
     if(s == nullptr || n == 0){
         data = nullptr;

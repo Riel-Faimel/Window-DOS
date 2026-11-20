@@ -3,13 +3,12 @@
 
 #include <global/type.hpp>
 #include <String>
-
-struct MemSpace;
-struct TCB;
+#include <interface/mem/allocable.hpp>
+#include "TCB.hpp"
 
 struct PCB {
     TCB *main;
-    MemSpace &ms;
+    mem::MemSpace ms;
     String name;
 };
 

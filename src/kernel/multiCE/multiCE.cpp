@@ -9,15 +9,10 @@ void multiCE::cut(size_t /*cpuid*/, TCB */*tid*/, size_t /*intnum*/) {
 }
 
 TCB *multiCE::run(
-    void (*func)(size_t, void *), size_t argc, void *argv, size_t time, 
-    u8 ring, size_t cs, size_t ds, size_t gs, size_t fs
+    void (*func)(size_t, void *), size_t argc, 
+    void *argv, mem::MemSpace ms, size_t time, u8 ring
 ) {
     for (auto &cpu : cpu_list)
-    if (true) {
-        return cpu.run(
-            func, argc, argv, time,
-            ring, cs, ds, gs, fs
-        );
-    }
+    if (true) return cpu.run(func, argc, argv, ms, time, ring);
     return nullptr;
 }

@@ -1,17 +1,26 @@
 #include "kernel.hpp"
 #include <syscall/thread>
 #include <drv/screen/screen_srv.hpp>
-extern MemoryManager *global_heap;
+#ifdef COMDebug
+#include <drv/com/com.hpp>
+#endif
 
 extern void f(int);
 
+// COMDebug：把控制台输出改到 COM1，便于没有屏幕的场合取内核日志。
+#ifdef COMDebug
+ostream kout{&comout};
+#else
 ostream kout{&vgatextout};
+#endif
 
 __attribute__((optimize("O0"), noreturn))
 void LoaderMain(){
-    MemoryManager init_global_heap{false};
-    global_heap = &init_global_heap;
-    CurruentArchitecture cpu0{}; // init first CPU
+    MemoryManager global_heap;
+    TaskManager taskmgr;
+
+    // init first CPU
+    CurruentArchitecture cpu0{};
     cpu0.preempt();
     cpu0.mem_protect();
     asm volatile ("sti");
@@ -30,12 +39,11 @@ void LoaderMain(){
             ClusterDeviceManager cdm{};
             PeripheralDeviceSpace pds{};
             KernelObjectManager kom{};
-            TaskManager taskmgr;
             KernelModule kernelmodule;
         } renew_DOS;
         kout << "[BOOT] start INIT.COM\n";
         ASMLabelMark(LoaderMain_StartB_INIT_EXE)
-        auto err = renew_DOS.taskmgr.exec("B:\\INIT.COM", 0, nullptr);
+        auto err = taskmgr.exec("B:\\INIT.COM", 0, nullptr);
         switch (err) {
         case FexecExceptionCode::NoException: {
             _Sexit(); // init thread sleep

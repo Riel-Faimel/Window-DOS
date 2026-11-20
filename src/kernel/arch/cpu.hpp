@@ -5,6 +5,7 @@
 #include <HL/atomic>
 #include <HL/generator>
 #include <interface/TD/TCB.hpp>
+#include <interface/mem/allocable.hpp>
 
 namespace arch {
 
@@ -51,8 +52,7 @@ public:
     virtual void preempt() = 0;
     virtual void collabora() = 0;
     virtual TCB *run(
-        void (*)(size_t, void *), size_t, void *, size_t time = 1, u8 ring = 3,
-        size_t cs = 0, size_t ds = 0, size_t gs = 0, size_t fs = 0
+        void (*)(size_t, void *), size_t, void *, mem::MemSpace, size_t time = 1, u8 ring = 3
     ) = 0;
 
     // interrupt regist
@@ -93,8 +93,6 @@ public:
 };
 
 extern CPUList cpu_list;
-
-inline arch::CPU::CPU() { cpu_list.append(this, cpuid); }
 
 #ifdef ArchitectureDetail
 #ifdef _x86

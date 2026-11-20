@@ -42,7 +42,7 @@ IDT::IDT(volatile IDT_item *tab):idt_base(tab){
     regist(&basic_time_handler, 48); //基本时钟中断
 
 #ifdef _DEBUG
-    kout << ", IDT: " << (void *)tab;
+    kout << "[CPU] IDT: " << (void *)tab << '\n';
 #endif
 };
 

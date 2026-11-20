@@ -4,16 +4,10 @@
 #include <global/type.hpp>
 #include <global/memory.hpp>
 
-#pragma pack(push, 1)
-struct PagePackage {
-    mem::Address base;
-    mem::PageNum pages;
-};
-#pragma pack(pop)
-
 struct PhysicalPage {
     using PageNum = mem::PageNum;
     using Address = mem::Address;
+    using PagePackage = mem::PagePackage;
 
     class address_generator {
         PageNum needpages;

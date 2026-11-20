@@ -3,7 +3,7 @@
 namespace arch {
     
 __attribute__((optimize("O0")))
-TSM::TSM(GDT &gdt, MemoryManager& mm) {
+TSM::TSM(GDT &gdt) {
     // The ring0 stack grows down from esp0, so esp0 must be the top of the
     // allocated block, not its base.
     auto pkg = *physicalpage.aloc(mem::PageNum{512}, true).begin();
@@ -11,7 +11,7 @@ TSM::TSM(GDT &gdt, MemoryManager& mm) {
         pkg.base + static_cast<mem::ByteNum>(pkg.pages)
     ));
 
-    auto tss_id = gdt.create_tss(new (mm) TSS32 {
+    auto tss_id = gdt.create_tss(new TSS32 {
         .esp0 = stack_top,
         .ss0 = 0x10
     }, sizeof(TSS32)-1, descrptor::GateType::TSS_32_free, 0, false);
@@ -21,7 +21,7 @@ TSM::TSM(GDT &gdt, MemoryManager& mm) {
         : "r"(tss_id)
         : "memory"
     );
-    DebugInfo(kout << ", tss: " << (u8)tss_id;)
+    DebugInfo(kout << "[CPU] TSS: " << (u8)tss_id << '\n';)
 }
 
 } // namespace arch 

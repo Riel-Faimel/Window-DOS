@@ -46,4 +46,6 @@ public:
     void exit(u32 id, u32 code);
 };
 
+extern TaskManager *taskmgr;
+
 #endif

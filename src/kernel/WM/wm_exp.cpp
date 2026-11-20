@@ -3,19 +3,19 @@
 WindowManager *window_manager __attribute__((section(".data"))) = nullptr;
 
 WinHandle::WinHandle():handle{0},  extra{nullptr}, size{0} {
-    if (!window_manager || !window_manager->regist(*this))
+    if (!window_manager || !window_manager->regist(*this)) [[unlikely]]
         throw "WinHandle registration failed";
 }
 
 WinHandle::WinHandle(WinHandle *oth):
 handle{0}, extra{oth ? oth->extra : nullptr}, size{oth ? oth->size : 0} {
-    if (!window_manager || !window_manager->regist(*this))
+    if (!window_manager || !window_manager->regist(*this)) [[unlikely]]
         throw "WinHandle registration failed";
 }
 
 WinHandle::WinHandle(const WinHandle &oth):
 handle{0}, extra{oth.extra}, size{oth.size} {
-    if (!window_manager || !window_manager->regist(*this))
+    if (!window_manager || !window_manager->regist(*this)) [[unlikely]]
         throw "WinHandle registration failed";
 }
 
@@ -29,7 +29,7 @@ WinHandle &WinHandle::operator=(const WinHandle &oth) {
     size = oth.size;
     handle = 0;
 
-    if (!window_manager || !window_manager->regist(*this))
+    if (!window_manager || !window_manager->regist(*this)) [[unlikely]]
         throw "WinHandle registration failed";
 
     return *this;
@@ -63,7 +63,7 @@ bool WindowManager::destroy(WinHandle &win) {
 }
 
 WindowManager::WindowManager(): handles{}, strategies{} {
-    if (window_manager)
+    if (window_manager) [[unlikely]]
         throw "WindowManager already initialized";
 
     window_manager = this;

@@ -14,8 +14,8 @@ class MemoryManager {
          * all of them offered alloc/dlloc function
          * and called by operator new/delete
          */
-    struct nopage : public mem::Allocable, public mem::KernelHeapFormat {
-        nopage(void* page_base);
+    struct nopage : public mem::Allocable {
+        nopage(SuperBlock* page_base);
         
         mem::MemSpace alloc() override;
         void dlloc(mem::MemSpace) override;
@@ -32,11 +32,11 @@ class MemoryManager {
 
 
 public:
-    MemoryManager(bool = true);
-    MemoryManager(mem::Allocable *);
-
-    void set_allocator(mem::Allocable *);
+    MemoryManager();
+    void set_allocator(mem::Allocable *(*newer)(mem::KernelHeapFormat::SuperBlock *));
     mem::Allocable *allocator() const { return al; }
 };
+
+extern MemoryManager *global_heap;
 
 #endif

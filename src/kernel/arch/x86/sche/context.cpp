@@ -18,8 +18,7 @@ constexpr size_t thread_stack_size = 4096;
 namespace arch {
 
 
-X86Context::X86Context(MemoryManager &mm) : mm{mm} {
-    // _Sexit is the software vector the scheduler uses to enter exit.
+X86Context::X86Context() {
     interrupt_distributor.reg_int(&_Sexit, 0x20);
 }
 
@@ -44,10 +43,10 @@ void X86TCB::tcb_set_ip(size_t ip) {
 }
 
 TCB *X86Context::create_thread(
-    void *func, size_t argc, void *argv,
+    void *func, size_t argc, void *argv, size_t cr3, u16 ldtr,
     size_t code_seg, size_t data_seg, size_t gs, size_t fs
 ) {
-    auto *tcb = new (mm) X86TCB{};
+    auto *tcb = new X86TCB{};
 
     X86Frame &frame = tcb->frame;
 
@@ -58,7 +57,7 @@ TCB *X86Context::create_thread(
 
     // x86 stacks grow down: xsp must start at the top of the allocation,
     // not at its base (the first push writes at xsp - 4).
-    auto *stack = new (mm) char[thread_stack_size];
+    auto *stack = new char[thread_stack_size];
     frame.xsp = ((size_t)stack + thread_stack_size) & ~(size_t)3;
 
     frame.xss = data_seg & 0xFFFF;
@@ -66,6 +65,8 @@ TCB *X86Context::create_thread(
     frame.xds = data_seg & 0xFFFF;
     frame.xes = data_seg & 0xFFFF;
     frame.xgs = gs & 0xFFFF;
+    frame.cr3 = cr3;
+    frame.ldtr = ldtr;
 
     return tcb;
 }
@@ -76,10 +77,10 @@ void X86Context::destroy(TCB *tcb) {
 
     if (frame->xsp) {
         operator delete[] (
-            reinterpret_cast<void *>(frame->xsp - thread_stack_size), mm
+            reinterpret_cast<void *>(frame->xsp - thread_stack_size)
         );
     }
-    operator delete (x86tcb, mm);
+    operator delete (x86tcb);
 }
 
 [[noreturn]] void X86Context::switch_to(TCB &next) {

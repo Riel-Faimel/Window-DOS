@@ -1,4 +1,5 @@
 include $(SRC_DIR)kernel/drv/screen/screen.mk
+include $(SRC_DIR)kernel/drv/com/com.mk
 include $(SRC_DIR)kernel/drv/disk/disk.mk
 include $(SRC_DIR)kernel/drv/fs/fs.mk
 include $(SRC_DIR)kernel/drv/bus/PCI/pci.mk

@@ -25,8 +25,24 @@ class String{
         constexpr char operator* () const { return *ptr; }
     };
 public:
-    String():data(nullptr), len(0) {}
-    String(const char *s) noexcept;
+    constexpr String() noexcept: data(nullptr), len(0) {}
+
+    // constexpr 隐含 inline，定义必须对每个使用它的 TU 可见，所以放在头里。
+    // 有 new 没关系：只要不在常量求值里调用，它就是普通运行期分配。
+    constexpr String(const char *s) noexcept {
+        if (s == nullptr) {
+            data = nullptr;
+            len = 0;
+            return;
+        }
+
+        len = 0;
+        while (s[len]) len++;
+
+        data = new char[len + 1];
+        for (unsigned i = 0; i < len; i++) data[i] = s[i];
+        data[len] = '\0';
+    }
     String(char *s, unsigned n) noexcept;
     String(const String &s) noexcept;
     String(String &&s) noexcept;
