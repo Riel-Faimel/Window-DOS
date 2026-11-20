@@ -1,6 +1,6 @@
+#pragma GCC optimize("Os")
 #include "_cpu.hpp"
 #include <id/id.hpp>
-#pragma GCC optimize("Os")
 
 namespace arch {
 
@@ -39,8 +39,10 @@ context{mm}, scheduler{context, context.create_thread(
     )
 }
 
-CPUInfo x86::get_info() {
-    return info;
+CPUInfo x86::get_info() { return info; }
+
+void x86::mem_protect() {
+    mm.set_allocator(new inpage{});
 }
 
 void x86::preempt() { context.start_preemption(); }

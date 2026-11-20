@@ -16,7 +16,7 @@
 
 namespace arch {
     
-struct x86 : public CPU {
+class x86 : public CPU {
     ::MemoryManager mm;// first
     IDT idt;
     GDT gdt;
@@ -25,14 +25,13 @@ struct x86 : public CPU {
     X86Context context;
     alignas(4) DefaultScheduler scheduler; // schedule loop
     CPUInfo info;
-
+public:
     x86();
 
     CPUInfo get_info();
 
     // memory mode control
-    void paging();
-    void unpaging();
+    void mem_protect() override;
 
     // scheduler control
     void preempt() override;

@@ -2,18 +2,18 @@
 #define __kernel_mm_phy_hpp
 
 #include <global/type.hpp>
-#include "phy_def.hpp"
+#include <global/memory.hpp>
 
 #pragma pack(push, 1)
 struct PagePackage {
-    mm::Address base;
-    mm::PageNum pages;
+    mem::Address base;
+    mem::PageNum pages;
 };
 #pragma pack(pop)
 
 struct PhysicalPage {
-    using PageNum = mm::PageNum;
-    using Address = mm::Address;
+    using PageNum = mem::PageNum;
+    using Address = mem::Address;
 
     class address_generator {
         PageNum needpages;

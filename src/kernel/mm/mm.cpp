@@ -1,5 +1,5 @@
 #include "_mm.hpp"
-using namespace mm;
+using namespace mem;
 
 #pragma GCC optimize("Os")
 #pragma GCC diagnostic ignored "-Wmultichar"
@@ -143,7 +143,7 @@ int KernelHeapFormat::size_to_level(u32 size) {
         if (l >= size) return label;
         label++;
     }
-    return (u32)-1;
+    return -1;
 }
 KernelHeapFormat::PageHead *KernelHeapFormat::search_page(void *obj) {
     for (auto &page : rtl::list_tranveser{sb->page_head})
@@ -157,9 +157,14 @@ KernelHeapFormat::SubZone *KernelHeapFormat::search_zone(void *obj, KernelHeapFo
 }
 
 
-inline MemoryManager::allocable::allocable() {}
 MemoryManager::nopage::nopage(void* page_base):
-allocable{}, KernelHeapFormat{page_base} {}
+KernelHeapFormat{page_base} {}
+
+MemSpace MemoryManager::nopage::alloc() { return {}; }
+void MemoryManager::nopage::dlloc(MemSpace) {}
+
+void *MemoryManager::nopage::alloc(MemSpace, size_t s, MemAttr) { return alloc(s); }
+void MemoryManager::nopage::dlloc(MemSpace, void *ptr, size_t) { dlloc(ptr, -1); }
 
 __attribute__((optimize("O2")))
 void *MemoryManager::nopage::alloc(size_t size) {
@@ -177,29 +182,31 @@ void *MemoryManager::nopage::alloc(size_t size) {
             //kout << "<addr=" << box+1 << ">\n";
             return box+1;
         }
+    } else {
+        auto &objzone = sb->free_zones[level];
+        if (objzone.obj_start == nullptr) {
+            // need to new subzone
+            if (!createzone(level)) return nullptr;
+        }
+
+        // alloc
+        auto box = objzone.obj_start;
+        if (!box) return nullptr;
+        objzone.free_count--;
+        objzone.obj_start = box->next;
+
+        // set head and guard; level is read by dlloc, so it goes in after the
+        // header construction (the header's union starts as next=nullptr).
+        new (box) ObjHeader{.next = nullptr, .head_guard = ObjectHeadGuard};
+        box->level = level;
+        *reinterpret_cast<u16 *>(
+            reinterpret_cast<u8 *>(box + 1) + size_classes[level]
+        ) = ObjectTailGuard;
+
+        // init done return
+        return box+1;
     }
-
-    auto &objzone = sb->free_zones[level];
-    if (objzone.obj_start == nullptr) {
-        // need to new subzone
-        if (!createzone(level)) return nullptr;
-    }
-
-    auto box = objzone.obj_start;
-    if (!box) return nullptr;
-    objzone.free_count--;
-    objzone.obj_start = box->next;
-
-    // set head and guard; level is read by dlloc, so it goes in after the
-    // header construction (the header's union starts as next=nullptr).
-    new (box) ObjHeader{.next = nullptr, .head_guard = ObjectHeadGuard};
-    box->level = level;
-    *reinterpret_cast<u16 *>(
-        reinterpret_cast<u8 *>(box + 1) + size_classes[level]
-    ) = ObjectTailGuard;
-
-    //kout << "<addr=" << box+1 << ">";
-    return box+1;
+    return nullptr;
 }
 __attribute__((optimize("O2")))
 void MemoryManager::nopage::dlloc(void *ptr, size_t) {
@@ -215,55 +222,51 @@ void MemoryManager::nopage::dlloc(void *ptr, size_t) {
         zone.free_count++;
     }
 }
-__attribute__((error("Not yet!")))
-MemoryManager::inpage::inpage(void* page_base):
-allocable{}, KernelHeapFormat{page_base} {}
-void *MemoryManager::inpage::alloc(size_t) { return nullptr; }
-void MemoryManager::inpage::dlloc(void *, size_t) {}
+
 MemoryManager::MemoryManager(bool print):
 defaul{nullptr}, al{&defaul} {
-    DebugInfo(if (print) kout << "< heap: " << *(void **)(&defaul);)
+    DebugInfo(if (print) kout << "< heap: " << &defaul;)
 }
 
 //======
 
 void *operator new(size_t size) {
-    return global_heap->alloc(size);
+    return global_heap->allocator()->alloc(size);
 }
 void operator delete(void *ptr) {
-    return global_heap->dlloc(ptr);
+    return global_heap->allocator()->dlloc(ptr);
 }
 void operator delete(void *ptr, size_t size) {
-    return global_heap->dlloc(ptr, size);
+    return global_heap->allocator()->dlloc(ptr, size);
 }
 
 void *operator new[](size_t size) {
-    return global_heap->alloc(size);
+    return global_heap->allocator()->alloc(size);
 }
 void operator delete[](void *ptr) {
-    return global_heap->dlloc(ptr);
+    return global_heap->allocator()->dlloc(ptr);
 }
 void operator delete[](void *ptr, size_t size) {
-    return global_heap->dlloc(ptr, size);
+    return global_heap->allocator()->dlloc(ptr, size);
 }
 
 void *operator new(size_t size, MemoryManager& mm) {
-    return mm.alloc(size);
+    return mm.allocator()->alloc(size);
 }
 void *operator new[](size_t size, MemoryManager& mm) {
-    return mm.alloc(size);
+    return mm.allocator()->alloc(size);
 }
 void operator delete(void *ptr, MemoryManager& mm) {
-    mm.dlloc(ptr);
+    mm.allocator()->dlloc(ptr);
 }
 void operator delete(void *ptr, MemoryManager& mm, unsigned size) {
-    mm.dlloc(ptr, size);
+    mm.allocator()->dlloc(ptr, size);
 }
 void operator delete[](void *ptr, MemoryManager& mm) {
-    mm.dlloc(ptr);
+    mm.allocator()->dlloc(ptr);
 }
 void operator delete[](void *ptr, MemoryManager& mm, unsigned size) {
-    mm.dlloc(ptr, size);
+    mm.allocator()->dlloc(ptr, size);
 }
 
 /**

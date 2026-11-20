@@ -2,9 +2,15 @@
 #define __include_TD_PCB_hpp
 
 #include <global/type.hpp>
+#include <String>
+
+struct MemSpace;
+struct TCB;
 
 struct PCB {
-    u32 id;
+    TCB *main;
+    MemSpace &ms;
+    String name;
 };
 
 

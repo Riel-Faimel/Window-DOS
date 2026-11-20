@@ -5,3 +5,12 @@
 #include <HL/generator>
 #include <HL/atomic>
 #include <stdio>
+#include <interface/mem/allocable.hpp>
+
+namespace arch {
+    
+class inpage : public mem::Allocable {
+public:
+};
+
+} // namespace arch 

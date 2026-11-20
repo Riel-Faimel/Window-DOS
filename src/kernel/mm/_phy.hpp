@@ -25,8 +25,8 @@ struct mmap_struc {
 };
 
 struct address_package {
-    mm::Address address;
-    mm::ByteNum len;
+    mem::Address address;
+    mem::ByteNum len;
 };
 
 struct mem_list {

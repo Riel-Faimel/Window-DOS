@@ -44,6 +44,9 @@ public:
 
     virtual CPUInfo get_info() = 0;
 
+    // memory protect
+    virtual void mem_protect() = 0;
+    
     // scheduler control
     virtual void preempt() = 0;
     virtual void collabora() = 0;

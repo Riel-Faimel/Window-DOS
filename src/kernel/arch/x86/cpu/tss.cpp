@@ -6,9 +6,9 @@ __attribute__((optimize("O0")))
 TSM::TSM(GDT &gdt, MemoryManager& mm) {
     // The ring0 stack grows down from esp0, so esp0 must be the top of the
     // allocated block, not its base.
-    auto pkg = *physicalpage.aloc(mm::PageNum{512}, true).begin();
-    u32 stack_top = static_cast<u32>(static_cast<mm::Pointer<int>>(
-        pkg.base + static_cast<mm::ByteNum>(pkg.pages)
+    auto pkg = *physicalpage.aloc(mem::PageNum{512}, true).begin();
+    u32 stack_top = static_cast<u32>(static_cast<mem::Pointer<int>>(
+        pkg.base + static_cast<mem::ByteNum>(pkg.pages)
     ));
 
     auto tss_id = gdt.create_tss(new (mm) TSS32 {

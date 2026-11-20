@@ -13,6 +13,7 @@ void LoaderMain(){
     global_heap = &init_global_heap;
     CurruentArchitecture cpu0{}; // init first CPU
     cpu0.preempt();
+    cpu0.mem_protect();
     asm volatile ("sti");
 
     //===INFO===
@@ -38,7 +39,6 @@ void LoaderMain(){
         switch (err) {
         case FexecExceptionCode::NoException: {
             _Sexit(); // init thread sleep
-            __builtin_unreachable();
         } break;
         case FexecExceptionCode::OpenFileFailed: {
             kout << "[BOOT] <Exception> \"B:\\INIT.COM\" not found\n";

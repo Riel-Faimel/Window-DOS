@@ -13,11 +13,11 @@ InsideModuleRecord PDevDrv head {
 };
 
 SATA_control::SATA_control(DeviceInfo &info):
-cfg{*static_cast<PCI_device_config *>(info.config)} {
+cfg{static_cast<PCI_device_config *>(info.config)} {
     if (info.enumer) info.enumer->set_mod(info.config);
 
-    const u32 bar = cfg.BAR[5] & ~0xFu;
-    if ((cfg.BAR[5] & 0x1u) == 0 && bar) {
+    const u32 bar = cfg->BAR[5] & ~0xFu;
+    if ((cfg->BAR[5] & 0x1u) == 0 && bar) {
         ctrl_reg_base = reinterpret_cast<volatile void *>(bar);
     } else {
         ctrl_reg_base = nullptr;
@@ -40,9 +40,9 @@ bool SATA_control::init_controller() {
     if (port_count > 32) port_count = 32;
 
     // 一次分配 16 页连续物理内存做数据中转缓冲（恒等映射，可直接 DMA）。
-    for (auto pkg : physicalpage.aloc(mm::PageNum{16}, true)) {
-        if (pkg.pages < mm::PageNum{16}) break;
-        bounce = reinterpret_cast<u32>(mm::address_to_void_p(pkg.base));
+    for (auto pkg : physicalpage.aloc(mem::PageNum{16}, true)) {
+        if (pkg.pages < mem::PageNum{16}) break;
+        bounce = reinterpret_cast<u32>(static_cast<void *>(pkg.base));
         bounce_size = 16u * 4096u;
         break;
     }
@@ -57,20 +57,20 @@ bool SATA_control::init_controller() {
 }
 
 bool SATA_control::alloc_port(u8 id) {
-    u32 base = 0;
-    for (auto pkg : physicalpage.aloc(mm::PageNum{1}, true)) {
-        if (pkg.pages < mm::PageNum{1}) break;
-        base = reinterpret_cast<u32>(mm::address_to_void_p(pkg.base));
+    mem::Pointer<u8> base = 0;
+    for (auto pkg : physicalpage.aloc(mem::PageNum{1}, true)) {
+        if (pkg.pages < mem::PageNum{1}) break;
+        base = pkg.base;
         break;
     }
     if (!base) return false;
 
-    __builtin_memset(reinterpret_cast<void *>(base), 0, 4096);
+    __builtin_memset(static_cast<void *>(base), 0, 4096);
 
     // 一页里放三段：命令表(1KB) / FIS(256B) / 命令表头(<=256B)
-    ports[id].clb = base;
-    ports[id].fis = base + 0x400u;
-    ports[id].ct  = base + 0x500u;
+    ports[id].clb = static_cast<u32>(base);
+    ports[id].fis = static_cast<u32>(base + 0x400u);
+    ports[id].ct  = static_cast<u32>(base + 0x500u);
     return true;
 }
 

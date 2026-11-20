@@ -5,14 +5,14 @@
  * Create a named shared memory
  * Return memory base address
  */
-unsigned mem::create(String mapname) {
+unsigned Memory::create(String mapname) {
     return 0;
 }
 
 /**
  * Delete named sh-mem
  */
-unsigned mem::delet(String mapname) {
+unsigned Memory::delet(String mapname) {
     return 0;
 }
 
@@ -20,7 +20,7 @@ unsigned mem::delet(String mapname) {
  * Open a named shared memory
  * from name and return address
  */
-unsigned mem::open(String mapname) {
+unsigned Memory::open(String mapname) {
     return 0;
 }
 
@@ -28,10 +28,10 @@ unsigned mem::open(String mapname) {
  * Close a map
  * Return error code
  */
-unsigned mem::close(unsigned mapaddr) {
+unsigned Memory::close(unsigned mapaddr) {
     return 0;
 }
 
-void *mmap(String, void *) {
+void *Memory::mmap(unsigned, void *) {
     return nullptr;
 }

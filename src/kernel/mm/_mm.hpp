@@ -10,7 +10,7 @@
 #define ObjectTailGuard 'TG'
 #define ObjectSingalGuard 'SP'
 
-constexpr u16 size_classes[__window_dos_define_0x1_SIZE_CLASS_COUNT] = {
+constexpr u16 size_classes[mem::SizeClassCount] = {
     16, 24, 32, 48, 64, 96, 128, 192, 256, 
     384, 512, 768, 1024, 1536, 2048, 3072, 4096
 };

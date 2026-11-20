@@ -11,8 +11,12 @@ extern "C" {
     void _Sint_sche();
     void basic_time_handler();
 }
+namespace {
+constexpr size_t thread_stack_size = 4096;
+}
 
 namespace arch {
+
 
 X86Context::X86Context(MemoryManager &mm) : mm{mm} {
     // _Sexit is the software vector the scheduler uses to enter exit.
@@ -54,7 +58,6 @@ TCB *X86Context::create_thread(
 
     // x86 stacks grow down: xsp must start at the top of the allocation,
     // not at its base (the first push writes at xsp - 4).
-    constexpr size_t thread_stack_size = 4096;
     auto *stack = new (mm) char[thread_stack_size];
     frame.xsp = ((size_t)stack + thread_stack_size) & ~(size_t)3;
 
@@ -71,7 +74,11 @@ void X86Context::destroy(TCB *tcb) {
     auto *x86tcb = static_cast<X86TCB *>(tcb);
     auto *frame = &x86tcb->frame;
 
-    if (frame->xsp) operator delete ((void *)frame->xsp, mm);
+    if (frame->xsp) {
+        operator delete[] (
+            reinterpret_cast<void *>(frame->xsp - thread_stack_size), mm
+        );
+    }
     operator delete (x86tcb, mm);
 }
 

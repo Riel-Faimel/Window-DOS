@@ -3,7 +3,7 @@
 
 #include <interface/srvdev/cluster.hpp>
 
-class mem : public Cluster {
+class Memory : public Cluster {
 public:
     unsigned read(void *, unsigned, unsigned, unsigned) override;
     unsigned write(void *, unsigned, unsigned , unsigned) override;

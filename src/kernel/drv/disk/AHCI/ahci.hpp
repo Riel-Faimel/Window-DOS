@@ -157,7 +157,7 @@ private:
         bool present = false;
     };
 
-    PCI_device_config cfg;
+    PCI_device_config *cfg;
     u8 port_count = 0;
     mutable PortRuntime ports[32];
     u32 bounce = 0;        // 数据中转缓冲（连续物理页）
