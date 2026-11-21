@@ -97,6 +97,7 @@ void KernelHeapFormat::format(PagePackage addrpkg) {
     sb = (SuperBlock *)new (Pointer<ObjHeader>{addrpkg.base}) SuperBlock {
         .magic = SuperBlockMagic, .total_pages = addrpkg.pages
     };
+    ASMLabelMark(enter)
     sb->page_head = (PageHead *) new (sb+1) PageHead {
         Pointer<int>(addrpkg.base+static_cast<ByteNum>(addrpkg.pages))
     };

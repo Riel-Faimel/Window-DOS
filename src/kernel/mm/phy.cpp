@@ -2,7 +2,7 @@
 
 using namespace mem;
 
-mem_list *__window_dos_loader_struct_0x1::start = reinterpret_cast<mem_list *>(0x00027000);
+mem_list *__window_dos_loader_struct_0x1::start = __kernel_end;
 atomic<bool> physical_memory_lock{};
 
 PhysicalPage::PhysicalPage(){

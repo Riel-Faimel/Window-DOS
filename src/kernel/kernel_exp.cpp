@@ -30,7 +30,6 @@ void LoaderMain(){
         public:
             WindowManager wm{};
             ClusterDeviceManager cdm{};
-            // SDM 必须排在 pds 前面：PS/2 在总线枚举时就会注册 "kbd"。
             StreamDeviceManager sdm{};
             PeripheralDeviceSpace pds{};
             KernelObjectManager kom{};

@@ -64,7 +64,7 @@ SECTIONS {
     }
 
     . = ALIGN(4);
-    __boot_loader_end = .;
+    __kernel_end = .;
 
     /DISCARD/ : {
         *(.comment)

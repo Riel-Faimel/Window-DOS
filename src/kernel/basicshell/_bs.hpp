@@ -1,5 +1,6 @@
 #include "bs.hpp"
 #include <interface/svm/op.hpp>
+#include <interface/svm/data.hpp>
 #include <svm/svm.hpp>
 #include <stdio>
 #include <SrvDevMgr/SDM.hpp>
@@ -7,6 +8,13 @@
 using namespace svm;
 
 namespace {
+
+// 编译器自己用的槽：Open 解析出来的对象放在这一格，随后用 Ref 引用它。
+constexpr u32 disk_slot = 60;
+
+// 脚本变量从这一格往上长，最多 vars_max 个（到 59 为止，60 留给 disk_slot）。
+constexpr u32 var_base = 48;
+constexpr unsigned vars_max = 12;
 
 // 输出缓冲区：前端持有，把地址作为操作数交给 VM，VM 只往里写原始字节，
 // 怎么显示由这里决定。
@@ -42,10 +50,9 @@ bool parse_hex(const String &w, u32 &re) {
  * 参数顺序 = push 的顺序 = 执行器 pop 的反序；缺省值和范围只在这里写一份，
  * help 的输出也从这张表生成。表是前端的东西，SysVM 看不到它。
  */
-const OpInfo table[] = {
-    { Op::Help, "help", "this list", 0, false, {} },
+const BasicShell::OpInfo table[] = {
     { Op::Read, "read", "dump sectors of the n-th physical disk", 3, true, {
-        { "disk",  0, 0, 15 },
+        { "disk",  0, 0, 15, BasicShell::ArgKind::Disk },
         { "lba",   0, 0, 0  },
         { "count", 1, 1, 8  },
     } },
@@ -61,13 +68,13 @@ constexpr unsigned table_n = sizeof(table) / sizeof(table[0]);
 
 } // namespace
 
-inline const OpInfo *op_lookup(const String &name) {
+inline const BasicShell::OpInfo *op_lookup(const String &name) {
     for (unsigned i = 0; i < table_n; i++)
         if (name == table[i].name) return &table[i];
     return nullptr;
 }
 
-inline const OpInfo *op_table(unsigned &count) {
+inline const BasicShell::OpInfo *op_table(unsigned &count) {
     count = table_n;
     return table;
 }

@@ -42,7 +42,7 @@ struct mem_list {
 #pragma pack(pop)
 extern "C" {
     inline mmap_struc *mmap_struc_base = (mmap_struc *)0x5000;
-    extern mem_list* __boot_loader_end;
+    extern mem_list __kernel_end[];
 }
 
 struct __window_dos_loader_struct_0x1 {
