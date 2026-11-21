@@ -3,44 +3,63 @@
 
 #include <global/type.hpp>
 #include <interface/svm/op.hpp>
-#include <interface/svm/data.hpp>
 
 namespace svm {
 
 /**
- * System Virtual Machine：一个带类型的值栈 + 四个寄存器 + 指令循环。
+ * 一次执行的状态：值栈 + 寄存器。
  *
- * 它是内核基础设施：不知道命令名、不格式化、不分页。需要产出数据的指令多收
- * 一个输出缓冲区操作数（Buf），怎么显示由前端决定。
- *
- * 栈上每个元素、每个寄存器都是容许数据 Value。没有独立的引用表：Ref 的 value
- * 就是栈槽下标，它指向的变量必须就在栈上。寄存器由指令自己点名（insn.reg），
- * 不是可以间接寻址的下标。
+ * 所有可变的东西都在这里，所以 SysVM 本身没有状态，一个 VM 可以服务多个执行流。
+ * 栈上每个元素、每个寄存器都是容许数据 Value；没有独立的引用表：Ref 的 value
+ * 就是栈槽下标，它指向的变量必须就在栈上；Reg 的 value 是寄存器下标。
  */
-class SysVM {
-    // 值栈：定长，压/弹就是 sp 加减。
+class SysVMThread {
+public:
     static constexpr unsigned stack_max = 64;
-    Value stack[stack_max];
-    unsigned sp = 0;
-
     static constexpr unsigned reg_max = 4;
-    Value reg[reg_max];
 
-    bool exec(const Insn &in);
-    void push(Value v);
+    SysVMThread();
+
+    /** 清栈、清寄存器。*/
+    void reset();
+
+    void  push(Value v);
     Value pop();
 
-    Value *slot_of(const Value &ref);    // Ref -> 栈槽位置；不是 Ref 返回 nullptr
-    Value  value_of(const Value &v);     // 取值：Ref 解引用，其余原样
+    /** Ref -> 栈槽位置，Reg -> 寄存器位置；其它返回 nullptr。*/
+    Value *slot_of(const Value &where);
 
+    /** 取值：位置解一层引用，其它原样。*/
+    Value  value_of(const Value &v);
+
+private:
+    Value stack[stack_max];
+    unsigned sp = 0;
+    Value reg[reg_max];
+
+    friend class SysVM;
+};
+
+/**
+ * 指令执行器。无状态：不持有栈、不持有寄存器，只认指令和容许数据。
+ */
+class SysVM {
 public:
     SysVM();
 
     /**
-     * 执行一段指令。失败（栈下溢、类型不符、容量不够、未知操作码）时报错并清栈，
-     * 输出缓冲区保持已写到的位置。
+     * 分配一份执行状态。调用之后由调用者持有：用完自己 delete。
      */
-    void run(const ShellNode &node);
+    SysVMThread *create_thread();
+
+    /**
+     * 在 th 上执行一段指令。失败（栈下溢、类型不符、容量不够、未知操作码）
+     * 时返回 false，输出缓冲区保持已写到的位置。
+     */
+    bool run(SysVMThread &th, const ShellNode &node);
+
+private:
+    bool exec(SysVMThread &th, const Insn &in);
 };
 
 } // namespace svm

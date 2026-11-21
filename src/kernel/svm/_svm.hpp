@@ -1,4 +1,5 @@
 #include "svm.hpp"
+#include <interface/svm/data.hpp>
 #include <stdio>
 #include <interface/knlobj/knlobj.hpp>
 #include <KrnlObjMgr/kom.hpp>

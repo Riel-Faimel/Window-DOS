@@ -532,6 +532,8 @@ void BasicShell::main() {
         for (;;) asm volatile ("hlt");
     }
 
+    thread = sysvm->create_thread();
+
     static u8 storage[4096];
     out.data = storage;
     out.cap = sizeof storage;
@@ -558,7 +560,7 @@ void BasicShell::main() {
             }
         }
 
-        sysvm->run(node);
+        sysvm->run(*thread, node);
 
         switch (display) {
         case Op::Read:

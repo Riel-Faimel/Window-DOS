@@ -13,49 +13,44 @@ fs{} {
 }
 
 void KernelModule::probe() {
-    reg_insmod();
+    for (auto &head : inside_mod_tranv) {
+        reg_insmod(head);
+    }
 }
 
-void KernelModule::reg_insmod() {
-    try {
-    for (auto &head : inside_mod_tranv) {
-        switch (head.mod_type) {
-        case ModHead::ModType::PDevDrv: {
-            auto drv = (PDevDrv &)head;
-            switch (drv.drv_type) {
-            case PDevDrv::DrvType::ProgIF: {
-                pdevspace->append(drv.progid, drv.drv_construc);
-            } break;
-            case PDevDrv::DrvType::Dev: {
-                pdevspace->append(drv.progid, drv.device_type, drv.drv_construc);
-            } break;
-            default: {
-                throw "Bad Module Record";
-            } break;
-            }
+void KernelModule::reg_insmod(ModHead &head) {
+    switch (head.mod_type) {
+    case ModHead::ModType::PDevDrv: {
+        auto drv = (PDevDrv &)head;
+        switch (drv.drv_type) {
+        case PDevDrv::DrvType::ProgIF: {
+            pdevspace->append(drv.progid, drv.drv_construc);
         } break;
-        case ModHead::ModType::KrnlObj: {
-            ;
-        } break;
-        case ModHead::ModType::SrvDev: {
-            auto srvmod = (SrvDev &)head;
-            fs[srvmod.fs_id] = srvmod.fs_construc;
-        } break;
-        case ModHead::ModType::EnumerMod: {
-            auto enumermod = (EnumerMod &)head;
-            pdevspace->append(enumermod.mainbody());
-        } break;
-        case ModHead::ModType::SyscallMod: {
-            auto &sysmod = (SyscallMod &)head;
-            if (window_manager)
-                window_manager->append(sysmod.create(), sysmod.interrupt_index);
+        case PDevDrv::DrvType::Dev: {
+            pdevspace->append(drv.progid, drv.device_type, drv.drv_construc);
         } break;
         default: {
-            __builtin_unreachable();
+            throw "Bad Module Record";
         } break;
         }
-    }
-    } catch (...) {
+    } break;
+    case ModHead::ModType::KrnlObj: {
         ;
+    } break;
+    case ModHead::ModType::SrvDev: {
+        auto srvmod = (SrvDev &)head;
+        fs[srvmod.fs_id] = srvmod.fs_construc;
+    } break;
+    case ModHead::ModType::EnumerMod: {
+        auto enumermod = (EnumerMod &)head;
+        pdevspace->append(enumermod.mainbody());
+    } break;
+    case ModHead::ModType::SyscallMod: {
+        auto &sysmod = (SyscallMod &)head;
+        window_manager->append(sysmod.create(), sysmod.interrupt_index);
+    } break;
+    default: {
+        __builtin_unreachable();
+    } break;
     }
 }

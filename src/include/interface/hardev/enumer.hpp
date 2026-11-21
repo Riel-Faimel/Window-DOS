@@ -16,9 +16,10 @@ public:
         EnumerIndex &operator ++ () { id++; return *this; }
         EnumerIndex operator ++ (int) { return EnumerIndex{id++}; }
     } id{};
-    virtual ~Enumerator() = default;
+    void set_id(EnumerIndex id_) noexcept { id = id_; }
     virtual void probe() = 0;
     virtual void set_mod(void *) = 0;
+    virtual ~Enumerator() = default;
 };
 
 #endif

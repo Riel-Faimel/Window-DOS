@@ -2,20 +2,15 @@
 #include "_pds.hpp"
 
 /**
- * PeripheralDeviceSpace 的数据形状（和 pds.hpp 里的三个名字对应）：
+ * PeripheralDeviceSpace:
  *
- *   ProgramInFace（根，按 ProgIF 唯一）
- *   ├── drv       覆盖这个编程接口的通用驱动
- *   └── dev_l     DeviceNode（叉，按 DeviceType 唯一）
- *                 ├── drv       只给这个设备类型的特化驱动
- *                 └── in_l      Instance（同型号的第 N 台设备）
- *                                ├── config       总线私有配置
- *                                └── drvInstance  驱动实例
- *
- * 匹配 = 设备实例和驱动落在同一个根 / 同一个叉上，没有别的查找表。
- * 两个 append 对应两种驱动：
- *   append(progif, drv)              -> 绑到根
- *   append(progif, device, drv)      -> 绑到叉，只影响这一种设备类型
+ *   ProgramInFace
+ *   ├── drv
+ *   └── dev_l   DeviceNode
+ *               ├── drv
+ *               └── in_l   Instance
+ *                           ├── config
+ *                           └── drvInstance
  */
 
 
@@ -42,6 +37,7 @@ busspace{}, storage{}, bc{} {
  */
 Enumerator::EnumerIndex PeripheralDeviceSpace::append(Enumerator *enumer) {
     auto id = bc++;
+    enumer->set_id(id);
     busspace.append(EnumerNode{id, enumer});
     enumer->probe();
     return id;
@@ -111,9 +107,13 @@ int PeripheralDeviceSpace::append(ProgIFIndex pid, DeviceInfo::DeviceType did, D
     }
 
     LocalDebugInfo(
-        kout << "[PDS] +device progif=" << (u32)pid
+        kout << "[PDS] +device ";
+        if ((u32)pid)
+        kout << "progif=" << (u32)pid
              << " bus=" << (u16)root->bus_id
              << (instance.drvInstance ? " bound\n" : " waiting\n");
+        else
+        kout << "unknow\n";
     )
     return PdsOk;
 }

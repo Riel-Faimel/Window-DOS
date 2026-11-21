@@ -5,21 +5,26 @@ using namespace svm;
 
 SysVM *sysvm = nullptr;
 
-SysVM::SysVM(): stack{}, sp{0}, reg{} {
-    sysvm = this;
+// ======================= SysVMThread：执行状态 =======================
+
+SysVMThread::SysVMThread(): stack{}, sp{0}, reg{} {}
+
+void SysVMThread::reset() {
+    sp = 0;
+    for (unsigned i = 0; i < reg_max; i++) reg[i] = Value{};
 }
 
-void SysVM::push(Value v) {
+void SysVMThread::push(Value v) {
     if (sp < stack_max) stack[sp++] = v;
 }
 
-Value SysVM::pop() {
-    if (sp == 0) return Value{};   // 前端按 argc 编译，正常到不了这里
+Value SysVMThread::pop() {
+    if (sp == 0) return Value{};
     return stack[--sp];
 }
 
 // Ref / Reg 都是"位置"：Ref 指栈槽，Reg 指寄存器。
-Value *SysVM::slot_of(const Value &where) {
+Value *SysVMThread::slot_of(const Value &where) {
     if (where.type == Value::TypeID::Ref) {
         if (where.value >= stack_max) return nullptr;
         return &stack[where.value];
@@ -31,58 +36,69 @@ Value *SysVM::slot_of(const Value &where) {
     return nullptr;
 }
 
-// 取值：位置解一层引用，其它原样。
-Value SysVM::value_of(const Value &v) {
+Value SysVMThread::value_of(const Value &v) {
     if (Value *p = slot_of(v)) return *p;
     return v;
 }
 
-bool SysVM::exec(const Insn &in) {
+// ======================= SysVM：无状态执行器 =======================
+
+SysVM::SysVM() {
+    sysvm = this;
+}
+
+SysVMThread *SysVM::create_thread() {
+    return new SysVMThread;
+}
+
+bool SysVM::exec(SysVMThread &th, const Insn &in) {
     switch (in.op) {
     // 压容许数据；操作数是寄存器时压它的内容。
     case Op::Push: {
         if (in.imm.type == Value::TypeID::Reg) {
-            if (in.imm.value >= reg_max) return false;
-            push(reg[in.imm.value]);
+            Value *p = th.slot_of(in.imm);
+            if (!p) return false;
+            th.push(*p);
         } else {
-            push(in.imm);
+            th.push(in.imm);
         }
         return true;
     }
     // 赋值：imm 指向目标位置（Ref 栈槽 / Reg 寄存器），把栈顶写进去。
-    // 目标为空槽（Nil）时允许写入；否则要求类型相同（协变还没有）。
     case Op::Assign: {
-        Value *target = slot_of(in.imm);
+        Value *target = th.slot_of(in.imm);
         if (!target) return false;
-        if (sp < 1) return false;
+        if (!th.sp) return false;
 
-        const Value top = pop();
+        const Value top = th.pop();
         if (target->type != Value::TypeID::Nil && target->type != top.type)
             return false;
         *target = top;
         return true;
     }
     case Op::Drop: {
-        if (sp < 1) return false;
-        sp--;
+        if (!th.sp) return false;
+        th.sp--;
         return true;
     }
     // 交换：赋值语义要求两边类型相同（还没有协变关系）。
     case Op::Swap: {
-        if (sp < 2) return false;
-        if (stack[sp - 1].type != stack[sp - 2].type) return false;
-        const Value top = stack[sp - 1];
-        stack[sp - 1] = stack[sp - 2];
-        stack[sp - 2] = top;
+        if (th.sp < 2) return false;
+        Value &a = th.stack[th.sp - 1];
+        Value &b = th.stack[th.sp - 2];
+        if (a.type != b.type) return false;
+        const Value t = a;
+        a = b;
+        b = t;
         return true;
     }
     // 比较：左边是栈顶（Ref / Reg 解引用），右边是 imm（同样解引用）。
     // 只接受强序类型：Int 按有符号比，Buf / Obj / Ref 按无符号比；Ordering 无序。
     case Op::Cmp: {
-        if (sp < 1) return false;
+        if (!th.sp) return false;
 
-        const Value a = value_of(stack[sp - 1]);
-        const Value b = value_of(in.imm);
+        const Value a = th.value_of(th.stack[th.sp - 1]);
+        const Value b = th.value_of(in.imm);
         if (a.type != b.type) return false;
 
         s32 r;
@@ -103,18 +119,17 @@ bool SysVM::exec(const Insn &in) {
             return false;   // Ordering / Nil / Reg 不参与比较
         }
 
-        sp--;   // 比较消耗栈顶
-        push(Value{Value::TypeID::Ordering, static_cast<u32>(r)});
+        th.sp--;   // 比较消耗栈顶
+        th.push(Value{Value::TypeID::Ordering, static_cast<u32>(r)});
         return true;
     }
-    // 盘号 -> 变量。imm 指向目标位置（Ref 栈槽 / Reg 寄存器），
-    // 把解析出的内核对象指针写进去。之后用 Ref / Reg 就能引用它。
+    // 盘号 -> 变量。imm 指向目标位置，把解析出的内核对象指针写进去。
     case Op::Open: {
-        if (sp < 1 || stack[sp - 1].type != Value::TypeID::Int) return false;
-        Value *target = slot_of(in.imm);
+        if (!th.sp || th.stack[th.sp - 1].type != Value::TypeID::Int) return false;
+        Value *target = th.slot_of(in.imm);
         if (!target) return false;
 
-        const unsigned idx = pop().value;
+        const unsigned idx = th.pop().value;
 
         DiskPick pick;
         pick.want = idx;
@@ -125,23 +140,24 @@ bool SysVM::exec(const Insn &in) {
         return true;
     }
     // read：压栈顺序 buf(Buf), 对象的槽引用(Ref), lba(Int), count(Int)。
-    // 弹出顺序反过来。成功把读到的字节数（Int）压回栈。
+    // 成功把读到的字节数（Int）压回栈。
     case Op::Read: {
-        if (sp < 4) return false;
-        if (stack[sp - 1].type != Value::TypeID::Int)  return false;   // count
-        if (stack[sp - 2].type != Value::TypeID::Int)  return false;   // lba
-        if (stack[sp - 3].type != Value::TypeID::Ref)  return false;   // disk 槽
-        if (stack[sp - 4].type != Value::TypeID::Buf)  return false;   // out
+        if (th.sp < 4) return false;
+        if (th.stack[th.sp - 1].type != Value::TypeID::Int)  return false;   // count
+        if (th.stack[th.sp - 2].type != Value::TypeID::Int)  return false;   // lba
+        if (th.stack[th.sp - 3].type != Value::TypeID::Ref)  return false;   // disk 槽
+        if (th.stack[th.sp - 4].type != Value::TypeID::Buf)  return false;   // out
 
-        const unsigned cnt = pop().value;
-        const unsigned lba = pop().value;
+        const unsigned cnt = th.pop().value;
+        const unsigned lba = th.pop().value;
 
-        const unsigned slot = pop().value;
-        if (slot >= stack_max) return false;
-        if (stack[slot].type != Value::TypeID::Obj) return false;
-        auto *disk = reinterpret_cast<PhysicalDisk *>(stack[slot].value);
+        const unsigned slot = th.pop().value;
+        if (slot >= SysVMThread::stack_max) return false;
+        Value &obj = th.stack[slot];
+        if (obj.type != Value::TypeID::Obj) return false;
+        auto *disk = reinterpret_cast<PhysicalDisk *>(obj.value);
 
-        auto *out = reinterpret_cast<OutBuf *>(pop().value);
+        auto *out = reinterpret_cast<OutBuf *>(th.pop().value);
         if (!disk || !out) return false;
 
         const unsigned need = cnt * 512;
@@ -151,42 +167,42 @@ bool SysVM::exec(const Insn &in) {
         if (got == (unsigned)-1) return false;
         out->len += got;
 
-        push(Value{Value::TypeID::Int, got});
+        th.push(Value{Value::TypeID::Int, got});
         return true;
     }
     // mem：压栈顺序 buf(Buf), addr(Int), count(Int)。
     case Op::Mem: {
-        if (sp < 3) return false;
-        if (stack[sp - 1].type != Value::TypeID::Int) return false;   // count
-        if (stack[sp - 2].type != Value::TypeID::Int) return false;   // addr
-        if (stack[sp - 3].type != Value::TypeID::Buf) return false;   // out
+        if (th.sp < 3) return false;
+        if (th.stack[th.sp - 1].type != Value::TypeID::Int) return false;   // count
+        if (th.stack[th.sp - 2].type != Value::TypeID::Int) return false;   // addr
+        if (th.stack[th.sp - 3].type != Value::TypeID::Buf) return false;   // out
 
-        const unsigned cnt = pop().value;
-        const unsigned addr = pop().value;
-        auto *out = reinterpret_cast<OutBuf *>(pop().value);
+        const unsigned cnt = th.pop().value;
+        const unsigned addr = th.pop().value;
+        auto *out = reinterpret_cast<OutBuf *>(th.pop().value);
         if (!out) return false;
 
         const unsigned before = out->len;
         if (!out->put(reinterpret_cast<const void *>(addr), cnt)) return false;
 
-        push(Value{Value::TypeID::Int, out->len - before});
+        th.push(Value{Value::TypeID::Int, out->len - before});
         return true;
     }
     case Op::Obj: {
-        if (sp < 1 || stack[sp - 1].type != Value::TypeID::Buf) return false;
-        auto *out = reinterpret_cast<OutBuf *>(pop().value);
+        if (!th.sp || th.stack[th.sp - 1].type != Value::TypeID::Buf) return false;
+        auto *out = reinterpret_cast<OutBuf *>(th.pop().value);
         if (!out) return false;
 
         const unsigned before = out->len;
         ObjWriter w{out};
         kom->visit(write_obj, &w);
 
-        push(Value{Value::TypeID::Int, out->len - before});
+        th.push(Value{Value::TypeID::Int, out->len - before});
         return true;
     }
     case Op::Fs: {
-        if (sp < 1 || stack[sp - 1].type != Value::TypeID::Buf) return false;
-        auto *out = reinterpret_cast<OutBuf *>(pop().value);
+        if (!th.sp || th.stack[th.sp - 1].type != Value::TypeID::Buf) return false;
+        auto *out = reinterpret_cast<OutBuf *>(th.pop().value);
         if (!out) return false;
 
         const unsigned before = out->len;
@@ -200,7 +216,7 @@ bool SysVM::exec(const Insn &in) {
             }
         }
 
-        push(Value{Value::TypeID::Int, out->len - before});
+        th.push(Value{Value::TypeID::Int, out->len - before});
         return true;
     }
     default:
@@ -208,18 +224,17 @@ bool SysVM::exec(const Insn &in) {
     }
 }
 
-void SysVM::run(const ShellNode &node) {
+bool SysVM::run(SysVMThread &th, const ShellNode &node) {
     if (!node.ok) {
         kout << node.error << '\n';
-        return;
+        return false;
     }
 
     const unsigned n = node.code.get_size();
-    if (n == 0) return;
+    if (n == 0) return true;
 
     const Insn *code = &node.code[0];
-    sp = 0;
-    for (unsigned i = 0; i < reg_max; i++) reg[i] = Value{};
+    th.reset();
 
     unsigned pc = 0;
     while (pc < n) {
@@ -233,42 +248,38 @@ void SysVM::run(const ShellNode &node) {
 
             // Jc 不弹任何东西：栈顶是 Ordering，下面一层是目标地址（Int）。
             if (in.op == Op::Jc) {
-                if (in.imm.type != Value::TypeID::Ordering) {
-                    kout << "exec fault\n";
-                    sp = 0;
-                    return;
-                }
-                if (sp < 2 ||
-                    stack[sp - 1].type != Value::TypeID::Ordering ||
-                    stack[sp - 2].type != Value::TypeID::Int) {
-                    kout << "exec fault\n";
-                    sp = 0;
-                    return;
-                }
-                const s32 r = static_cast<s32>(stack[sp - 1].value);
+                if (in.imm.type != Value::TypeID::Ordering) return false;
+                if (th.sp < 2 ||
+                    th.stack[th.sp - 1].type != Value::TypeID::Ordering ||
+                    th.stack[th.sp - 2].type != Value::TypeID::Int)
+                    return false;
+
+                const s32 r = static_cast<s32>(th.stack[th.sp - 1].value);
                 take = (r == static_cast<s32>(in.imm.value));
-                target = stack[sp - 2].value;
+                target = th.stack[th.sp - 2].value;
             }
 
             if (!take) { pc++; break; }
 
             if (target >= n) {
                 kout << "bad jump: " << target << '\n';
-                sp = 0;
-                return;
+                th.reset();
+                return false;
             }
             pc = target;
             break;
         }
         default:
-            if (!exec(in)) {
+            if (!exec(th, in)) {
                 kout << "exec fault\n";
-                sp = 0;
-                return;
+                th.reset();
+                return false;
             }
             pc++;
             break;
         }
     }
-    sp = 0;
+
+    th.reset();
+    return true;
 }

@@ -5,6 +5,7 @@
 #include <interface/srvdev/cluster.hpp>
 #include <interface/hardev/device.hpp>
 #include <interface/knlobj/knlobj.hpp>
+#include <interface/hardev/drvhead.hpp>
 
 struct KernelModule : Enumerator {
     rtl::map<size_t, Cluster *(*)(LogicalDisk *)> fs;
@@ -14,7 +15,7 @@ struct KernelModule : Enumerator {
     // 模块表不是硬件总线，没有可配置的门控。
     void set_mod(void *) override {}
 private:
-    void reg_insmod();
+    void reg_insmod(ModHead&);
 
     ProgIFIndex counter{0};
 };

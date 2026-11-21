@@ -8,6 +8,7 @@
 
 #include <interface/svm/op.hpp>
 #include <interface/svm/data.hpp>
+#include <svm/svm.hpp>
 
 class BasicShell {
 public:
@@ -47,6 +48,9 @@ private:
     static constexpr unsigned line_max = 128;
 
     WinHandle win;          // 打开 kbd 的句柄
+
+    // 执行状态：由 sysvm->create_thread() 分配，本对象持有。
+    svm::SysVMThread *thread = nullptr;
 
     String line;
 
