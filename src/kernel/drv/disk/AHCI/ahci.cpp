@@ -1,6 +1,5 @@
 #include "ahci.hpp"
-
-import lib32;
+#include <lib32.hpp>
 
 using namespace ATAdev;
 
@@ -24,8 +23,8 @@ cfg{static_cast<PCI_device_config *>(info.config)} {
     }
 
     LocalDebugInfo(
-        kout << "[AHCI] bar="; kout.hex((u16)(bar >> 16)); kout.hex((u16)bar);
-        kout << " irq=" << (u16)cfg.Interrupt_line << '\n';
+    kout << "[AHCI] bar="; kout.hex((u16)(bar >> 16)); kout.hex((u16)bar);
+    kout << " irq=" << (u16)cfg->Interrupt_line << '\n';
     )
 }
 
@@ -328,9 +327,9 @@ void SATA_control::work() {
         kom->append(new SATA{*info, *this, DeviceIndex{id}});
 
         LocalDebugInfo(
-            kout << "[AHCI] +disk port=" << (u16)id
-                 << " mode=" << (u16)info->address_mode
-                 << " sect="; kout.hex(info->su_num.low); kout << '\n';
+        kout << "[AHCI] +disk port=" << (u16)id
+             << " mode=" << (u16)info->address_mode
+             << " sect="; kout.hex(info->su_num.low); kout << '\n';
         )
         delete info;
     }

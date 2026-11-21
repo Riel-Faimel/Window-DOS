@@ -1,5 +1,6 @@
 #include "_ps2.hpp"
-import changestack;
+#include <SrvDevMgr/SDM.hpp>
+#include <changestack.hpp>
 extern "C" void ps2_handler();
 
 bool init(){
@@ -69,8 +70,12 @@ void ps2::ps2_handler_c(){
 }
 
 void ps2::work() {
-    kid = kom->append(new PS2_KB{*this});
+    auto kb = new PS2_KB{*this};
+    kid = kom->append(kb);
     mid = kom->append(new PS2_MS{*this});
+
+    // 键盘不直接对外，而是产出一个流服务对象挂到 SDM，使用者按名字取。
+    if (sdm) sdm->regist(new KBStream{*kb}, String("kbd"));
 }
 
 void ps2::off() {

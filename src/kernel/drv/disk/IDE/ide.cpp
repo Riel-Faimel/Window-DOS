@@ -44,32 +44,10 @@ void IDE_control::work() {
         auto diskinfo = identify(disk_ID);
         if (diskinfo) {
             // disk exist
-            DebugInfo(DiskInfoPrint(diskinfo);)
+            DiskInfoPrint(diskinfo);
             auto disk = new IDE{*diskinfo, *this, disk_ID};
             kom->append(disk);
-#undef LocalDebug
-#include <global/macro.hpp>
-            LocalDebugInfo(
-                static bool a = false;
-                kout << "enter" << a << '\n';
-                if (a) {
-                    u16 buf[256];
-                    disk->read(buf, 0x80, 0, 1);
-                    for (auto ch : buf) {
-                        print_hex(ch, false);print_char(' ');
-                    }
-                    while(1);
-                } else {
-                    a = true;
-                }
-            )
-            ASMLabelMark(resolve_done)
         } 
-#undef LocalDebug
-#include <global/macro.hpp>
-    LocalDebugInfo(else {
-            kout << "null port\n";
-        })
     }
 }
 
@@ -88,6 +66,21 @@ DetectTable IDE_control::act(const ActionTable &at) const {
     u16 timeout_counter = 0;
     DetectTable result;
 
+    // device/head 先写：它决定后面这些寄存器归属哪块盘，status 寄存器也反映
+    // 被选中的那块盘。选错盘的 status 会一直是 0x00（未就绪），后面的
+    // timeout_guard 就会在这里超时退出，命令根本发不出去。
+    // LBA 位和 LBA27:24 也得一起带上，所以先把最终值算完。
+    if (at.fill_device) {
+        if (at.if_need_CHS) {
+            device |= at.head;
+        } else {
+            device |= 0b01000000;
+            if (!at.need_48_mode) device |= static_cast<u8>(at.LBA.low >> 24) & 0x0F;
+        }
+        outb(device, chan + CMDBlock::device);
+        timeout_guard(!result.status.ready || result.status.busy)
+    }
+
     timeout_guard(result.status.busy)
 
     if (at.fill_addr){
@@ -97,13 +90,11 @@ DetectTable IDE_control::act(const ActionTable &at) const {
             outb(at.CHS.sector, chan + CMDBlock::sector_index);
             outb(static_cast<u8>(at.CHS.cylinder), chan + CMDBlock::cylinder_l);
             outb(static_cast<u8>(at.CHS.cylinder >> 8), chan + CMDBlock::cylinder_h);
-            device |= at.head;
         } else {
             // LBA mode
-            device |= 0b01000000;
             u8 lba28l = static_cast<u8>(at.LBA.low), lba28m = static_cast<u8>(at.LBA.low >> 8),
             lba28h = static_cast<u8>(at.LBA.low >> 16), lba48l = static_cast<u8>(at.LBA.low >> 24),
-            lba28e = lba48l & 0x0Fu, lba48m = static_cast<u8>(at.LBA.high),
+            lba48m = static_cast<u8>(at.LBA.high),
             lba48h = static_cast<u8>(at.LBA.high >> 8);
 
             if (at.need_48_mode) {
@@ -112,8 +103,6 @@ DetectTable IDE_control::act(const ActionTable &at) const {
                 outb(lba48l, chan + CMDBlock::LBAl);
                 outb(lba48m, chan + CMDBlock::LBAm);
                 outb(lba48h, chan + CMDBlock::LBAh);
-            } else {
-                device |= lba28e;
             }
 
             outb(static_cast<u8>(at.feature), chan + CMDBlock::feature);
@@ -126,15 +115,17 @@ DetectTable IDE_control::act(const ActionTable &at) const {
         timeout_guard(!result.status.ready || result.status.busy)
     }
 
-    if (at.fill_device) {
-        outb(device, chan + CMDBlock::device);
-        timeout_guard(!result.status.ready || result.status.busy)
-    }
-
     if (at.send_cmd) {
         outb(static_cast<u8>(at.cmd), chan + CMDBlock::CMD);
         timeout_guard(!result.status.ready || result.status.busy || result.status.error)
     }
+
+    DebugInfo(
+        kout << "[ATA] ch=" << (int)chan << " dev=" << (int)device
+             << " lba=" << at.LBA.low << " n=" << (int)at.LBA.count
+             << " cmd=" << (int)(u8)at.cmd
+             << " st=" << (int)(u8)inb(chan + CMDBlock::status) << '\n';
+    )
 
     return result;
 }

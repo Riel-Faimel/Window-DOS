@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __include_interface_mem_krnlheapform_hpp
+#define __include_interface_mem_krnlheapform_hpp
 
 #include <global/memory.hpp>
 
@@ -136,3 +137,5 @@ public:
 };
 
 }
+
+#endif

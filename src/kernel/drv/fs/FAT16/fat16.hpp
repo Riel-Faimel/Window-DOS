@@ -354,6 +354,17 @@ class DirResolv : public ClusterView<DirResolv<T>> {
             }
         }
         
+        DebugInfo(
+        if (index < 8) {
+            kout << "[FAT] " << (int)index << " '";
+            for (auto ch : entry->_8_3FN.name) kout << ch;
+            kout << "' '";
+            for (auto ch : entry->_8_3FN.ext) kout << ch;
+            kout << "' attr=" << (int)(u8)entry->_8_3FN.attribute
+                 << " short='" << short_name << "' want='" << filename << "'\n";
+        }
+        )
+
         if (short_name == filename) return ifMatch::MatchOne;
         index++;
         return ifMatch::NotFound;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <global/type.hpp>
+#include <global/memory.hpp>
 #include <interface/mem/allocable.hpp>
 
 namespace arch {
@@ -21,7 +22,7 @@ public:
 
     mem::MemSpace alloc() override;
     void dlloc(mem::MemSpace) override;
-    void *alloc(mem::MemSpace, size_t, mem::MemAttr) override;
+    void *alloc(mem::MemSpace, size_t, mem::Allocable::MemAttr) override;
     void dlloc(mem::MemSpace, void *, size_t) override;
     void *alloc(size_t) override;
     void dlloc(void *, size_t = -1) override;

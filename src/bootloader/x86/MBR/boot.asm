@@ -45,6 +45,7 @@ LoadKernel:
     push edx
     mov edx, [total_sectors]
     sub edx, 32
+    mov [total_sectors], edx
     cmp edx, 0
     jle .done
     mov dx, word [dap.segment]
@@ -138,7 +139,7 @@ dap:
     .lba_low: dd 1
     .lba_high: dd 0
 total_sectors:
-    dd 128
+    dd 256
 
 times 320-($-$$) db 0
 INFO:

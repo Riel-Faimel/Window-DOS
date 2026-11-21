@@ -3,6 +3,15 @@
 #include "type.hpp"
 
 namespace mem {
+
+class MemSpace {
+    u32 id = 0;
+public:
+    MemSpace() = default;
+    explicit constexpr MemSpace(u32 pd) : id{pd} {}
+    explicit constexpr operator u32() const { return id; }
+    explicit constexpr operator bool() const { return id != 0; }
+};
     
 class PageNum {
     u64 data;

@@ -7,7 +7,7 @@
 #include <interface/hardev/drvhead.hpp>
 #include <drv/bus/PCI/pci.hpp>
 #include <mm/mm.hpp>
-#undef LocalDebug
+#define LocalDebug
 #include <global/macro.hpp>
 #include <KrnlObjMgr/kom.hpp>
 #include <stdio>

@@ -3,7 +3,7 @@ include $(SRC_DIR)kernel/arch/arch.mk
 include $(SRC_DIR)kernel/id/id.mk
 include $(SRC_DIR)kernel/mm/mm.mk
 include $(SRC_DIR)kernel/WM/wm.mk
-include $(SRC_DIR)kernel/SrvDevMgr/DLS.mk
+include $(SRC_DIR)kernel/SrvDevMgr/SrvDevMgr.mk
 include $(SRC_DIR)kernel/PDS/pds.mk
 include $(SRC_DIR)kernel/multiCE/multiCE.mk
 include $(SRC_DIR)kernel/TaskMgr/TM.mk

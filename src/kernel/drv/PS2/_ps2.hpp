@@ -4,6 +4,7 @@
 #include <id/id.hpp>
 #include <interface/hardev/drvhead.hpp>
 #include <interface/knlobj/knlobj.hpp>
+#include <interface/srvdev/stream.hpp>
 #include "ps2_c.h"
 
 #define DATA 0x60
@@ -41,3 +42,35 @@ public:
     }
     unsigned give(void *, unsigned, unsigned) override { return 0; }
 };
+
+/**
+ * 键盘的流服务对象：只引用 PS2_KB，不把驱动细节暴露给使用者。
+ *
+ * 内部按块预取：方向键在驱动里是多字节 ESC 序列，逐字节 take 会让驱动的
+ * "序列放不下"分支原地打转；这里一次取满一小块，再逐字节吐出去。
+ */
+class KBStream : public Stream {
+    PS2_KB &kb;
+    u8 buf[8];
+    unsigned n = 0;
+    unsigned pos = 0;
+public:
+    explicit KBStream(PS2_KB &kb_): kb{kb_} {}
+
+    Stream &operator << (u8) override { return *this; }    // 键盘只读
+    Stream &operator >> (u8 &b) override {
+        if (pos >= n) {
+            n = kb.take(buf, 0, sizeof buf);
+            pos = 0;
+            if (n == 0) { b = 0; return *this; }
+        }
+        b = buf[pos++];
+        return *this;
+    }
+
+    void send() override {}
+    void get() override {}
+    void control() override {}
+    void status() override {}
+};
+

@@ -41,3 +41,9 @@ bool KernelObjectManager::delet_(ObjID id) {
     }
     return false;
 }
+
+void KernelObjectManager::visit(void (*fn)(KernelObj *, void *), void *ctx) {
+    if (!fn) return;
+    for (auto &entry : obj_l)
+        if (entry.obj) fn(entry.obj, ctx);
+}

@@ -4,7 +4,7 @@
 #define NewlineWithCarriage true
 #define BackWithSpace true
 
-import lib32;
+#include <lib32.hpp>
 
 #define LINE_SIZE 80
 #define LINE_NUM 25

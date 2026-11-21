@@ -3,7 +3,7 @@
 DLS* driverletterspace;
 
 static void FSInfoPrint(String letter) {
-    kout << ", [" << letter << ":]\n";
+    kout << "[CDM] +server [" << letter << ":]\n";
 }
 
 DLS::DLS(){ driverletterspace = this; }
@@ -23,7 +23,7 @@ void DLS::regist(Cluster *clu, String le){
 
     space.append(DriveInfo{clu, did_count, letter});
     did_count++;
-    DebugInfo(FSInfoPrint(letter);)
+    FSInfoPrint(letter);
 }
 
 unsigned DLS::start(WinHandle &win, String driver_letter) {

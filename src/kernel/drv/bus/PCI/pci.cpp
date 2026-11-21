@@ -68,13 +68,7 @@ void PCI_space::probe(){
         }
     }
     
-#define LocalDebug
-#include <global/macro.hpp>
-    LocalDebugInfo(
-        kout << "[PCI] -probe " << (u16)config.get_size() << " Devices\n";
-    )
-#undef LocalDebug
-#include <global/macro.hpp>
+    kout << "[PCI] -probe " << (u16)config.get_size() << " Devices\n";
     // 用引用遍历：DeviceInfo::config 要指向列表里的元素，而不是循环临时量。
     for (auto &dev : config) {
         pdevspace->append(construc(dev, this));
@@ -179,7 +173,7 @@ PCI_space::PCI_addr *PCI_space::find_addr(void *cfg) {
 void PCI_space::set_mod(void *cfg) {
     auto addr = find_addr(cfg);
     if (!addr) {
-        LocalDebugInfo(kout << "[PCI] set_mod: unknown device\n";)
+        kout << "[PCI] set_mod: unknown device\n";
         return;
     }
 

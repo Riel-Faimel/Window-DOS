@@ -127,8 +127,7 @@ public:
     }
 };
 
-// FDE：没有变长字符串，所以可以像 PDevDrv 一样带字段。
-// base 指向原记录；parse() 把 CIE 之后的字段解析到成员里。
+// FDE：base 指向原记录；parse() 把 CIE 之后的字段解析到成员里。
 class EhFrameFDE : EhFrameHead {
     const u8 *base;
     const EhFrameCIE *cie_obj;

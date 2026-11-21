@@ -39,6 +39,11 @@ status{RAW}, part{part_init}{
      * 
      * if error: back to FAT2
      */
+    DebugInfo(
+    kout << "[FAT] status=" << (int)status << " res=" << bpb.reserved_sectors
+         << " nfat=" << (int)bpb.fat_table_count << " spf=" << bpb.sector_per_fat_table
+         << " rootent=" << bpb.root_entry_num << '\n';
+    )
     auto rootdir_sector_start = bpb.reserved_sectors + bpb.fat_table_count * bpb.sector_per_fat_table;
     auto rootdir_sector_size = (bpb.root_entry_num * sizeof(DIR) + bpb.bytes_per_sector - 1) / bpb.bytes_per_sector;
 
@@ -73,18 +78,23 @@ unsigned FAT16::open(String filename) {
             entry->_8_3FN.attribute, 0
         });
     } break;
-    case DirResolvException::FindFileFailed:
+    case DirResolvException::FindFileFailed: {
+        DebugInfo(kout << "[FAT] not found\n";)
+    } break;
     case DirResolvException::AsDirectoryFailed:
     default: {
         LocalDebugInfo(cout << "Failed\n";)
         return (unsigned)-2;
     } break;
-    case DirResolvException::ClusterMissFault:
+    case DirResolvException::ClusterMissFault: {
+        DebugInfo(kout << "[FAT] no cluster\n";)
+    } break;
     case DirResolvException::DirBrokenFault: {
         LocalDebugInfo(cout << "Fault\n";)
         return (unsigned)-1;
     } break;
-    }    
+    }
+    return (unsigned)-1;
 }
 
 unsigned FAT16::close(unsigned h) {
@@ -205,7 +215,14 @@ unsigned FAT16::disk_write(void *buf, unsigned sector, unsigned count) {
     return part->write(buf, sector, 0, count);
 }
 unsigned FAT16::disk_read(void *buf, unsigned sector, unsigned count) {
-    return part->read(buf, sector, 0, count);
+    auto re = part->read(buf, sector, 0, count);
+    DebugInfo(
+        u8 *p = static_cast<u8 *>(buf);
+        kout << "[RD] lba=" << sector << " n=" << count << " -> " << re << " :";
+        for (unsigned i = 0; i < 8; i++) { kout.hex(p[i]); kout.ch(' '); }
+        kout << '\n';
+    )
+    return re;
 }
 
 void FAT16::set_filesystem_name(char *name) {

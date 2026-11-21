@@ -41,24 +41,24 @@ $(BUILD_DIR)kernel.bin:  $(OBJ) | $(BUILD_DIR)lib/libos.a
 lib: $(BUILD_DIR)lib/libos.a
 module: module_32
 
-boot.img: $(BUILD_DIR)bootloader.bin $(BUILD_DIR)kernel.bin 
-	@ copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
-	@ echo [COPY] $@
-result: boot.img
+result: $(BUILD_DIR)bootloader.bin $(BUILD_DIR)kernel.bin 
 
 all: lib result run
 
 DISK1 = -drive format=raw,index=0,file=boot.img,media=disk
-DISK2 = \
-	-device ich9-ahci,id=sata\
-	-drive format=raw,id=disk1,file=flp.vhd,if=none\
-	-device ide-hd,drive=disk1,bus=sata.1
+DISK2 = 
 #\
+	-device ich9-ahci,id=sata\
+	-drive format=raw,id=disk1,file=disk.vhd,if=none\
+	-device ide-hd,drive=disk1,bus=sata.1\
 	-drive format=raw,index=1,file=flp.vhd,media=disk
 
 QEMUFLAGS = -serial stdio $(DISK1) $(DISK2)
 
-run: 
+boot.img: $(BUILD_DIR)bootloader.bin $(BUILD_DIR)kernel.bin 
+	@ copy /b $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 1, $^))) + $(subst /,\,$(patsubst $(ROOT_DIR)/%, %, $(word 2, $^))) $@
+	@ echo [COPY] $@
+run: boot.img
 	$(QEMU) $(QEMUFLAGS)
 
 clean:

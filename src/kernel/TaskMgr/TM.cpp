@@ -1,5 +1,5 @@
 #include "_TM.hpp"
-import lib32;
+#include <lib32.hpp>
 
 TaskManager *taskmgr;
 

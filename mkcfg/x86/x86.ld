@@ -44,15 +44,6 @@ SECTIONS {
     .weak : {
         *(.weak)
     }
-    
-    .bss : {
-        __bss_start = .;
-        *(COMMON)
-        *(.bss)
-        *(.bss.*)
-        . = ALIGN(4096);
-        __bss_end = .;
-    }
 
     .eh_frame : {
         __eh_frame_start = .;
@@ -61,6 +52,15 @@ SECTIONS {
         __gcc_except_table_start = .;
         KEEP(*(.gcc_except_table))
         __gcc_except_table_end = .;
+    }
+    
+    .bss : {
+        __bss_start = .;
+        *(COMMON)
+        *(.bss)
+        *(.bss.*)
+        . = ALIGN(4096);
+        __bss_end = .;
     }
 
     . = ALIGN(4);

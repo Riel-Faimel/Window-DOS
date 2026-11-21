@@ -8,9 +8,7 @@ namespace arch {
 namespace {
 
 constexpr size_t page_size = 4096;
-
-// MemSpace 的取值语义只在 inpage 里解释。
-constexpr u32 space_inherit = 0;         // 默认构造值：继承当前空间
+constexpr u32 space_inherit = 0; // 默认构造值：继承当前空间
 constexpr u32 space_invalid = 0xFFFFFFFFu;
 
 // PDE：P(0) | RW(1) | US(2) | PS(7)
@@ -123,7 +121,7 @@ void inpage::dlloc(mem::MemSpace space) {
     physicalpage.dloc({mem::Address{pd}, mem::PageNum{1}});
 }
 
-void *inpage::alloc(mem::MemSpace space, size_t size, mem::MemAttr attr) {
+void *inpage::alloc(mem::MemSpace space, size_t size, mem::Allocable::MemAttr attr) {
     // 继承（0）是合法的：就在当前空间里拿页；只有无效句柄拒绝。
     if (static_cast<u32>(space) == space_invalid || !size) return nullptr;
 

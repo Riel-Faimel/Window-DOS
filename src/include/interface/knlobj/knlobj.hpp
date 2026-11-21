@@ -4,16 +4,19 @@
 #include <string>
 #include "diskinfo.hpp"
 
+/**
+ * 内核对象基类。
+ *
+ * 类型识别不再用 get_type()/TypeID：需要区分类型的地方一律 dynamic_cast，
+ * 这样"有哪些内核对象类型"不需要一个中心枚举，加一个类型不用改基类。
+ *
+ * 析构函数故意不在头里 inline：它是这几个多态基类的 key function，vtable 的
+ * 发源点因此收敛到 knlobj_exp.cpp（那个 TU 用 -frtti 编），dynamic_cast 才有
+ * typeinfo 可读。
+ */
 class KernelObj {
 public:
-    enum class TypeID {
-        FramePort,
-        LogicalDisk,
-        SerialPort,
-        PhysicalDisk,
-    };
-    virtual TypeID get_type() const = 0;
-    virtual ~KernelObj() = default;
+    virtual ~KernelObj();
 };
 
 class LBAop {
@@ -30,9 +33,8 @@ public:
  */
 class PhysicalDisk : public KernelObj, public LBAop {
 public:
-    TypeID get_type() const override { return TypeID::PhysicalDisk; }
     virtual unsigned cmd(unsigned, String, void *argv, unsigned argc) = 0;
-    virtual ~PhysicalDisk() = default;
+    ~PhysicalDisk() override;
 };
 
 /**
@@ -47,32 +49,29 @@ public:
      * if File system realize
      * read/write(buffer, handle, byte_offset, byte_deal)
      */
-    TypeID get_type() const override { return TypeID::LogicalDisk; }
     virtual DiskInfo* info(unsigned = 0, String = {}) = 0;
     virtual unsigned cmd(unsigned, String, void *argv, unsigned argc) = 0;
-    virtual ~LogicalDisk() = default;
+    ~LogicalDisk() override;
 };
 
 class SerialPort : public KernelObj {
 public:
-    TypeID get_type() const override { return TypeID::SerialPort; }
     /**
      * take/give(buf, port, bytes)
      */
     virtual unsigned take(void *, unsigned, unsigned) = 0;
     virtual unsigned give(void *, unsigned, unsigned) = 0;
-    virtual ~SerialPort() = default;
+    ~SerialPort() override;
 };
 
 class FramePort : public KernelObj {
 public:
-    TypeID get_type() const override { return TypeID::FramePort; }
     /**
      * send/recv(buf, port, bytes)
      */
     virtual unsigned send(void *, unsigned, unsigned) = 0;
     virtual unsigned recv(void *, unsigned, unsigned) = 0;
-    virtual ~FramePort() = default;
+    ~FramePort() override;
 };
 
 #endif

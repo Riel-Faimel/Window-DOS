@@ -13,6 +13,7 @@ extern "C" {
 #include <mm/mm.hpp>
 #include <PDS/pds.hpp>
 #include <SrvDevMgr/cdm.hpp>
+#include <SrvDevMgr/SDM.hpp>
 #include <KrnlObjMgr/kom.hpp>
 #include <TaskMgr/TM.hpp>
 #include <drv/kmod.hpp>

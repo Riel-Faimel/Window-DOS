@@ -7,7 +7,7 @@
 
 #pragma GCC optimize("Os")
 
-import lib32;
+#include <lib32.hpp>
 
 namespace arch {
     
