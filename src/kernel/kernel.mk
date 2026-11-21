@@ -7,6 +7,7 @@ include $(SRC_DIR)kernel/SrvDevMgr/SrvDevMgr.mk
 include $(SRC_DIR)kernel/PDS/pds.mk
 include $(SRC_DIR)kernel/multiCE/multiCE.mk
 include $(SRC_DIR)kernel/TaskMgr/TM.mk
+include $(SRC_DIR)kernel/svm/svm.mk
 include $(SRC_DIR)kernel/basicshell/bs.mk
 include $(SRC_DIR)kernel/GEH/geh.mk
 include $(SRC_DIR)kernel/KrnlObjMgr/kom.mk

@@ -1,11 +1,4 @@
 #include "kernel.hpp"
-#include <syscall/thread>
-#include <drv/screen/screen_srv.hpp>
-#ifdef COMDebug
-#include <drv/com/com.hpp>
-#endif
-
-extern void f(int);
 
 // COMDebug：把控制台输出改到 COM1，便于没有屏幕的场合取内核日志。
 #ifdef COMDebug
@@ -42,6 +35,7 @@ void LoaderMain(){
             PeripheralDeviceSpace pds{};
             KernelObjectManager kom{};
             KernelModule kernelmodule;
+            svm::SysVM svm;
         } renew_DOS;
         kout << "[BOOT] start INIT.COM\n";
         ASMLabelMark(LoaderMain_StartB_INIT_EXE)

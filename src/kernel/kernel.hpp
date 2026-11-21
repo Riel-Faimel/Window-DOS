@@ -17,5 +17,11 @@ extern "C" {
 #include <KrnlObjMgr/kom.hpp>
 #include <TaskMgr/TM.hpp>
 #include <drv/kmod.hpp>
+#include <svm/svm.hpp>
 #include <basicshell/bs.hpp>
 #include <WM/wm.hpp>
+#include <syscall/thread>
+#include <drv/screen/screen_srv.hpp>
+#ifdef COMDebug
+#include <drv/com/com.hpp>
+#endif
