@@ -107,13 +107,14 @@ int PeripheralDeviceSpace::append(ProgIFIndex pid, DeviceInfo::DeviceType did, D
     }
 
     LocalDebugInfo(
-        kout << "[PDS] +device ";
-        if ((u32)pid)
-        kout << "progif=" << (u32)pid
-             << " bus=" << (u16)root->bus_id
-             << (instance.drvInstance ? " bound\n" : " waiting\n");
-        else
-        kout << "unknow\n";
+        // progif=0 的设备还没有对应的接口分类，记下来只是噪声；
+        // VGA 一屏内优先保留能绑定/等待驱动的设备。
+        if ((u32)pid) {
+            kout << "[PDS] +device "
+                 << "progif=" << (u32)pid
+                 << " bus=" << (u16)root->bus_id
+                 << (instance.drvInstance ? " bound\n" : " waiting\n");
+        }
     )
     return PdsOk;
 }

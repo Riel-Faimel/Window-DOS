@@ -1,8 +1,5 @@
 #include "DOScall.hpp"
 
-
-extern "C" {
-
 namespace {
     void program_exit(){};
     /**
@@ -41,8 +38,6 @@ namespace {
     void set_interrupt_vector(){};
     void get_interrupt_vector(){};
     void get_current_drive(){};
-}
-
 }
 
 SYSCALL_ENTRY(DOScall, 0x21, DOScall_entry, DosAh)

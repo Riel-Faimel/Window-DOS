@@ -1,3 +1,5 @@
+#pragma GCC optimize("Os")
+
 #include "eh_frame.hpp"
 #include <stdio>
 

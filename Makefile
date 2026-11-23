@@ -28,9 +28,9 @@ endef
 
 export MKDIR_F MOD ARCH
 
-include $(SRC_DIR)kernel/kernel.mk
-include $(SRC_DIR)bootloader/bootloader.mk
 include $(SRC_DIR)lib/lib.mk
+include $(SRC_DIR)bootloader/bootloader.mk
+include $(SRC_DIR)kernel/kernel.mk
 #include $(ROOT_DIR)/app/app.mk
 
 # libos.a 用 order-only 依赖：必须先建好，但不能进 $^（链接靠 -los）
@@ -46,11 +46,11 @@ result: $(BUILD_DIR)bootloader.bin $(BUILD_DIR)kernel.bin
 all: lib result run
 
 DISK1 = -drive format=raw,index=0,file=boot.img,media=disk
-DISK2 = 
-#\
+DISK2 = \
 	-device ich9-ahci,id=sata\
 	-drive format=raw,id=disk1,file=disk.vhd,if=none\
-	-device ide-hd,drive=disk1,bus=sata.1\
+	-device ide-hd,drive=disk1,bus=sata.1
+#\
 	-drive format=raw,index=1,file=flp.vhd,media=disk
 
 QEMUFLAGS = -serial stdio $(DISK1) $(DISK2)

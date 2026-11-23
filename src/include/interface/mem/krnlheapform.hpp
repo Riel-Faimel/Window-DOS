@@ -34,7 +34,12 @@ protected:
             SegmentSize pages; // signal allocated
         };
         u16 head_guard;
-    };/**
+        // Keep sizeof(ObjHeader) == 8 so the payload after the header is
+        // naturally aligned and every size-class slot can stay 8-aligned.
+        u16 _pad = 0;
+    };
+    static_assert(sizeof(ObjHeader) == 8, "ObjHeader must keep payload 8-aligned");
+    /**
      * with u16 tail_guard behand object
      */
 
@@ -120,6 +125,15 @@ protected:
 
     static int size_to_level(u32 size);
 
+    // Every slot is rounded up to this alignment: the payload starts at
+    // box + sizeof(ObjHeader) and all slot starts are aligned too.
+    static constexpr size_t HeapAlign = 8;
+    static constexpr size_t slot_size(u32 level) {
+        const size_t raw =
+            sizeof(ObjHeader) + size_classes[level] + sizeof(u16);
+        return (raw + HeapAlign - 1) & ~(HeapAlign - 1);
+    }
+
     SubZone* createzone(u32 level);
     void deletezone(SubZone* zone);
     void format_subzone(SubZone *, u32);
@@ -134,6 +148,19 @@ protected:
     KernelHeapFormat(SuperBlock* page_base);
 public:
     using SuperBlock = SuperBlock;
+
+    /**
+     * Heap accounting for MemoryManager::status().
+     * total: object-area capacity in the page list (metadata excluded)
+     * alloced: slot bytes handed to live objects
+     * used: payload bytes of live objects (size class, < alloced)
+     * free: free slot bytes + unformatted subzone bytes
+     * Invariant: total == alloced + free, used <= alloced.
+     */
+    static void heap_status(
+        const SuperBlock *sb,
+        size_t &total, size_t &alloced, size_t &used, size_t &free
+    );
 };
 
 }

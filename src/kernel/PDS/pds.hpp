@@ -15,20 +15,7 @@
 #include <interface/hardev/enumer.hpp>
 #include <interface/hardev/device.hpp>
 
-struct PeripheralDeviceSpace {
-    PeripheralDeviceSpace();
-
-    // append bus
-    Enumerator::EnumerIndex append(Enumerator *);
-    // append device
-    int append(DeviceInfo *);
-    // append device
-    int append(ProgIFIndex, DeviceInfo::DeviceType, DeviceInfo *);
-    // append drvier for prog if
-    int append(ProgIFIndex, DriverConstr);
-    // append driver for device
-    int append(ProgIFIndex, DeviceInfo::DeviceType, DriverConstr);
-private:
+class PeripheralDeviceSpace {
     class DeviceNode {
         struct Instance {
             DeviceInfo *info;
@@ -59,6 +46,19 @@ private:
     rtl::array<EnumerNode> busspace;
     rtl::list<ProgramInFace> storage;
     Enumerator::EnumerIndex bc; // bus index counter
+public:
+    PeripheralDeviceSpace();
+
+    // append bus
+    Enumerator::EnumerIndex append(Enumerator *);
+    // append device
+    int append(DeviceInfo *);
+    // append device
+    int append(ProgIFIndex, DeviceInfo::DeviceType, DeviceInfo *);
+    // append drvier for prog if
+    int append(ProgIFIndex, DriverConstr);
+    // append driver for device
+    int append(ProgIFIndex, DeviceInfo::DeviceType, DriverConstr);
 };
 
 extern PeripheralDeviceSpace *pdevspace;

@@ -1,51 +1,39 @@
+#pragma once
+
 #include "svm.hpp"
 #include <interface/svm/data.hpp>
 #include <stdio>
 #include <interface/knlobj/knlobj.hpp>
 #include <KrnlObjMgr/kom.hpp>
 #include <SrvDevMgr/DLS.hpp>
+#include <mm/mm.hpp>
 
-namespace {
-
-struct DiskPick {
-    unsigned want = 0;
-    unsigned seen = 0;
-    PhysicalDisk *disk = nullptr;
+// Executor context: SysVMThread keeps its state private, so the operation
+// functions (anonymous namespace in vmop.cpp) receive references to exactly
+// the pieces they are allowed to touch. Output result descriptors live in
+// SysVMThread::stack slots, not in thread fields.
+struct OpCtx {
+    SysVMThread &th;
+    svm::Value *stack;
+    unsigned &sp;
 };
 
-void pick_disk(KernelObj *o, void *ctx) {
-    auto *p = static_cast<DiskPick *>(ctx);
-    auto *disk = dynamic_cast<PhysicalDisk *>(o);
-    if (!disk) return;
-    if (p->seen++ == p->want) p->disk = disk;
-}
+constexpr unsigned OpcodeCount =
+    static_cast<unsigned>(svm::Op::Status) + 1;
 
-struct ObjWriter {
-    svm::OutBuf *out;
+// Result descriptors are carved out of SysVMThread::stack. A token Value
+// precedes each descriptor so reset() can find and free the descriptor's
+// heap array without any thread-side bookkeeping.
+constexpr u32 ResultTokenMagic = 0xFFFF0000u;
+constexpr unsigned ResultKindShift = 8;
+constexpr unsigned ResultSlotsMask = 0xFFu;
+
+enum class ResultKind : unsigned {
+    Read = 1,
+    Mem = 2,
+    Obj = 3,
+    Fs = 4,
+    Status = 5,
 };
 
-void write_obj(KernelObj *o, void *ctx) {
-    auto *w = static_cast<ObjWriter *>(ctx);
-    svm::ObjRec rec{};
-
-    if (auto *p = dynamic_cast<PhysicalDisk *>(o)) {
-        rec.kind = svm::RecKind::Phys;
-        rec.a = reinterpret_cast<u32>(p);
-    } else if (auto *d = dynamic_cast<LogicalDisk *>(o)) {
-        auto *i = d->info();
-        rec.kind = svm::RecKind::Part;
-        rec.a = static_cast<u32>(i->su_start);
-        rec.b = i->su_num.low;
-        rec.c = static_cast<u32>(i->type);
-    } else if (dynamic_cast<SerialPort *>(o)) {
-        rec.kind = svm::RecKind::Serial;
-    } else if (dynamic_cast<FramePort *>(o)) {
-        rec.kind = svm::RecKind::Frame;
-    } else {
-        rec.kind = svm::RecKind::Unknown;
-    }
-
-    w->out->put_as(rec);
-}
-
-} // namespace
+extern bool (*Opcode2Func[OpcodeCount])(OpCtx &, const svm::Insn &);

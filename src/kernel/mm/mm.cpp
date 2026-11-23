@@ -2,7 +2,6 @@
 using namespace mem;
 
 #pragma GCC optimize("Os")
-#pragma GCC diagnostic ignored "-Wmultichar"
 
 PhysicalPage physicalpage;
 MemoryManager *global_heap;
@@ -15,9 +14,8 @@ KernelHeapFormat::KernelHeapFormat(SuperBlock *page_base){
         sb = page_base;
     }
 }
-__attribute__((optimize("O2")))
 KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
-    u32 size_need = size_classes[level]+sizeof(ObjHeader)+sizeof(u16);
+    u32 size_need = static_cast<u32>(slot_size(level));
     //kout << "size need = " << size_need << '\n';
 
     for (auto &page : rtl::list_tranveser{sb->page_head})
@@ -53,7 +51,6 @@ KernelHeapFormat::SubZone *KernelHeapFormat::createzone(u32 level) {
     }
     return nullptr;
 }
-__attribute__((optimize("O2")))
 bool KernelHeapFormat::PageHead::create_subzone(SubZone *free_sz, size_t size) {
     void *old_end = free_sz->end;
     size_t available = (u8 *)old_end - (u8 *)(free_sz + 1);
@@ -76,7 +73,6 @@ bool KernelHeapFormat::PageHead::create_subzone(SubZone *free_sz, size_t size) {
 void KernelHeapFormat::deletezone(KernelHeapFormat::SubZone *zone) {
     zone->objsize = 0; // label of free
 }
-__attribute__((optimize("O2")))
 void KernelHeapFormat::format_subzone(SubZone *sz, u32 level) {
     ObjHeader buf{}, *lastptr = &buf;
     BoxNum objcount = 0;
@@ -146,6 +142,81 @@ int KernelHeapFormat::size_to_level(u32 size) {
     }
     return -1;
 }
+
+void KernelHeapFormat::heap_status(
+    const SuperBlock *sb,
+    size_t &total, size_t &alloced, size_t &used, size_t &free
+) {
+    total = 0;
+    alloced = 0;
+    used = 0;
+    free = 0;
+    if (!sb) return;
+
+    for (auto &page : rtl::list_tranveser{sb->page_head}) {
+        bool first = true;
+        for (auto &subzone : page.subzone_tranveser()) {
+            // The initial whole-page free zone is a Type::end descriptor too.
+            if (first) {
+                first = false;
+                if (subzone.is_end_dc() && subzone.objsize == 0) {
+                    if (!subzone.end) continue;
+                    const auto begin = reinterpret_cast<u8 *>(&subzone + 1);
+                    const auto end = reinterpret_cast<u8 *>(subzone.end);
+                    if (end > begin) {
+                        const size_t bytes = static_cast<size_t>(end - begin);
+                        total += bytes;
+                        free += bytes;
+                    }
+                    continue;
+                }
+            }
+
+            // The trailing descriptor is only a terminator, not free memory.
+            if (subzone.is_end_dc()) continue;
+            if (!subzone.end) continue;
+
+            const auto begin = reinterpret_cast<u8 *>(&subzone + 1);
+            const auto end = reinterpret_cast<u8 *>(subzone.end);
+            if (end <= begin) continue;
+
+            // Unformatted/free subzone: its whole object area is free.
+            if (subzone.objsize == 0) {
+                const size_t bytes = static_cast<size_t>(end - begin);
+                total += bytes;
+                free += bytes;
+                continue;
+            }
+
+            // Formatted subzone: walk its slots and read the per-object guard.
+            int level = -1;
+            for (u32 l = 0; l < SizeClassCount; l++) {
+                if (slot_size(l) == subzone.objsize) {
+                    level = static_cast<int>(l);
+                    break;
+                }
+            }
+            if (level < 0) continue;
+
+            const size_t step = subzone.objsize;
+            for (u8 *obj = begin; obj + step <= end; obj += step) {
+                total += step;
+                const auto *head = reinterpret_cast<const ObjHeader *>(obj);
+                if (head->head_guard == ObjectHeadGuard) {
+                    alloced += step;
+                    used += size_classes[level];
+                } else {
+                    free += step;
+                }
+            }
+        }
+    }
+
+    // Keep the stated invariants even if a page/subzone was corrupted.
+    if (free > total) free = total;
+    if (alloced > total - free) alloced = total - free;
+    if (used > alloced) used = alloced;
+}
 KernelHeapFormat::PageHead *KernelHeapFormat::search_page(void *obj) {
     for (auto &page : rtl::list_tranveser{sb->page_head})
     if (obj > (void *)&page && obj < page.page_end) return &page;
@@ -167,7 +238,7 @@ void MemoryManager::nopage::dlloc(MemSpace) {}
 void *MemoryManager::nopage::alloc(MemSpace, size_t s, MemAttr) { return alloc(s); }
 void MemoryManager::nopage::dlloc(MemSpace, void *ptr, size_t) { dlloc(ptr, -1); }
 
-__attribute__((optimize("O2")))
+__attribute__((optimize("O3"), hot))
 void *MemoryManager::nopage::alloc(size_t size) {
     auto level = size_to_level(size);
     if (level == -1) {
@@ -180,7 +251,6 @@ void *MemoryManager::nopage::alloc(size_t size) {
             if(box == (void *)-1) return nullptr;
             box->pages = pages;
             box->head_guard = ObjectSingalGuard;
-            //kout << "<addr=" << box+1 << ">\n";
             return box+1;
         }
     } else {
@@ -209,7 +279,7 @@ void *MemoryManager::nopage::alloc(size_t size) {
     }
     return nullptr;
 }
-__attribute__((optimize("O2")))
+__attribute__((optimize("O3"), hot))
 void MemoryManager::nopage::dlloc(void *ptr, size_t) {
     auto objhead = static_cast<ObjHeader *>(ptr)-1;
     if (objhead->head_guard == ObjectSingalGuard) {
@@ -229,6 +299,17 @@ defaul{nullptr}, al{&defaul} {
     global_heap = this;
     kout << "[MM] heap: " << defaul.getsbp() << "\n";
 }
+
+MemoryManager::MemStatus MemoryManager::status() {
+    MemStatus st{};
+    if (!al) return st;
+
+    KernelHeapFormat::heap_status(
+        al->getsbp(),
+        st.total_mem, st.alloced_mem, st.used_mem, st.free_mem
+    );
+    return st;
+}
 void MemoryManager::set_allocator(Allocable *(*newer)(KernelHeapFormat::SuperBlock *)) {
     auto newal = newer(al->getsbp());
     delete al;
@@ -237,25 +318,13 @@ void MemoryManager::set_allocator(Allocable *(*newer)(KernelHeapFormat::SuperBlo
 
 //======
 
-void *operator new(size_t size) {
-    return global_heap->allocator()->alloc(size);
-}
-void operator delete(void *ptr) {
-    return global_heap->allocator()->dlloc(ptr);
-}
-void operator delete(void *ptr, size_t size) {
-    return global_heap->allocator()->dlloc(ptr, size);
-}
+void *operator new(size_t size) { return global_heap->allocator()->alloc(size); }
+void operator delete(void *ptr) { return global_heap->allocator()->dlloc(ptr); }
+void operator delete(void *ptr, size_t size) { return global_heap->allocator()->dlloc(ptr, size); }
 
-void *operator new[](size_t size) {
-    return global_heap->allocator()->alloc(size);
-}
-void operator delete[](void *ptr) {
-    return global_heap->allocator()->dlloc(ptr);
-}
-void operator delete[](void *ptr, size_t size) {
-    return global_heap->allocator()->dlloc(ptr, size);
-}
+void *operator new[](size_t size) { return global_heap->allocator()->alloc(size); }
+void operator delete[](void *ptr) { return global_heap->allocator()->dlloc(ptr); }
+void operator delete[](void *ptr, size_t size) { return global_heap->allocator()->dlloc(ptr, size); }
 
 /**
  *     ^

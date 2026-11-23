@@ -16,10 +16,6 @@ constexpr u32 disk_slot = 60;
 constexpr u32 var_base = 48;
 constexpr unsigned vars_max = 12;
 
-// 输出缓冲区：前端持有，把地址作为操作数交给 VM，VM 只往里写原始字节，
-// 怎么显示由这里决定。
-OutBuf out;
-
 // 按空格拆参，丢掉空词（连续空格会拆出空串）。
 rtl::array<String> split_args(const String &line) {
     rtl::array<String> argv;
@@ -51,17 +47,16 @@ bool parse_hex(const String &w, u32 &re) {
  * help 的输出也从这张表生成。表是前端的东西，SysVM 看不到它。
  */
 const BasicShell::OpInfo table[] = {
-    { Op::Read, "read", "dump sectors of the n-th physical disk", 3, true, {
+    { Op::Read, "read", "dump sectors of the n-th physical disk", 3, {
         { "disk",  0, 0, 15, BasicShell::ArgKind::Disk },
         { "lba",   0, 0, 0  },
         { "count", 1, 1, 8  },
     } },
-    { Op::Mem,  "mem",  "dump memory (identity mapped)", 2, true, {
+    { Op::Mem,  "mem",  "dump memory (identity mapped)", 2, {
         { "addr",  0,  0, 0    },
         { "count", 64, 1, 4096 },
     } },
-    { Op::Obj,  "obj",  "kernel objects (physical/logical disks, ports)", 0, true, {} },
-    { Op::Fs,   "fs",   "drive letters registered in DLS", 0, true, {} },
+    { Op::Status, "Status", "all | mm | page | obj | fs", 0, {} },
 };
 
 constexpr unsigned table_n = sizeof(table) / sizeof(table[0]);
@@ -71,6 +66,12 @@ constexpr unsigned table_n = sizeof(table) / sizeof(table[0]);
 inline const BasicShell::OpInfo *op_lookup(const String &name) {
     for (unsigned i = 0; i < table_n; i++)
         if (name == table[i].name) return &table[i];
+
+    // The command is documented as Status; accept the lowercase spelling too.
+    if (name == String("status")) {
+        for (unsigned i = 0; i < table_n; i++)
+            if (table[i].op == Op::Status) return &table[i];
+    }
     return nullptr;
 }
 

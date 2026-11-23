@@ -7,11 +7,7 @@
 #include <HL/container>
 
 /**
- * Stream Device Manager：流服务的名字空间。
- *
- * 和 DLS 一个套路：驱动把流服务按名字注册进来，使用者按名字 open 出一个
- * 窗口句柄，之后从窗口句柄读数据。SDM 只做"名字 → 服务对象"的解析，
- * 不关心流是键盘、串口还是别的什么。
+ * SDM (Stream Device Manager)：
  */
 class StreamDeviceManager {
 public:

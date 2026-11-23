@@ -1,19 +1,4 @@
-#include "context.hpp"
-
-#include "tcb.hpp"
-
-#include <global/new.hpp>
-#include <id/id.hpp>
-#include <mm/mm.hpp>
-
-extern "C" {
-    void _Sexit();
-    void _Sint_sche();
-    void basic_time_handler();
-}
-namespace {
-constexpr size_t thread_stack_size = 4096;
-}
+#include "_context.hpp"
 
 namespace arch {
 
@@ -83,7 +68,7 @@ void X86Context::destroy(TCB *tcb) {
     operator delete (x86tcb);
 }
 
-[[noreturn]] void X86Context::switch_to(TCB &next) {
+HotFunc [[noreturn]] void X86Context::switch_to(TCB &next) {
     auto *x86tcb = static_cast<X86TCB *>(&next);
     X86Frame *frame = &x86tcb->frame;
 

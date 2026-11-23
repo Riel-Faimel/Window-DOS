@@ -42,6 +42,15 @@ struct PhysicalPage {
     address_generator aloc(PageNum page_nums, bool need_continuous = false);
     unsigned dloc(PagePackage mem);
     unsigned neaten();
+
+    struct PageStatus {
+        size_t total_mem;
+        size_t free_mem;
+    };
+    PageStatus status();
+
+private:
+    size_t total_bytes = 0;
 };
 
 extern PhysicalPage physicalpage;

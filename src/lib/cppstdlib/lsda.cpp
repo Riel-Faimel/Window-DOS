@@ -1,3 +1,5 @@
+#pragma GCC optimize("Os")
+
 #include <global/type.hpp>
 
 // LSDA（.gcc_except_table）解析。

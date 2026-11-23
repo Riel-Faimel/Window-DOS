@@ -1,8 +1,8 @@
+#pragma GCC optimize("O3")
+
 #include <lib/string>
 #include <global/type.hpp>
 #include <HL/utility>
-
-#pragma GCC optimize("O3")
 
 extern "C" {
 

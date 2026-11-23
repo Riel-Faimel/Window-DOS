@@ -1,6 +1,15 @@
+#pragma GCC optimize("Os")
 #include "_phy.hpp"
 
 using namespace mem;
+
+namespace {
+size_t byte_num_to_size(const ByteNum &bytes) {
+    const u64 value = static_cast<u64>(bytes);
+    if (value.high) return static_cast<size_t>(-1);
+    return static_cast<size_t>(value.low);
+}
+}
 
 mem_list *__window_dos_loader_struct_0x1::start = __kernel_end;
 atomic<bool> physical_memory_lock{};
@@ -47,13 +56,29 @@ PhysicalPage::PhysicalPage(){
      */
     mem_list_root[0].mem.len = total_byte_num; // all free
     mem_list_root[0].mem.address = Address{0u} + total_byte_num;
+    total_bytes = byte_num_to_size(total_byte_num);
 }
 PhysicalPage::~PhysicalPage() {}
+
+PhysicalPage::PageStatus PhysicalPage::status() {
+    PageStatus st{};
+    st.total_mem = total_bytes;
+
+    size_t free = 0;
+    for (auto &node : mem_list_root.as_list()) {
+        // exist == 255 is the root/accounting node, == 0 is a consumed node.
+        if (node.exist != 1) continue;
+        free += byte_num_to_size(node.mem.len);
+    }
+
+    st.free_mem = free > st.total_mem ? st.total_mem : free;
+    return st;
+}
 PhysicalPage::address_generator PhysicalPage::aloc(PageNum page_nums, bool need_continuous) {
     //if (!physical_memory_lock.try_lock());
     return address_generator{page_nums, need_continuous};
 }
-unsigned PhysicalPage::dloc(PagePackage addrpkg) {
+HotFunc unsigned PhysicalPage::dloc(PagePackage addrpkg) {
     auto s = mem_list_root.findspace();
     if (!s) {
         neaten();
@@ -76,206 +101,6 @@ constexpr mem_list *__window_dos_loader_struct_0x1::findspace() {
     return nullptr;
 }
 
-rtl::pair<mem_list *, size_t> right_sort(mem_list *&last_tail, size_t len_max);
-inline void append_or_merge(mem_list *&tail, mem_list *chosen, size_t& new_len) {
-    if (tail->mem.address + tail->mem.len == chosen->mem.address) {
-        tail->mem.len += chosen->mem.len;
-        tail->next = chosen->next;
-        new_len--;
-    } else {
-        tail->next = chosen;
-        tail = tail->next;
-    }
-}
-inline rtl::pair<mem_list*, size_t> merge(
-    mem_list* llist, size_t llen,
-    mem_list* rlist, size_t rlen
-) {
-    if (llist == nullptr) llen = 0;
-    if (rlist == nullptr) rlen = 0;
-    mem_list* result = nullptr;
-    size_t i = 0, j = 0;
-    size_t new_len = llen + rlen;
-
-    if (llen == 0) {
-        result = rlist;
-        rlist = rlist->next;
-        j++;
-    } else if (rlen == 0) {
-        result = llist;
-        llist = llist->next;
-        i++;
-    } else if (llist->mem.address <= rlist->mem.address) {
-        result = llist;
-        llist = llist->next;
-        i++;
-    } else {
-        result = rlist;
-        rlist = rlist->next;
-        j++;
-    }
-    auto tail = result;
-
-    while (i < llen && j < rlen) {
-        mem_list* chosen;
-        if (llist->mem.address <= rlist->mem.address) {
-            chosen = llist;
-            llist = llist->next;
-            i++;
-        } else {
-            chosen = rlist;
-            rlist = rlist->next;
-            j++;
-        }
-        append_or_merge(tail, chosen, new_len);
-    }
-    while (i < llen) {
-        auto chosen = llist;
-        llist = llist->next;
-        i++;
-        append_or_merge(tail, chosen, new_len);
-    }
-    while (j < rlen) {
-        auto chosen = rlist;
-        rlist = rlist->next;
-        j++;
-        append_or_merge(tail, chosen, new_len);
-    }
-
-    return {result, new_len};
-}
-inline void cmp_swap(mem_list*& a, mem_list*& b) {
-    if (a->mem.address > b->mem.address) {
-        auto tmp = a; a = b; b = tmp;
-    }
-}
-inline rtl::pair<mem_list*, size_t> branch_sort(
-    mem_list *&last_tail, size_t len_max
-) {
-    if (last_tail == nullptr) return {nullptr, 0};
-    
-    mem_list* nodes[4];
-    size_t n = 0;
-    while (last_tail != nullptr && n < len_max) {
-        nodes[n++] = last_tail;
-        last_tail = last_tail->next;
-    }
-    
-    switch (n) {
-    case 0: return {nullptr, 0};
-    case 1: break;
-    case 2:
-        cmp_swap(nodes[0], nodes[1]);
-        break;
-    case 3:
-        cmp_swap(nodes[0], nodes[1]);
-        cmp_swap(nodes[1], nodes[2]);
-        cmp_swap(nodes[0], nodes[1]);
-        break;
-    case 4:
-        cmp_swap(nodes[0], nodes[1]);
-        cmp_swap(nodes[2], nodes[3]);
-        cmp_swap(nodes[0], nodes[2]);
-        cmp_swap(nodes[1], nodes[3]);
-        cmp_swap(nodes[1], nodes[2]);
-        break;
-    }
-    
-    size_t result_len = n;
-    size_t tail_idx = 0;
-    
-    for (size_t i = 1; i < n; i++) {
-        if (nodes[tail_idx]->mem.address + nodes[tail_idx]->mem.len == nodes[i]->mem.address) {
-            nodes[tail_idx]->mem.len += nodes[i]->mem.len;
-            nodes[tail_idx]->next = nodes[i]->next;
-            result_len--;
-        } else {
-            nodes[tail_idx]->next = nodes[i];
-            tail_idx = i;
-        }
-    }
-    
-    return {nodes[0], result_len};
-}
-inline rtl::pair<mem_list*, size_t> insert_sort(
-    mem_list *&last_tail, size_t len_max
-) {
-    if (last_tail == nullptr) return {nullptr, 0};
-    
-    mem_list* nodes[16];
-    size_t n = 0;
-    while (last_tail != nullptr && n < len_max) {
-        nodes[n++] = last_tail;
-        last_tail = last_tail->next;
-    }
-    
-    mem_list* sorted[16];
-    size_t sorted_len = 0;
-    
-    for (size_t k = 0; k < n; k++) {
-        auto node = nodes[k];
-        size_t pos = 0;
-        while (pos < sorted_len && sorted[pos]->mem.address < node->mem.address) {
-            pos++;
-        }
-        
-        if (pos > 0 && sorted[pos-1]->mem.address + sorted[pos-1]->mem.len == node->mem.address) {
-            sorted[pos-1]->mem.len += node->mem.len;
-            if (pos < sorted_len && sorted[pos-1]->mem.address + sorted[pos-1]->mem.len == sorted[pos]->mem.address) {
-                sorted[pos-1]->mem.len += sorted[pos]->mem.len;
-                for (size_t t = pos; t + 1 < sorted_len; t++) {
-                    sorted[t] = sorted[t+1];
-                }
-                sorted_len--;
-            }
-        }
-        else if (pos < sorted_len && node->mem.address + node->mem.len == sorted[pos]->mem.address) {
-            sorted[pos]->mem.address = node->mem.address;
-            sorted[pos]->mem.len += node->mem.len;
-            if (pos > 0 && sorted[pos-1]->mem.address + sorted[pos-1]->mem.len == sorted[pos]->mem.address) {
-                sorted[pos-1]->mem.len += sorted[pos]->mem.len;
-                for (size_t t = pos; t + 1 < sorted_len; t++) {
-                    sorted[t] = sorted[t+1];
-                }
-                sorted_len--;
-            }
-        }
-        else {
-            for (size_t t = sorted_len; t > pos; t--) {
-                sorted[t] = sorted[t-1];
-            }
-            sorted[pos] = node;
-            sorted_len++;
-        }
-    }
-    
-    for (size_t k = 0; k + 1 < sorted_len; k++) {
-        sorted[k]->next = sorted[k+1];
-    }
-    
-    return {sorted[0], sorted_len};
-}
-inline auto merge_sort(mem_list *&last_tail, size_t len_max) {
-    auto left_len = len_max / 2, right_len = len_max-left_len;
-
-    auto [llist, llen] = right_sort(last_tail, left_len);
-    auto [rlist, rlen] = right_sort(last_tail, right_len);
-    return merge(llist, llen, rlist, rlen);
-}
-/**
- * output: {result list, result lenght}
- * it push cursor by branch/insert sort
- */
-rtl::pair<mem_list *,size_t> right_sort(mem_list *&last_tail, size_t len_max) {
-    if (last_tail == nullptr) return {nullptr, 0};
-    if (len_max <= 4) {
-        return branch_sort(last_tail, len_max);
-    } else if (len_max <= 16) {
-        return insert_sort(last_tail, len_max);
-    } else {
-        return merge_sort(last_tail, len_max);
-    }
-}
 unsigned PhysicalPage::neaten() {
     auto cursor = *mem_list_root;
     auto [left_list, left_len] = branch_sort(cursor, 4);
@@ -314,7 +139,7 @@ conditions{ptr}, thisptr{*mem_list_root}, lastptr{mem_list_root.start}, no_mem{f
     if (static_cast<PageNum>(mem_list_root[0].mem.len) < conditions->needpages) 
     { done = true; }
 }
-PagePackage PhysicalPage::address_generator::iterator::operator*() {
+HotFunc PagePackage PhysicalPage::address_generator::iterator::operator*() {
     Address alloc_addr{0u};
     PageNum alloc_page;
     if (no_mem) {

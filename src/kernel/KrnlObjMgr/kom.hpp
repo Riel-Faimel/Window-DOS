@@ -50,9 +50,6 @@ public:
     ObjID append(KernelObj *);
     bool delet_(ObjID);
 
-    /**
-     * 遍历所有活着的对象（调试输出用）。回调里不能 append / delet_。
-     */
     void visit(void (*fn)(KernelObj *, void *), void *ctx = nullptr);
 };
 

@@ -1,3 +1,4 @@
+#pragma GCC optimize("Os")
 #include "_pci.hpp"
 
 InsideModuleRecord EnumerMod head {
@@ -70,9 +71,37 @@ void PCI_space::probe(){
     
     kout << "[PCI] -probe " << (u16)config.get_size() << " Devices\n";
     // 用引用遍历：DeviceInfo::config 要指向列表里的元素，而不是循环临时量。
+    LocalDebugInfo(
+    unsigned storage_n = 0;
+    size_t i = 0;
+    )
     for (auto &dev : config) {
+        LocalDebugInfo(
+        if (dev.class_code == StorageController && i < addr_l.get_size()) {
+            auto &a = addr_l[i];
+            storage_n++;
+            // 每个存储控制器一行：地址、class/subclass/progif、BAR5、命令寄存器。
+            // 物理机 AHCI 找不到时，先看这一行有没有出现。
+            kout << "[PCI] st ";
+            kout.hex((u8)a.bus); kout << ':';
+            kout.hex((u8)a.dev); kout << '.';
+            kout.hex((u8)a.func);
+            kout << ' ';
+            kout.hex((u16)dev.vender_ID); kout << ':';
+            kout.hex((u16)dev.Device_ID);
+            kout << " cc=";
+            kout.hex(dev.class_code);
+            kout.hex(dev.subclass_code);
+            kout.hex(dev.prog_interface);
+            kout << " bar="; kout.hex(dev.BAR[5]);
+            kout << " cmd="; kout.hex(dev.Command);
+            kout << '\n';
+        }
+        ++i;
+        )
         pdevspace->append(construc(dev, this));
     }
+    LocalDebugInfo(if (!storage_n) kout << "[PCI] no storage class device\n";)
 }
 
 inline void PCI_space::pci_lookfor_addr(int bus, int dev, int func, int reg){
@@ -131,7 +160,17 @@ inline void PCI_space::pci_probe_device(int bus, int dev){
             if (
                 id == 0xffffffff || id == 0x00000000 ||
                 id == 0x0000ffff || id == 0xffff0000
-            ) return;
+            ) {
+                // 多 function 设备里空 function 是正常的，不能在这里收摊。
+                // 物理机 PCH 常见 .0 LPC / .2 SATA / .3 SMBus（.1 空），
+                // 这行出现就说明后面的 function 被丢掉了。
+                kout << "[PCI] mf ";
+                kout.hex((u8)bus); kout << ':';
+                kout.hex((u8)dev); kout << '.';
+                kout.hex((u8)func_id_);
+                kout << " gap, rest skipped\n";
+                return;
+            }
 
             unsigned time_count = 0;
             while (id == 0xffff0001) {
@@ -186,6 +225,22 @@ void PCI_space::set_mod(void *cfg) {
     if ((cmd & need) != need) {
         pci_write(addr->bus, addr->dev, addr->func, command_reg, cmd | need);
         cmd = pci_read(addr->bus, addr->dev, addr->func, command_reg);
+    }
+
+    // Intel ICH7 SATA：PCS(0x92) 的 bit0-3 是端口时钟使能。
+    // BIOS 可能只给启动端口开时钟，甚至全关；端口时钟没开时
+    // PxSSTS 永远读 0，COMRESET 也不会建立链路。
+    // PCI 配置里的 0x90 是 dword：MAP(0x90)、PCS(0x92)、IR(0x94)。
+    auto *pc = static_cast<PCI_device_config *>(cfg);
+    if (pc && pc->vender_ID == 0x8086 && (pc->Device_ID & 0xFFF8u) == 0x27C0u) {
+        unsigned d = pci_read(addr->bus, addr->dev, addr->func, 0x90);
+        unsigned pcs = (d >> 16) & 0xFFu;
+        if ((pcs & 0x0Fu) != 0x0Fu) {
+            pci_write(addr->bus, addr->dev, addr->func, 0x90, d | (0x0Fu << 16));
+            d = pci_read(addr->bus, addr->dev, addr->func, 0x90);
+        }
+        kout << "[PCI] PCS "; kout.hex((u8)pcs);
+        kout << "->"; kout.hex((u8)((d >> 16) & 0xFFu)); kout << '\n';
     }
 
     LocalDebugInfo(

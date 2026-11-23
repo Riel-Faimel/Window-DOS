@@ -1,4 +1,4 @@
-#pragma GCC optimize("O2")
+#pragma GCC optimize("Os")
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "fat16.hpp"
 
@@ -110,6 +110,7 @@ unsigned FAT16::delet(String) {
     return 0;
 }
 
+HotFunc
 unsigned FAT16::read(void *buf, unsigned h, unsigned byte, unsigned count) {
     u16 handle = ((FileInfo *)(h))->su_start;
     if (handle == 0 || handle == 1) return -1;

@@ -26,6 +26,8 @@ class MemoryManager {
 
         void *alloc(size_t) override;
         void dlloc(void *, size_t) override;
+
+        void operator delete (void *) {}
     };
 
     nopage defaul;
@@ -36,6 +38,15 @@ public:
     MemoryManager();
     void set_allocator(mem::Allocable *(*newer)(mem::KernelHeapFormat::SuperBlock *));
     mem::Allocable *allocator() const { return al; }
+
+    struct MemStatus {
+        size_t total_mem;
+        // total = alloced + free, used < alloced
+        size_t alloced_mem; // all the mem been alloced
+        size_t used_mem; // use for obj
+        size_t free_mem;
+    };
+    MemStatus status();
 };
 
 extern MemoryManager *global_heap;

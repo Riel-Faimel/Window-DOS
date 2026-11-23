@@ -1,3 +1,4 @@
+#pragma GCC optimize("Os")
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "ide.hpp"
 

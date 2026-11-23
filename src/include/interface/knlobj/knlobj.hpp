@@ -4,16 +4,7 @@
 #include <string>
 #include "diskinfo.hpp"
 
-/**
- * 内核对象基类。
- *
- * 类型识别不再用 get_type()/TypeID：需要区分类型的地方一律 dynamic_cast，
- * 这样"有哪些内核对象类型"不需要一个中心枚举，加一个类型不用改基类。
- *
- * 析构函数故意不在头里 inline：它是这几个多态基类的 key function，vtable 的
- * 发源点因此收敛到 knlobj_exp.cpp（那个 TU 用 -frtti 编），dynamic_cast 才有
- * typeinfo 可读。
- */
+// 内核对象基类。析构函数不内联，强制产生vtable
 class KernelObj {
 public:
     virtual ~KernelObj();

@@ -1,12 +1,3 @@
-#ifdef LocalDebugInfo
-#undef LocalDebugInfo
-#endif // clear defination before
-#ifdef LocalDebug
-#define LocalDebugInfo(...) __VA_ARGS__
-#else
-#define LocalDebugInfo(...)
-#endif
-
 #ifndef __include__global_marco_hpp
 #define __include__global_marco_hpp
 
@@ -17,5 +8,15 @@
 #endif
 
 #define ASMLabelMark(name) asm volatile (".globl _RZAL_" #name "\n_RZAL_" #name ":");
+#define HotFunc __attribute__((optimize("O3"), hot, flatten))
 
+#endif
+
+#ifdef LocalDebugInfo
+#undef LocalDebugInfo
+#endif // clear defination before
+#ifdef LocalDebug
+#define LocalDebugInfo(...) __VA_ARGS__
+#else
+#define LocalDebugInfo(...)
 #endif

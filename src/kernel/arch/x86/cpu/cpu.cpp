@@ -70,7 +70,7 @@ TCB *x86::run(void (*func)(size_t, void *), size_t argc, void *argv, mem::MemSpa
 bool arch::x86::regist_int_handler(
     void (*handler)(), unsigned int internum, arch::CPU::AccessControl access
 ) {
-    kout << "[CPU] +int handler:" << internum << '\n';
+    LocalDebugInfo(kout << "[CPU] +int handler:" << internum << '\n';)
     if (internum >= 256) return false;
     u8 dpl = (access == AccessControl::Public) ? 3 : 0;
     idt.regist(handler, internum, 0x08, dpl, true);

@@ -14,7 +14,11 @@ struct Value {
         Ref,        // 另一个变量在栈上的槽下标
 
         Ordering,   // 比较结果 -1 / 0 / 1
-        Buf,        // 输出缓冲区地址
+        ReadOut,    // ReadResult*
+        MemOut,     // MemResult*
+        ObjOut,     // ObjResult*  —— 与 FsOut 必须是不同的枚举值
+        FsOut,      // FsResult*
+        StatusOut,  // StatusResult*
         Obj,        // 指向内核对象的指针
     };
 
@@ -35,7 +39,7 @@ enum class Op : u32 {
     Drop,
     Swap,       // 交换两个同类型的值
 
-    // 比较：只接受强序类型（Int / Buf / Ref），把 栈顶 <=> imm 的 Ordering 压回去；
+    // 比较：只接受强序类型（Int / Ref / Obj），把 栈顶 <=> imm 的 Ordering 压回去；
     // Ordering 自己是无序的，参与比较就是 fault
     Cmp,
 
@@ -44,38 +48,22 @@ enum class Op : u32 {
     Jc,         // 条件跳转：imm 是 Ordering 条件值（-1/0/1），和栈顶 Ordering 比，相等就跳到「栈顶下面一层」的 Int；不弹任何东西
 
     Open,       // 弹 Int（盘号），解析成引用（Disk）后压回；结果会缓存
-    Read,       // 弹 count、lba、ref(Disk)、buf → 原始字节写进 buf
-    Mem,        // 弹 count、addr(Int)、buf → 原始字节写进 buf
-    Obj,        // 弹 buf → 写 ObjRec 记录
-    Fs,         // 弹 buf → 写 ObjRec 记录
+    Read,       // 弹 count、lba、ref(Disk) → ReadResult
+    Mem,        // 弹 count、addr(Int) → MemResult
+    Obj,        // 无操作数 → ObjResult
+    Fs,         // 无操作数 → FsResult
+    Status,     // 无操作数 → StatusResult
 };
 
 /**
  * 一条指令：操作码 + 两个操作数。
  *
- * 操作数是容许数据：字面量（Int / Buf / Obj）、槽引用（Ref）、或寄存器（Reg）。
+ * 操作数是容许数据：字面量（Int / Obj）、槽引用（Ref）、或寄存器（Reg）。
  */
 struct Insn {
     Op    op  = Op::None;
     Value imm = {Value::TypeID::Nil, 0};
     Value imm2= {Value::TypeID::Nil, 0}; // 第二个操作数
-};
-
-/** Obj / Fs 交出来的记录类型。 */
-enum class RecKind : u8 {
-    Phys = 0,   // a = 物理盘地址
-    Part,       // a = 起始 LBA，b = 扇区数，c = 分区类型
-    Serial,     // 串口
-    Frame,      // 帧口
-    Unknown,
-    Drive,      // a = 盘符字符，b = cid
-};
-
-struct ObjRec {
-    RecKind kind;
-    u32 a;
-    u32 b;
-    u32 c;
 };
 
 /**

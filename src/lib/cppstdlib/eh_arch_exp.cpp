@@ -1,3 +1,5 @@
+#pragma GCC optimize("Os")
+
 #include "eh_frame.hpp"
 
 // 与架构绑定的两段入口：保存当前上下文、跳到 landing pad。

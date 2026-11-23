@@ -12,8 +12,7 @@ void DefaultScheduler::enqueue(TCB *tcb, u16 time) {
     next = tcb;
 }
 
-__attribute__((optimize("O3")))
-void DefaultScheduler::ScheduleDecision() {
+HotFunc void DefaultScheduler::ScheduleDecision() {
     TCB *&thislist = up_is_running ? uplist : downlist;
     TCB *&nextlist = up_is_running ? downlist : uplist;
 
@@ -33,14 +32,12 @@ loop:
     goto loop;
 }
 
-__attribute__((optimize("O3")))
-[[noreturn]] void DefaultScheduler::resume() {
+HotFunc [[noreturn]] void DefaultScheduler::resume() {
     ctx.switch_to(*context_local);
     __builtin_unreachable();
 }
 
-__attribute__((optimize("O3")))
-[[noreturn]] void DefaultScheduler::handle_trap(unsigned code) {
+HotFunc [[noreturn]] void DefaultScheduler::handle_trap(unsigned code) {
     if ((code & 0x80000000u) || code == 2) {
         // exit bit set, or the existing _Sexit code 2
         exit();
@@ -52,8 +49,7 @@ __attribute__((optimize("O3")))
     resume();
 }
 
-__attribute__((optimize("O3")))
-void DefaultScheduler::yield() {
+HotFunc void DefaultScheduler::yield() {
     TCB *&nextlist = up_is_running ? downlist : uplist;
     // yield this tcb
     context_local->remain_size += context_local->time_size;
@@ -62,8 +58,7 @@ void DefaultScheduler::yield() {
     context_local = nullptr;
 }
 
-__attribute__((optimize("O3")))
-void DefaultScheduler::wait(TCB *tid) {
+HotFunc void DefaultScheduler::wait(TCB *tid) {
     if (sleeplist != nullptr) {
         sleeplist->prev = context_local;
     }
@@ -92,8 +87,7 @@ void DefaultScheduler::cut(TCB *tid, size_t num, void *argv) {
     tid->tcb_set_ip(tid->int_handler);
 }
 
-__attribute__((optimize("O3")))
-void DefaultScheduler::wake(TCB *tid, size_t wake_num) {
+HotFunc void DefaultScheduler::wake(TCB *tid, size_t wake_num) {
     if (tid->prev) {
         // is sleeping
         tid->prev->next = tid->next;
@@ -108,7 +102,6 @@ void DefaultScheduler::wake(TCB *tid, size_t wake_num) {
     tid->tcb_push(TCBField::word, wake_num);
 }
 
-__attribute__((optimize("O3")))
 void DefaultScheduler::set_time_size(TCB *tcb, u16 time) {
     tcb->time_size = time;
 }

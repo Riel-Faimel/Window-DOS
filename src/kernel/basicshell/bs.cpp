@@ -1,6 +1,40 @@
+#pragma GCC optimize("Os")
 #include "_bs.hpp"
 
 using namespace svm;
+
+namespace {
+
+// Frontend-only module names. SVM only sees the numeric selector.
+enum class StatusModule : u32 {
+    All = 0,
+    Mm,
+    Page,
+    Obj,
+    Fs,
+};
+
+bool status_module_from_name(const String &name, StatusModule &out) {
+    if (name == String("all"))   { out = StatusModule::All;  return true; }
+    if (name == String("mm") ||
+        name == String("heap") ||
+        name == String("memory")){ out = StatusModule::Mm;   return true; }
+    if (name == String("page") ||
+        name == String("paging")){ out = StatusModule::Page; return true; }
+    if (name == String("obj") ||
+        name == String("objects")){ out = StatusModule::Obj; return true; }
+    if (name == String("fs") ||
+        name == String("drives")){ out = StatusModule::Fs;   return true; }
+
+    u32 v;
+    if (parse_hex(name, v) && v <= static_cast<u32>(StatusModule::Fs)) {
+        out = static_cast<StatusModule>(v);
+        return true;
+    }
+    return false;
+}
+
+} // namespace
 
 BasicShell::BasicShell(): win{} {
     if (sdm) sdm->open(win, String("kbd"));
@@ -26,7 +60,7 @@ char BasicShell::eat_escape() {
 
 void BasicShell::read_line() {
     line.clear();
-    for (;;) {
+    while(1) {
         char c = getch();
         if (c == '\n') {
             // 行尾的 `\` 是续行：换成语句分隔，接着读下一行。
@@ -57,7 +91,7 @@ void BasicShell::read_line() {
 // ======================= 命令参数（老路径） =======================
 
 void BasicShell::compile(ShellNode &re, const rtl::array<String> &words,
-                         const OpInfo &info, u32 out_buf) {
+                         const OpInfo &info) {
     u32 val[3] = {0, 0, 0};
     bool set[3] = {false, false, false};
     unsigned next_pos = 0;
@@ -109,10 +143,6 @@ void BasicShell::compile(ShellNode &re, const rtl::array<String> &words,
         }
         set[idx] = true;
     }
-
-    // 需要输出的命令：输出缓冲区是第一个操作数，所以最先压。
-    if (info.out)
-        re.code.append(Insn{Op::Push, Value{Value::TypeID::Buf, out_buf}});
 
     // 补缺省值、查范围，然后按表里的顺序压栈。
     for (unsigned i = 0; i < info.argc; i++) {
@@ -252,7 +282,6 @@ bool BasicShell::emit_assign(ShellNode &re, const String &text) {
     if (tn == String("Int"))      type = Value::TypeID::Int;
     else if (tn == String("Obj")) type = Value::TypeID::Obj;
     else if (tn == String("Ref")) type = Value::TypeID::Ref;
-    else if (tn == String("Buf")) type = Value::TypeID::Buf;
     else {
         re.ok = false;
         re.error = String("unknown type: ") + tn;
@@ -297,7 +326,7 @@ bool BasicShell::emit_assign(ShellNode &re, const String &text) {
     return true;
 }
 
-bool BasicShell::emit_command(ShellNode &re, const String &text, u32 out_buf) {
+bool BasicShell::emit_command(ShellNode &re, const String &text) {
     auto words = split_args(text);
     if (words.get_size() == 0) return true;
 
@@ -308,15 +337,44 @@ bool BasicShell::emit_command(ShellNode &re, const String &text, u32 out_buf) {
         return false;
     }
 
-    compile(re, words, *info, out_buf);
+    // Status has an optional module name, which is not a numeric argument.
+    if (info->op == Op::Status) {
+        if (words.get_size() > 2) {
+            re.ok = false;
+            re.error = String("too many arguments, usage: ") + info->usage;
+            return false;
+        }
+
+        StatusModule module = StatusModule::All;
+        if (words.get_size() == 2 &&
+            !status_module_from_name(words[1], module)) {
+            re.ok = false;
+            re.error = String("unknown status module: ") + words[1];
+            return false;
+        }
+
+        re.code.append(Insn{
+            Op::Push,
+            Value{Value::TypeID::Int, static_cast<u32>(module)}
+        });
+        re.code.append(Insn{Op::Status, Value{}});
+        return true;
+    }
+
+    compile(re, words, *info);
     if (!re.ok) return false;
 
-    // 命令的返回值（Int 字节数）不留在脚本的栈上。
-    re.code.append(Insn{Op::Drop, Value{}});
+    // 输出指令的结果指针要留给 shell；其它命令的返回值不留在栈上。
+    const bool output =
+        info->op == Op::Read || info->op == Op::Mem ||
+        info->op == Op::Obj || info->op == Op::Fs ||
+        info->op == Op::Status;
+    if (!output)
+        re.code.append(Insn{Op::Drop, Value{}});
     return true;
 }
 
-bool BasicShell::emit_stmt(ShellNode &re, const String &text, u32 out_buf) {
+bool BasicShell::emit_stmt(ShellNode &re, const String &text) {
     const String t = text.trim();
     if (t.empty()) return true;
 
@@ -324,16 +382,16 @@ bool BasicShell::emit_stmt(ShellNode &re, const String &text, u32 out_buf) {
     if (words.get_size() >= 2) {
         const String &tn = words[0];
         if ((tn == String("Int") || tn == String("Obj") ||
-             tn == String("Ref") || tn == String("Buf")) &&
+             tn == String("Ref")) &&
             t.find("=") != (unsigned)-1)
             return emit_assign(re, t);
     }
 
-    return emit_command(re, t, out_buf);
+    return emit_command(re, t);
 }
 
 // if (cond) stmt ; stmt ...
-bool BasicShell::compile_if(ShellNode &re, const String &text, u32 out_buf) {
+bool BasicShell::compile_if(ShellNode &re, const String &text) {
     const unsigned close = text.find(")");
     if (close == (unsigned)-1 || close < 4) {
         re.ok = false;
@@ -351,7 +409,7 @@ bool BasicShell::compile_if(ShellNode &re, const String &text, u32 out_buf) {
     if (!emit_cond(re, cond, false)) return false;                  // 条件为假 → 跳过 body
 
     for (auto &stmt : body.split(';'))
-        if (!emit_stmt(re, stmt, out_buf)) return false;
+        if (!emit_stmt(re, stmt)) return false;
 
     const u32 end = re.code.get_size();
     re.code[tgt].imm.value = end;
@@ -362,7 +420,7 @@ bool BasicShell::compile_if(ShellNode &re, const String &text, u32 out_buf) {
 }
 
 // while (cond) stmt ; stmt ...
-bool BasicShell::compile_while(ShellNode &re, const String &text, u32 out_buf) {
+bool BasicShell::compile_while(ShellNode &re, const String &text) {
     const unsigned close = text.find(")");
     if (close == (unsigned)-1 || close < 7) {
         re.ok = false;
@@ -382,7 +440,7 @@ bool BasicShell::compile_while(ShellNode &re, const String &text, u32 out_buf) {
     if (!emit_cond(re, cond, false)) return false;                  // 条件为假 → 退出循环
 
     for (auto &stmt : body.split(';'))
-        if (!emit_stmt(re, stmt, out_buf)) return false;
+        if (!emit_stmt(re, stmt)) return false;
 
     re.code.append(Insn{Op::Drop, Value{}});   // Ordering
     re.code.append(Insn{Op::Drop, Value{}});   // 目标
@@ -396,15 +454,15 @@ bool BasicShell::compile_while(ShellNode &re, const String &text, u32 out_buf) {
     return true;
 }
 
-bool BasicShell::compile_script(ShellNode &re, const String &text, u32 out_buf) {
+bool BasicShell::compile_script(ShellNode &re, const String &text) {
     if (text.length() > 6 && text.substr(0, 6) == String("while("))
-        return compile_while(re, text, out_buf);
+        return compile_while(re, text);
     if (text.length() > 3 && text.substr(0, 3) == String("if("))
-        return compile_if(re, text, out_buf);
-    return emit_stmt(re, text, out_buf);
+        return compile_if(re, text);
+    return emit_stmt(re, text);
 }
 
-bool BasicShell::read(ShellNode &re, u32 out_buf) {
+bool BasicShell::read(ShellNode &re) {
     read_line();
 
     re.code.clear();
@@ -418,12 +476,12 @@ bool BasicShell::read(ShellNode &re, u32 out_buf) {
     auto words = split_args(t);
     if (words.get_size() > 0 && words[0] == String("help")) return true;
 
-    compile_script(re, t, out_buf);
+    compile_script(re, t);
     return true;
 }
 
 BasicShell::PageKey BasicShell::page_key() {
-    for (;;) {
+    while(1) {
         char c = getch();
         if (c == '\n' || c == ' ') return PageKey::Next;
         if (c == 'q' || c == 'Q') return PageKey::Quit;
@@ -480,7 +538,7 @@ void BasicShell::dump_bytes(const u8 *p, unsigned base_addr, unsigned len) {
 
     const unsigned pages = (len + page - 1) / page;
     unsigned cur = 0;
-    for (;;) {
+    while(1) {
         const unsigned start = cur * page;
         const unsigned n = (len - start > page) ? page : (len - start);
         print_block(p + start, base_addr + start, n);
@@ -497,30 +555,73 @@ void BasicShell::dump_bytes(const u8 *p, unsigned base_addr, unsigned len) {
     }
 }
 
-// obj / fs 的记录流：VM 只给结构化数据，文案在这里。
-void BasicShell::dump_recs(const OutBuf &buf) {
-    const unsigned n = buf.len / sizeof(ObjRec);
-    auto *recs = reinterpret_cast<const ObjRec *>(buf.data);
+void BasicShell::dump_read(const ReadResult &res) {
+    if (res.len)
+        dump_bytes(res.addr, 0, static_cast<unsigned>(res.len));
+}
 
-    for (unsigned i = 0; i < n; i++) {
-        switch (recs[i].kind) {
-        case RecKind::Phys:
-            kout << "[obj] phys 0x"; kout.hex(recs[i].a); kout << '\n';
+void BasicShell::dump_mem(const MemResult &res) {
+    if (res.len)
+        dump_bytes(res.addr, 0, static_cast<unsigned>(res.len));
+}
+
+void BasicShell::dump_obj_entries(const ObjEntry *addr, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        const ObjEntry &rec = addr[i];
+        switch (rec.kind) {
+        case ObjKind::Phys:
+            kout << "[obj] phys 0x"; kout.hex(rec.a); kout << '\n';
             break;
-        case RecKind::Part:
-            kout << "[obj] part lba=" << recs[i].a
-                 << " sectors=" << recs[i].b << " type=0x";
-            kout.hex(recs[i].c);
-            kout << '\n';
+        case ObjKind::Part:
+            kout << "[obj] part lba=" << rec.a
+                 << " sectors=" << rec.b << " type="
+                 << (rec.c) << '\n';
             break;
-        case RecKind::Serial: kout << "[obj] serial\n"; break;
-        case RecKind::Frame:  kout << "[obj] frame\n";  break;
-        case RecKind::Drive:
-            kout << "[fs] " << char(recs[i].a) << ":  cid=" << recs[i].b << '\n';
-            break;
+        case ObjKind::Serial: kout << "[obj] serial\n"; break;
+        case ObjKind::Frame:  kout << "[obj] frame\n";  break;
         default: kout << "[obj] unknown\n"; break;
         }
     }
+}
+
+void BasicShell::dump_fs_entries(const DriveEntry *addr, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        const DriveEntry &d = addr[i];
+        kout << "[fs] " << char(d.letter) << ":  cid=" << d.cid << '\n';
+    }
+}
+
+// obj / fs are still kept as internal result types, but user commands go
+// through Status. These wrappers keep the VM result switch simple.
+void BasicShell::dump_obj(const ObjResult &res) {
+    dump_obj_entries(res.addr, res.len);
+}
+
+void BasicShell::dump_fs(const FsResult &res) {
+    dump_fs_entries(res.addr, res.len);
+}
+
+void BasicShell::dump_status(const StatusResult &res) {
+    const auto selector = static_cast<StatusModule>(res.selector);
+    const bool all = selector == StatusModule::All;
+
+    if (all || selector == StatusModule::Mm) {
+        kout << "[mm] total=" << (u32)res.total_mem
+             << "\n alloced=" << (u32)res.alloced_mem
+             << "\n used=" << (u32)res.used_mem
+             << "\n free=" << (u32)res.free_mem << '\n';
+    }
+
+    if (all || selector == StatusModule::Page) {
+        kout << "[page] total=" << (u32)res.page_total
+             << "\n free=" << (u32)res.page_free << '\n';
+    }
+
+    if (all || selector == StatusModule::Obj)
+        dump_obj_entries(res.objs, res.obj_len);
+
+    if (all || selector == StatusModule::Fs)
+        dump_fs_entries(res.drives, res.fs_len);
 }
 
 [[noreturn]]
@@ -529,47 +630,41 @@ void BasicShell::main() {
 
     if (!sysvm) {
         kout << "[shell] no SysVM in the kernel\n";
-        for (;;) asm volatile ("hlt");
+        while(1) asm volatile ("hlt");
     }
 
     thread = sysvm->create_thread();
 
-    static u8 storage[4096];
-    out.data = storage;
-    out.cap = sizeof storage;
+    while(1) {
+        // 上一条命令的结果归线程所有，先释放再读新命令。
+        thread->reset();
 
-    for (;;) {
         kout << "dbg> ";
-
-        out.reset();
-
         ShellNode node;
-        if (!read(node, reinterpret_cast<u32>(&out))) continue;
+        if (!read(node)) continue;
         if (!node.ok) { kout << node.error << '\n'; continue; }
 
         // help 不产生指令（见 read()），空程序就是它。
         if (node.code.get_size() == 0) { print_help(); continue; }
 
-        // 脚本里最后一条可能是 Drop/Jmp，往回找第一条产出数据的指令来决定怎么显示。
-        Op display = Op::None;
-        for (unsigned i = node.code.get_size(); i-- > 0; ) {
-            const Op o = node.code[i].op;
-            if (o == Op::Read || o == Op::Mem || o == Op::Obj || o == Op::Fs) {
-                display = o;
-                break;
-            }
-        }
+        if (!sysvm->run(*thread, node)) continue;
 
-        sysvm->run(*thread, node);
-
-        switch (display) {
-        case Op::Read:
-        case Op::Mem:
-            if (out.len) dump_bytes(out.data, 0, out.len);
+        const Value result = thread->pop();
+        switch (result.type) {
+        case Value::TypeID::ReadOut:
+            dump_read(*reinterpret_cast<const ReadResult *>(result.value));
             break;
-        case Op::Obj:
-        case Op::Fs:
-            dump_recs(out);
+        case Value::TypeID::MemOut:
+            dump_mem(*reinterpret_cast<const MemResult *>(result.value));
+            break;
+        case Value::TypeID::ObjOut:
+            dump_obj(*reinterpret_cast<const ObjResult *>(result.value));
+            break;
+        case Value::TypeID::FsOut:
+            dump_fs(*reinterpret_cast<const FsResult *>(result.value));
+            break;
+        case Value::TypeID::StatusOut:
+            dump_status(*reinterpret_cast<const StatusResult *>(result.value));
             break;
         default:
             break;

@@ -1,3 +1,4 @@
+#pragma GCC optimize("Os")
 #include "_id.hpp"
 #include <HL/container>
 

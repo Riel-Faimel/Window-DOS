@@ -1,3 +1,4 @@
+#pragma GCC optimize("Os")
 #include "_ps2.hpp"
 #include <SrvDevMgr/SDM.hpp>
 #include <changestack.hpp>

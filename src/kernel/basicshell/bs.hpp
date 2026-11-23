@@ -40,7 +40,6 @@ public:
         const char *name;
         const char *usage;
         u8          argc;
-        bool        out;     // 需要输出：编译时会多压一个缓冲区指针操作数
         OpArg       args[3];
     };
     
@@ -50,7 +49,7 @@ private:
     WinHandle win;          // 打开 kbd 的句柄
 
     // 执行状态：由 sysvm->create_thread() 分配，本对象持有。
-    svm::SysVMThread *thread = nullptr;
+    SysVMThread *thread = nullptr;
 
     String line;
 
@@ -63,14 +62,19 @@ private:
     void read_line();
 
     // 按签名表把参数编译成 push 指令，缺省值和范围检查都在这里。
-    // 需要输出的命令，先压一个输出缓冲区指针（操作数），再压参数。
-    void compile(svm::ShellNode &out, const rtl::array<String> &words,
-                 const OpInfo &info, u32 out_buf);
+    void compile(svm::ShellNode &re, const rtl::array<String> &words,
+                 const OpInfo &info);
 
     void print_help();
     void print_block(const u8 *p, unsigned base_addr, unsigned len);
     void dump_bytes(const u8 *p, unsigned base_addr, unsigned len);
-    void dump_recs(const svm::OutBuf &buf);
+    void dump_read(const svm::ReadResult &res);
+    void dump_mem(const svm::MemResult &res);
+    void dump_obj(const svm::ObjResult &res);
+    void dump_fs(const svm::FsResult &res);
+    void dump_obj_entries(const ObjEntry *addr, size_t len);
+    void dump_fs_entries(const DriveEntry *addr, size_t len);
+    void dump_status(const svm::StatusResult &res);
 
     // ---- 脚本语法：变量、条件、循环 ----
     struct Var {
@@ -81,16 +85,16 @@ private:
     Var vars[12];
     unsigned var_n = 0;
 
-    bool compile_script(svm::ShellNode &re, const String &text, u32 out_buf);
-    bool compile_if(svm::ShellNode &re, const String &text, u32 out_buf);
-    bool compile_while(svm::ShellNode &re, const String &text, u32 out_buf);
+    bool compile_script(svm::ShellNode &re, const String &text);
+    bool compile_if(svm::ShellNode &re, const String &text);
+    bool compile_while(svm::ShellNode &re, const String &text);
     bool emit_assign(svm::ShellNode &re, const String &text);
-    bool emit_command(svm::ShellNode &re, const String &text, u32 out_buf);
+    bool emit_command(svm::ShellNode &re, const String &text);
     bool emit_operand(svm::ShellNode &re, const String &word);
     bool parse_cond(const String &cond, String &left, String &op, String &right);
     void emit_cond_jumps(svm::ShellNode &re, const String &op, bool jump_true);
     bool emit_cond(svm::ShellNode &re, const String &cond, bool jump_true);
-    bool emit_stmt(svm::ShellNode &re, const String &text, u32 out_buf);
+    bool emit_stmt(svm::ShellNode &re, const String &text);
     Var *find_var(const String &name);
 
 public:
@@ -101,9 +105,8 @@ public:
 
     /**
      * 阻塞读一行并编译。空行返回 false。
-     * out_buf 是输出缓冲区的地址，需要输出的命令会把它作为第一个操作数压栈。
      */
-    bool read(svm::ShellNode &out, u32 out_buf = 0);
+    bool read(svm::ShellNode &re);
 
     // 分页等键：enter/空格/↓ 下一页，↑/b/退格 上一页，q 退出。
     PageKey page_key();

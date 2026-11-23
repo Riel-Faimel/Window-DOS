@@ -3,10 +3,11 @@ CPP = x86_64-elf-g++
 LD = x86_64-elf-ld
 AS = nasm
 
+CTMP =
 CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
         -Wall -Wextra -ffreestanding -MMD -MP\
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
-		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_x86 
+		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_x86 $(CTMP)
 
 ifeq ($(COMDebug),1)
 CBASE += -DCOMDebug

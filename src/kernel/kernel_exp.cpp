@@ -34,7 +34,7 @@ void LoaderMain(){
             PeripheralDeviceSpace pds{};
             KernelObjectManager kom{};
             KernelModule kernelmodule;
-            svm::SysVM svm;
+            SysVM svm;
         } renew_DOS;
         kout << "[BOOT] start INIT.COM\n";
         ASMLabelMark(LoaderMain_StartB_INIT_EXE)
