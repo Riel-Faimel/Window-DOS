@@ -1,8 +1,5 @@
 #include "_inpage.hpp"
 
-// guard 常量是多字符常量（'HG'/'TG'/'SP'），和 mm.cpp 保持一致的处理方式。
-#pragma GCC diagnostic ignored "-Wmultichar"
-
 namespace arch {
 
 namespace {

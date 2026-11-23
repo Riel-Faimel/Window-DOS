@@ -5,7 +5,7 @@ AS = nasm
 
 CTMP =
 CBASE = -m32 -nostdlib -fno-builtin -fno-stack-protector \
-        -Wall -Wextra -ffreestanding -MMD -MP\
+        -Wall -Wextra -Wno-invalid-offsetof -ffreestanding -MMD -MP\
 		-c -I $(SRC_DIR)include/ -I $(SRC_DIR)include/lib/ \
 		-I $(SRC_DIR)kernel/ -I $(SRC_DIR)kernel/ -O2 -D_x86 $(CTMP)
 

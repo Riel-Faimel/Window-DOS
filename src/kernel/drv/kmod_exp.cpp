@@ -6,8 +6,7 @@ KernelModule *kmod = nullptr;
 template<>
 size_t hash(const size_t &i) { return i; }
 
-KernelModule::KernelModule():
-fs{} {
+KernelModule::KernelModule() {
     kmod = this;
     pdevspace->append(this);
 }
@@ -35,11 +34,8 @@ void KernelModule::reg_insmod(ModHead &head) {
         }
     } break;
     case ModHead::ModType::KrnlObj: {
-        ;
-    } break;
-    case ModHead::ModType::SrvDev: {
-        auto srvmod = (SrvDev &)head;
-        fs[srvmod.fs_id] = srvmod.fs_construc;
+        auto krlobj = (KrnlObj &)head;
+        kom->append(krlobj.conv_construc());
     } break;
     case ModHead::ModType::EnumerMod: {
         auto enumermod = (EnumerMod &)head;

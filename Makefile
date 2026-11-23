@@ -64,7 +64,7 @@ run: boot.img
 clean:
 	rmdir /s /q "$(BUILD_DIR)"
 	rmdir /s /q "$(ROOT_DIR)/gcm.cache"
-	del boot.img
+	del .\boot.img
 
 debug:
 	start "" gdb -ex "set architecture i386" -ex "target remote 127.0.0.1:1234" & qemu-system-i386 -s -S $(QEMUFLAGS)

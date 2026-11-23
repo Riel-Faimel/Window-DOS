@@ -73,11 +73,11 @@ bool ISA_space::PS2::probe() {
 void ISA_space::probe() {
     PS2 ps2;
     if (ps2.probe()) {
-        pdevspace->append(new DeviceInfo{
+        pdevspace->append(new pds::DeviceInfo{
             .progif = ProgIFIndex::ISA_PS2_KM,
             .bus = id,
-            .cls = DeviceInfo::ClassType::input,
-            .device = DeviceInfo::DeviceType{0},
+            .cls = pds::DeviceInfo::ClassType::input,
+            .device = pds::DeviceInfo::DeviceType{0},
             .config = new ISA_PS2_Config{
                 ps2.keyboard(), ps2.mouse(), 0
             },

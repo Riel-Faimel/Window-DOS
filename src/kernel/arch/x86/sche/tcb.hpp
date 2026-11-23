@@ -25,7 +25,6 @@ struct X86TCB final : public TCB {
 static_assert(sizeof(X86TCB) == 100);
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
 static_assert(__builtin_offsetof(X86TCB, frame) == 24);
 #pragma GCC diagnostic pop
 

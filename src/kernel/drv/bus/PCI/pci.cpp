@@ -5,19 +5,19 @@ InsideModuleRecord EnumerMod head {
     []() -> Enumerator *{ return new PCI_space{}; }
 };
 
-DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
-    auto re = new DeviceInfo{
+pds::DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
+    auto re = new pds::DeviceInfo{
         .progif = ProgIFIndex{0},
         .bus = id,
-        .cls = DeviceInfo::ClassType::nul, 
-        .device = DeviceInfo::DeviceType{0}, 
+        .cls = pds::DeviceInfo::ClassType::nul, 
+        .device = pds::DeviceInfo::DeviceType{0}, 
 
         .config = &pcf,
         .enumer = enumer 
     };
     switch (pcf.class_code){
     case StorageController: {
-        re->cls = DeviceInfo::ClassType::storage;
+        re->cls = pds::DeviceInfo::ClassType::storage;
         switch (pcf.subclass_code) {
         case SCSIBus: {} break;
         case IDE: {
@@ -40,7 +40,7 @@ DeviceInfo *PCI_space::construc(PCI_device_config &pcf, PCI_space *enumer) {
         } 
     } break;
     case NetworkController: {
-        re->cls = DeviceInfo::ClassType::network;
+        re->cls = pds::DeviceInfo::ClassType::network;
         switch (pcf.subclass_code){
         case 0x00: {} break;
         default: {} break;

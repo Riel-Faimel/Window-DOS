@@ -6,6 +6,7 @@
 #include <interface/srvdev/cluster.hpp>
 #include <interface/wm/syscall.hpp>
 #include <interface/knlobj/knlobj.hpp>
+#include <interface/knlobj/converter.hpp>
 
 #define InsideModuleRecord constinit static __attribute__((used, section(".insidemods"), aligned(1)))
 
@@ -24,8 +25,8 @@ struct ModHead {
 };
 struct PDevDrv : public ModHead {
     ProgIFIndex progid;
-    DeviceInfo::ClassType cls_type;
-    DeviceInfo::DeviceType device_type;
+    pds::DeviceInfo::ClassType cls_type;
+    pds::DeviceInfo::DeviceType device_type;
     DriverConstr drv_construc;
     enum class DrvType : u8 {
         ProgIF,
@@ -33,22 +34,20 @@ struct PDevDrv : public ModHead {
     } drv_type;
 
     constexpr PDevDrv(
-        ProgIFIndex progid_, DeviceInfo::ClassType cls_type_, 
-        DeviceInfo::DeviceType device_type_, DriverConstr drv_construc_
+        ProgIFIndex progid_, pds::DeviceInfo::ClassType cls_type_, 
+        pds::DeviceInfo::DeviceType device_type_, DriverConstr drv_construc_
     ): ModHead{ModType::PDevDrv}, progid{progid_}, cls_type{cls_type_}, device_type{device_type_}, 
     drv_construc{drv_construc_}, drv_type{DrvType::Dev} {}
     constexpr PDevDrv(
-        ProgIFIndex progid_, DeviceInfo::ClassType cls_type_, DriverConstr drv_construc_
+        ProgIFIndex progid_, pds::DeviceInfo::ClassType cls_type_, DriverConstr drv_construc_
     ): ModHead{ModType::PDevDrv}, progid{progid_}, cls_type{cls_type_}, device_type{0}, 
     drv_construc{drv_construc_}, drv_type{DrvType::ProgIF} {}
 };
-struct KrnlObj : public ModHead {};
-struct SrvDev : public ModHead {
-    u32 fs_id;
-    Cluster *(*fs_construc)(LogicalDisk *);
+struct KrnlObj : public ModHead {
+    Converter *(*conv_construc)();
 
-    constexpr SrvDev(u32 fs_id_, Cluster *(*fs_construc_)(LogicalDisk *)): 
-    ModHead{ModType::SrvDev}, fs_id{fs_id_}, fs_construc{fs_construc_} {}
+    constexpr KrnlObj(Converter *(*conv_construc_)()):
+    ModHead{ModType::KrnlObj}, conv_construc{conv_construc_} {}
 };
 struct EnumerMod : public ModHead {
     Enumerator *(*mainbody)();

@@ -10,13 +10,12 @@ constexpr size_t SizeClassCount = 17;
 // 堆格式的常量。谁实现/使用这个格式都要用，所以放在格式自己的头里，
 // 不留在 mm 的私有头。
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmultichar"
 constexpr size_t MemClusterSize = 4096;
-constexpr u32 SuperBlockMagic = 'RSBM';
-constexpr u32 PageHeadMagic = 'RPHM';
-constexpr u16 ObjectHeadGuard = 'HG';
-constexpr u16 ObjectTailGuard = 'TG';
-constexpr u16 ObjectSingalGuard = 'SP';
+constexpr u32 SuperBlockMagic = 'R'|'S'<<8|'B'<<16|'M'<<24;
+constexpr u32 PageHeadMagic = 'R'|'P'<<8|'H'<<16|'M'<<24;
+constexpr u16 ObjectHeadGuard = 'H'|'G'<<8;
+constexpr u16 ObjectTailGuard = 'T'|'G'<<8;
+constexpr u16 ObjectSingalGuard = 'S'|'P'<<8;
 #pragma GCC diagnostic pop
 
 constexpr u16 size_classes[SizeClassCount] = {

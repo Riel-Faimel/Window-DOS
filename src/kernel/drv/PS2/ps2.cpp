@@ -50,8 +50,8 @@ bool init(){
 
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::ISA_PS2_KM,
-    DeviceInfo::ClassType::input,
-    [] (DeviceInfo *) -> DeviceDriver *{ return new ps2; }
+    pds::DeviceInfo::ClassType::input,
+    [] (pds::DeviceInfo *) -> DeviceDriver *{ return new ps2; }
 };
 
 ps2 *ps2::self = nullptr;

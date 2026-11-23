@@ -70,7 +70,7 @@ class PCI_space : public Enumerator {
     unsigned pci_read(int, int, int, int);
     void pci_write(int, int, int, int, unsigned);
     void pci_probe_device(int, int);
-    DeviceInfo *construc(PCI_device_config &pcf, PCI_space *enumer);
+    pds::DeviceInfo *construc(PCI_device_config &pcf, PCI_space *enumer);
     PCI_addr *find_addr(void *cfg);
 public:
     PCI_space();
@@ -78,7 +78,7 @@ public:
     /**
      * 打开这台设备的门控：置 memory space + bus master。
      *
-     * 参数是 DeviceInfo::config，即 PCI_device_config 的地址。
+     * 参数是 pds::DeviceInfo::config，即 PCI_device_config 的地址。
      */
     void set_mod(void *cfg) override;
 };

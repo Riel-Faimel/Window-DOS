@@ -5,7 +5,6 @@ KernelObjectManager *kom = nullptr;
 KernelObjectManager::KernelObjectManager(): conv_l{}, obj_l{} {
     kom = this;
     conv_l.append(new builtin_converter::MBR);
-    conv_l.append(new builtin_converter::FileSystem);
 }
 
 void KernelObjectManager::append(Converter *conv) {
@@ -22,11 +21,35 @@ KernelObjectManager::ObjID KernelObjectManager::append(KernelObj *obj) {
     const u32 id = next_id++;
     obj_l.append(Entry{ObjID{id}, obj});
 
+    rtl::array<Converter *> match;
+    rtl::array<Converter *> matchbad;
+    rtl::array<Converter *> work;
     for (auto conv : conv_l) {
-        if (conv->touch(obj) != Converter::MatchDegree::Unknow) {
+        switch (conv->touch(obj)) {
+        case Converter::MatchDegree::MatchWell: {
             conv->conv(obj);
-            break;
+            return ObjID{id};
+        } break;
+        case Converter::MatchDegree::Match: {
+            match.append(conv);
+        } break;
+        case Converter::MatchDegree::MatchBad: {
+            matchbad.append(conv);
+        } break;
+        case Converter::MatchDegree::Work: {
+            work.append(conv);
+        } break;
+        case Converter::MatchDegree::Unknow: {
+            continue;
+        } break;
+        default: {
+            continue;
+        } break;
         }
+    }
+    // emmm...
+    for (auto conv : match) {
+        conv->conv(obj);
     }
     return ObjID{id};
 }

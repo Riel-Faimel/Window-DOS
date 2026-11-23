@@ -5,6 +5,7 @@
 #include <interface/knlobj/converter.hpp>
 #include <HL/container>
 
+// converter as vertex, obj as edge
 class KernelObjectManager {
 public:
     class ObjID {

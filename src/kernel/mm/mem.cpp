@@ -1,5 +1,4 @@
 #include "_mem.hpp"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 /**
  * Create a named shared memory

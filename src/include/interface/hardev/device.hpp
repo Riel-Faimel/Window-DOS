@@ -2,6 +2,7 @@
 #define __include_interface_device_hpp
 
 #include <global/type.hpp>
+#include <global/pds.hpp>
 #include "enumer.hpp"
 #include "pift.hpp"
 
@@ -15,56 +16,9 @@ public:
      */
     virtual void work() = 0;
     virtual void off() = 0;
+    virtual ~DeviceDriver() = default;
 };
 
-struct DeviceInfo;
-
-/**
- * Enumerator submit the struct to PDS
- * Enumerator know:
- *      self id allocated by PDS
- *      device class
- *      device program interface
- *      device id
- *          # up for device classifying
- * 
- *      Enumerator private config
- *      self
- *          # Enumerator local information
- */
-struct DeviceInfo {
-    ProgIFIndex progif;
-
-    // id
-    Enumerator::EnumerIndex bus; // from enumer run-time
-    enum class ClassType : u16 {
-        storage,
-        network,
-        graph,
-        caculate,
-        input,
-        output,
-        nul = (u16)-1,
-    } cls; // from enum class
-    class DeviceType {
-        u32 id;
-    public:
-        constexpr explicit DeviceType(u32 id_): id{id_} {}
-
-        bool operator == (const DeviceType &oth) const { return id == oth.id; }
-        operator u32() const { return id; }
-    } device; // from vendoor, device, reversion hash
-
-    // bus config
-    void *config;
-    Enumerator *enumer = nullptr;
-};
-
-/**
- * 驱动的构造函数。参数是这台设备的 DeviceInfo：驱动从 config 取总线
- * 私有配置，从 enumer 取总线本身（例如通过 set_mod 让总线打开设备门控）。
- * PDS 持有 DeviceInfo 的生命周期，驱动只可以在构造期读取，不得留存。
- */
-using DriverConstr = DeviceDriver *(*)(DeviceInfo *);
+using DriverConstr = DeviceDriver *(*)(pds::DeviceInfo *);
 
 #endif

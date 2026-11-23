@@ -1,6 +1,4 @@
-$(BUILD_DIR)kernel/drv/fs/FAT16/FAT16.o: $(SRC_DIR)kernel/drv/fs/FAT16/FAT16.cpp
+$(BUILD_DIR)kernel/drv/fs/FAT16/fat16.o: $(SRC_DIR)kernel/drv/fs/FAT16/fat16_exp.cpp
 
-$(BUILD_DIR)kernel/drv/fs/FAT16.o:\
-	$(BUILD_DIR)kernel/drv/fs/FAT16/FAT16.o
-
-	$(LDCMD) $@ $^
+OBJ += \
+	$(BUILD_DIR)kernel/drv/fs/FAT16/fat16.o

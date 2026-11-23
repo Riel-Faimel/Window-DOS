@@ -1,34 +1,19 @@
 #pragma GCC optimize("Os")
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "fat16.hpp"
 
-InsideModuleRecord SrvDev head {14,[](LogicalDisk *d) -> Cluster *{ return new FAT16{d}; }};
+InsideModuleRecord KrnlObj head_conv { []() -> Converter *{ return new FAT16conv; } };
 
 FAT16::FAT16(LogicalDisk *part_init):
-FATTable{}, DirResolv{}, 
-status{RAW}, part{part_init}{
+FATTable{}, DirResolv{}, part{part_init}{
     BPB bpb;
     part->read(bpb.buf, 0, 0, 1);
-    #undef LocalDebug
-    #include <global/macro.hpp>
-    LocalDebugInfo(
-        for (auto i : rtl::range{256}) {
-            print_hex(bpb.buf[i], false);print_char(' ');
-        }
-        while(1);
-    )
     if(
         bpb.boot_sector_sign == 0xAA55 &&
         bpb.root_entry_num == 512
     ){
         sec_per_clu = bpb.sectors_per_cluster;
-        if(bpb.sector_per_fat_table > 0){
-            status = FORMAT; //has BPB
-        }else{
-            status = UNFORMAT;
-            return;
-        }
-    }else return;
+        if(bpb.sector_per_fat_table <= 0) throw -2;
+    }else throw -1;
 
 // formated
     /**
@@ -40,7 +25,7 @@ status{RAW}, part{part_init}{
      * if error: back to FAT2
      */
     DebugInfo(
-    kout << "[FAT] status=" << (int)status << " res=" << bpb.reserved_sectors
+    kout << "[FAT] res=" << bpb.reserved_sectors
          << " nfat=" << (int)bpb.fat_table_count << " spf=" << bpb.sector_per_fat_table
          << " rootent=" << bpb.root_entry_num << '\n';
     )
@@ -54,10 +39,6 @@ status{RAW}, part{part_init}{
     FATTable::init(bpb.reserved_sectors, bpb.sector_per_fat_table);
     DirResolv::init(rootdir_sector_start, rootdir_sector_size);
     return;
-}
-
-FAT16::~FAT16() {
-    // TODO: give part back;
 }
 
 unsigned FAT16::open(String filename) {
@@ -232,10 +213,6 @@ void FAT16::set_filesystem_name(char *name) {
     }
 }
 
-Cluster *create_fat_fs(LogicalDisk *part) {
-    return new FAT16(part);
-}
-
 void format_fat_fs(
     LogicalDisk *part, size_t cluster_size
 ){
@@ -331,4 +308,21 @@ void format_fat_fs(
     return;
 }
 
-#pragma GCC optimize("Os")
+
+
+Converter::MatchDegree FAT16conv::touch(KernelObj *obj) {
+    auto *ldisk = dynamic_cast<LogicalDisk *>(obj);
+    if (!ldisk) return MatchDegree::Unknow;
+
+    try {
+        fatfs = new FAT16{ldisk};
+    } catch(int err) {
+        if (err == -1) return MatchDegree::Unknow;
+        else if (err == -2) return MatchDegree::MatchBad;
+    }
+    return MatchDegree::Match;
+}
+
+void FAT16conv::conv(KernelObj *) {
+    driverletterspace->regist(fatfs);
+}

@@ -1,5 +1,4 @@
 #pragma GCC optimize("Os")
-#pragma GCC diagnostic ignored "-Wunused-variable"
 #include "ahci.hpp"
 #include <lib32.hpp>
 
@@ -7,13 +6,13 @@ using namespace ATAdev;
 
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::PCI_AHCI,
-    DeviceInfo::ClassType::storage,
-    [](DeviceInfo *info) -> DeviceDriver *{
+    pds::DeviceInfo::ClassType::storage,
+    [](pds::DeviceInfo *info) -> DeviceDriver *{
         return new ATAdev::SATA_control{*info};
     }
 };
 
-SATA_control::SATA_control(DeviceInfo &info):
+SATA_control::SATA_control(pds::DeviceInfo &info):
 cfg{static_cast<PCI_device_config *>(info.config)},
 enumer{info.enumer}, cfg_ptr{info.config} {
     if (enumer) enumer->set_mod(cfg_ptr);

@@ -4,6 +4,8 @@
 #include <lib/utility>
 #include <interface/hardev/drvhead.hpp>
 #include <interface/knlobj/knlobj.hpp>
+#include <interface/knlobj/converter.hpp>
+#include <SrvDevMgr/cdm.hpp>
 
 #undef LocalDebug
 #include <global/macro.hpp>
@@ -443,12 +445,6 @@ public:
 
 class FAT16 final : public Cluster, public FATTable<FAT16>, public DirResolv<FAT16> {
 public:
-    enum STATUS {
-        RAW,
-        UNFORMAT,
-        FORMAT,
-    }status;
-
 // disk info
     LogicalDisk *part;
     unsigned sec_per_clu; // sectors num
@@ -456,7 +452,7 @@ public:
     unsigned bytes_per_sector;
 public:
     FAT16(LogicalDisk *part);
-    ~FAT16();
+    ~FAT16() {}
 
     unsigned read(void *, unsigned, unsigned, unsigned) override;
     unsigned write(void *, unsigned, unsigned, unsigned) override;
@@ -475,4 +471,11 @@ public:
     size_t cluster_size() { return sec_per_clu; }
     unsigned disk_read(void *, unsigned, unsigned);
     unsigned disk_write(void *, unsigned, unsigned);
+};
+
+class FAT16conv : public Converter {
+    FAT16 *fatfs;
+public:
+    MatchDegree touch(KernelObj *) override;
+    void conv(KernelObj *) override;
 };

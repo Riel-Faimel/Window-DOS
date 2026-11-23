@@ -1,7 +1,6 @@
 #include "kmod.hpp"
-#include <drv/bus/PCI/pci.hpp>
-#include <drv/bus/ISA/isa.hpp>
 #include <PDS/pds.hpp>
+#include <KrnlObjMgr/kom.hpp>
 #include <global/type.hpp>
 
 extern "C" {
@@ -29,7 +28,6 @@ public:
 
             ModuleTypeBanch(PDevDrv)
             ModuleTypeBanch(KrnlObj)
-            ModuleTypeBanch(SrvDev)
             ModuleTypeBanch(EnumerMod)
             ModuleTypeBanch(SyscallMod)
             default:{

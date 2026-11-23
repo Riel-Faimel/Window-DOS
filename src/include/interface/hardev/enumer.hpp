@@ -17,6 +17,7 @@ public:
         EnumerIndex operator ++ (int) { return EnumerIndex{id++}; }
     } id{};
     void set_id(EnumerIndex id_) noexcept { id = id_; }
+    EnumerIndex get_id() const { return id; }
     virtual void probe() = 0;
     virtual void set_mod(void *) = 0;
     virtual ~Enumerator() = default;

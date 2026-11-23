@@ -1,11 +1,10 @@
 #pragma GCC optimize("Os")
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "ide.hpp"
 
 InsideModuleRecord PDevDrv head {
     ProgIFIndex::PCI_IDE,
-    DeviceInfo::ClassType::storage,
-    [](DeviceInfo *) -> DeviceDriver *{ return new ATAdev::IDE_control{}; }
+    pds::DeviceInfo::ClassType::storage,
+    [](pds::DeviceInfo *) -> DeviceDriver *{ return new ATAdev::IDE_control{}; }
 };
 
 namespace {

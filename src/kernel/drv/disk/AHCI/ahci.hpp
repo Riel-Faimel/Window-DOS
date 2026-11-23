@@ -67,7 +67,7 @@ public:
     using ATADiskControl::read;
     using ATADiskControl::write;
 
-    SATA_control(DeviceInfo &info);
+    SATA_control(pds::DeviceInfo &info);
     /**
      * set GHC AE for AHCI(not IDE mode)
      * read PI registry to find all exist port

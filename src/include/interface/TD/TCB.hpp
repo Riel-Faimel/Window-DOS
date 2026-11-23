@@ -43,7 +43,6 @@ protected:
 static_assert(sizeof(TCB) == 24);
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
 static_assert(__builtin_offsetof(TCB, next) == 4);
 static_assert(__builtin_offsetof(TCB, prev) == 8);
 static_assert(__builtin_offsetof(TCB, remain_size) == 14);
